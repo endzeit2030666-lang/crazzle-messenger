@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Camera, Type } from 'lucide-react';
+import { ArrowLeft, Plus, Camera, Type, FileImage } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { currentUser, users } from '@/lib/data';
@@ -15,6 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { useToast } from '@/hooks/use-toast';
 
 
 type Status = {
@@ -51,6 +52,7 @@ export default function StatusPage() {
   const [viewingStatus, setViewingStatus] = useState<Status | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { toast } = useToast();
 
   const myStatus = statuses.find(s => s.userId === currentUser.id);
   const recentUpdates = statuses.filter(s => s.userId !== currentUser.id && !s.viewed);
@@ -85,6 +87,14 @@ export default function StatusPage() {
       if (currentStoryIndex > 0) {
           setCurrentStoryIndex(prev => prev - 1);
       }
+  }
+
+  const handleFileUpload = () => {
+    setIsSheetOpen(false);
+    toast({
+        title: "Nicht implementiert",
+        description: "Das Hochladen aus der Galerie ist für Demozwecke nicht implementiert."
+    });
   }
 
 
@@ -164,6 +174,10 @@ export default function StatusPage() {
               <Button variant="outline" className="w-full justify-start h-14" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
                 <Camera className="w-6 h-6 mr-4" />
                 <span className="text-lg">Foto oder Video</span>
+              </Button>
+              <Button variant="outline" className="w-full justify-start h-14" onClick={handleFileUpload}>
+                <FileImage className="w-6 h-6 mr-4" />
+                <span className="text-lg">Bild oder Video aus Galerie</span>
               </Button>
             </div>
           </SheetContent>
