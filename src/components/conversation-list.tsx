@@ -41,8 +41,8 @@ export default function ConversationList({
 
   const handleCreateGroup = () => {
       toast({
-          title: "Create New Group",
-          description: "This feature is for demonstration purposes."
+          title: "Neue Gruppe erstellen",
+          description: "Diese Funktion dient zu Demonstrationszwecken."
       })
   }
 
@@ -74,7 +74,7 @@ export default function ConversationList({
     if (!name || !avatar) return null;
     
     const lastMessage = convo.messages[convo.messages.length - 1];
-    const lastMessageSender = convo.type === 'group' && lastMessage ? convo.participants.find(p => p.id === lastMessage.senderId)?.name.split(' ')[0] : (lastMessage?.senderId === currentUser.id ? 'You' : undefined);
+    const lastMessageSender = convo.type === 'group' && lastMessage ? convo.participants.find(p => p.id === lastMessage.senderId)?.name.split(' ')[0] : (lastMessage?.senderId === currentUser.id ? 'Du' : undefined);
 
     return (
       <div className="relative">
@@ -96,7 +96,7 @@ export default function ConversationList({
           <div className="flex-1 overflow-hidden pr-5">
             <div className="flex items-center justify-between">
               <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{name}</h3>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pr-5">
                   {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
                   {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
                   <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-accent")}>{lastMessage?.timestamp}</p>
@@ -112,25 +112,25 @@ export default function ConversationList({
           <DropdownMenu>
               <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 z-10">
-                      <MoreVertical className="w-4 h-4 text-foreground" />
+                      <MoreVertical className="w-4 h-4 text-white" />
                   </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-64">
                 <DropdownMenuItem onClick={() => onPinToggle(convo.id)}>
                   {convo.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-                  <span>{convo.isPinned ? 'Unpin' : 'Pin'} Chat</span>
+                  <span>{convo.isPinned ? 'Chat lösen' : 'Chat anpinnen'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onMuteToggle(convo.id)}>
                   {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-                  <span>{convo.isMuted ? 'Unmute' : 'Mute'}</span>
+                  <span>{convo.isMuted ? 'Stumm AN' : 'Stumm AUS'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Archive className="mr-2 h-4 w-4" />
-                  <span>Archive</span>
+                  <span>Archivieren</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive focus:text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Delete</span>
+                  <span>Löschen</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
           </DropdownMenu>
@@ -157,7 +157,7 @@ export default function ConversationList({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Status Updates</p>
+                        <p>Status-Updates</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
@@ -169,7 +169,7 @@ export default function ConversationList({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>New Group</p>
+                        <p>Neue Gruppe</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
@@ -179,7 +179,7 @@ export default function ConversationList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search contacts or groups..."
+            placeholder="Kontakte oder Gruppen suchen..."
             className="pl-9 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary placeholder:text-foreground"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -190,11 +190,11 @@ export default function ConversationList({
         <nav className="p-2 space-y-1">
           {pinned.length > 0 && (
             <div className="mb-2">
-              <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider uppercase">Pinned</h3>
+              <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider uppercase">Angepinnt</h3>
               {pinned.map(convo => <ConversationItem key={convo.id} convo={convo} />)}
             </div>
           )}
-          <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider uppercase">All Chats</h3>
+          <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider uppercase">Alle Chats</h3>
           {unpinned.map(convo => <ConversationItem key={convo.id} convo={convo} />)}
         </nav>
       </div>

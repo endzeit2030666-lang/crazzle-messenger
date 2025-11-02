@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Label } from '@/components/ui/label';
 
 type Screen = 'main' | 'account' | 'security' | 'notifications';
 
@@ -62,19 +63,19 @@ export default function SettingsPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="font-headline text-xl font-bold ml-4">Settings</h1>
+        <h1 className="font-headline text-xl font-bold ml-4">Einstellungen</h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-2">
-        <SettingsItem icon={User} label="Account" onClick={() => setScreen('account')} />
-        <SettingsItem icon={Lock} label="Security & Privacy" onClick={() => setScreen('security')} />
-        <SettingsItem icon={Bell} label="Notifications" onClick={() => setScreen('notifications')} />
-        <SettingsItem icon={Palette} label="Appearance" onClick={() => toast({ title: 'Not Implemented' })} />
-        <SettingsItem icon={PieChart} label="Storage" onClick={() => toast({ title: 'Not Implemented' })} />
-        <SettingsItem icon={HelpCircle} label="Help & Support" onClick={() => toast({ title: 'Not Implemented' })} />
+        <SettingsItem icon={User} label="Konto" onClick={() => setScreen('account')} />
+        <SettingsItem icon={Lock} label="Sicherheit & Datenschutz" onClick={() => setScreen('security')} />
+        <SettingsItem icon={Bell} label="Benachrichtigungen" onClick={() => setScreen('notifications')} />
+        <SettingsItem icon={Palette} label="Darstellung" onClick={() => toast({ title: 'Nicht implementiert' })} />
+        <SettingsItem icon={PieChart} label="Speicher" onClick={() => toast({ title: 'Nicht implementiert' })} />
+        <SettingsItem icon={HelpCircle} label="Hilfe & Support" onClick={() => toast({ title: 'Nicht implementiert' })} />
         <div className="pt-4">
-            <Button variant="destructive" className="w-full" onClick={() => toast({ title: 'Logged Out' })}>
+            <Button variant="destructive" className="w-full" onClick={() => toast({ title: 'Abgemeldet' })}>
                 <LogOut className="w-5 h-5 mr-2" />
-                Log Out
+                Abmelden
             </Button>
         </div>
       </main>
@@ -87,49 +88,49 @@ export default function SettingsPage() {
         <Button variant="ghost" size="icon" onClick={() => setScreen('main')}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="font-headline text-xl font-bold ml-4">Security & Privacy</h1>
+        <h1 className="font-headline text-xl font-bold ml-4">Sicherheit & Datenschutz</h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-6">
         <div>
-          <h3 className="font-semibold px-2 mb-2">App Lock</h3>
+          <h3 className="font-semibold px-2 mb-2">App-Sperre</h3>
           <div className="bg-muted/50 rounded-lg p-4 space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="app-lock">Enable App Lock</Label>
+              <Label htmlFor="app-lock">App-Sperre aktivieren</Label>
               <Switch id="app-lock" checked={appLockEnabled} onCheckedChange={setAppLockEnabled} />
             </div>
             {appLockEnabled && (
                 <>
                 <div className="border-t border-border my-2"></div>
                  <div className="flex items-center justify-between">
-                    <Label htmlFor="biometrics">Use Face ID / Fingerprint</Label>
+                    <Label htmlFor="biometrics">Face ID / Fingerabdruck nutzen</Label>
                     <Switch id="biometrics" checked={useBiometrics} onCheckedChange={setUseBiometrics} />
                 </div>
                  <div className="flex items-center justify-between">
-                    <Label htmlFor="lock-immediately">Lock Immediately</Label>
+                    <Label htmlFor="lock-immediately">Sofort sperren</Label>
                     <Switch id="lock-immediately" checked={lockImmediately} onCheckedChange={setLockImmediately} />
                 </div>
-                <Button variant="link" className="p-0 h-auto">Change PIN</Button>
+                <Button variant="link" className="p-0 h-auto">PIN ändern</Button>
                 </>
             )}
           </div>
            <p className="text-xs text-muted-foreground mt-2 px-2">
-              When enabled, you'll need to use your PIN, fingerprint or Face ID to unlock Crazzle.
+              Wenn aktiviert, musst du deine PIN, deinen Fingerabdruck oder Face ID verwenden, um Crazzle zu entsperren.
           </p>
         </div>
         
         <div>
-          <h3 className="font-semibold px-2 mb-2">Privacy</h3>
+          <h3 className="font-semibold px-2 mb-2">Datenschutz</h3>
            <div className="bg-muted/50 rounded-lg p-4 space-y-4">
               <div className="flex items-center justify-between">
-              <Label htmlFor="read-receipts">Read Receipts</Label>
+              <Label htmlFor="read-receipts">Lesebestätigungen</Label>
               <Switch id="read-receipts" checked={readReceipts} onCheckedChange={setReadReceipts} />
             </div>
              <p className="text-xs text-muted-foreground mt-2">
-                If you turn this off, you won't be able to see read receipts from other people. Read receipts are always sent for group chats.
+                Wenn du dies ausschaltest, kannst du keine Lesebestätigungen von anderen Personen sehen. Lesebestätigungen werden in Gruppenchats immer gesendet.
             </p>
             <div className="border-t border-border my-2"></div>
             <button onClick={() => setShowBlockDialog(true)} className="w-full flex items-center justify-between text-left">
-                <Label>Blocked Contacts</Label>
+                <Label>Blockierte Kontakte</Label>
                 <div className="flex items-center">
                     <span className="text-muted-foreground mr-2">3</span>
                     <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -142,23 +143,23 @@ export default function SettingsPage() {
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Blocked Contacts</AlertDialogTitle>
+            <AlertDialogTitle>Blockierte Kontakte</AlertDialogTitle>
             <AlertDialogDescription>
-              You will not receive messages or calls from these contacts.
+              Sie erhalten keine Nachrichten oder Anrufe von diesen Kontakten.
             </AlertDialogDescription>
           </AlertDialogHeader>
             <div className="space-y-2 py-4">
                 <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
                     <span>Alice</span>
-                    <Button variant="outline" size="sm">Unblock</Button>
+                    <Button variant="outline" size="sm">Entsperren</Button>
                 </div>
                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
                     <span>Bob</span>
-                    <Button variant="outline" size="sm">Unblock</Button>
+                    <Button variant="outline" size="sm">Entsperren</Button>
                 </div>
             </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
+            <AlertDialogCancel>Schließen</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

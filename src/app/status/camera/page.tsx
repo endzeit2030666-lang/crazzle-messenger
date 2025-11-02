@@ -53,12 +53,12 @@ export default function CameraPage() {
         };
 
       } catch (error) {
-        console.error('Error accessing camera:', error);
+        console.error('Fehler beim Kamerazugriff:', error);
         setHasCameraPermission(false);
         toast({
           variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings.',
+          title: 'Kamerazugriff verweigert',
+          description: 'Bitte aktiviere die Kameraberechtigungen in deinen Browsereinstellungen.',
         });
       }
     };
@@ -114,16 +114,16 @@ export default function CameraPage() {
   const handlePostStatus = () => {
     setShowDurationDialog(false);
     toast({
-        title: "Status Posted!",
-        description: `Your status will be visible for ${statusDuration === '48h' ? '48 hours' : 'forever'}. Caption: "${caption}"`
+        title: "Status gepostet!",
+        description: `Dein Status wird für ${statusDuration === '48h' ? '48 Stunden' : 'immer'} sichtbar sein. Titel: "${caption}"`
     });
     router.push('/status');
   }
 
   const handleSendToChat = () => {
     toast({
-      title: "Media Sent!",
-      description: `Your ${mediaType} has been sent to the chat. Caption: "${caption}"`,
+      title: "Medien gesendet!",
+      description: `Deine ${mediaType === 'photo' ? 'Foto' : 'Video'} wurde an den Chat gesendet. Titel: "${caption}"`,
     });
     // This assumes the camera was opened from a chat context, which we can get from URL params
     const chatId = searchParams.get('chatId');
@@ -143,7 +143,7 @@ export default function CameraPage() {
     return (
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
             <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
-                 <Button variant="ghost" size="icon" onClick={() => toast({title: "Filters not implemented"})}>
+                 <Button variant="ghost" size="icon" onClick={() => toast({title: "Filter nicht implementiert"})}>
                     <Zap className="w-6 h-6 text-white" />
                 </Button>
                 <Button variant="ghost" size="icon" onClick={resetCapture}>
@@ -164,22 +164,22 @@ export default function CameraPage() {
                     <Textarea 
                         value={caption}
                         onChange={(e) => setCaption(e.target.value)}
-                        placeholder="Add a caption..."
+                        placeholder="Bildunterschrift hinzufügen..."
                         className="flex-1 resize-none bg-black/50 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-primary"
                         rows={1}
                     />
                 </div>
                 <div className="flex items-center justify-between mt-4">
                     <div className="flex gap-2">
-                        <Button variant="ghost" className="text-white" onClick={() => toast({title: "Saved to device (simulated)"})}>
+                        <Button variant="ghost" className="text-white" onClick={() => toast({title: "Auf dem Gerät gespeichert (simuliert)"})}>
                             <Download className="w-5 h-5 mr-2" />
-                            Save
+                            Speichern
                         </Button>
                     </div>
 
                     <div className="flex gap-2">
                          <Button className="bg-accent text-accent-foreground" onClick={() => setShowDurationDialog(true)}>
-                            Post to Status <Clock className="w-4 h-4 ml-2" />
+                            Als Status posten <Clock className="w-4 h-4 ml-2" />
                         </Button>
                         <Button className="bg-primary hover:bg-primary/90" size="icon" onClick={handleSendToChat}>
                             <Send className="w-5 h-5" />
@@ -191,21 +191,21 @@ export default function CameraPage() {
             <Dialog open={showDurationDialog} onOpenChange={setShowDurationDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Status Duration</DialogTitle>
-                        <DialogDescription>Choose how long your status will be visible.</DialogDescription>
+                        <DialogTitle>Status-Dauer</DialogTitle>
+                        <DialogDescription>Wähle, wie lange dein Status sichtbar sein soll.</DialogDescription>
                     </DialogHeader>
                     <RadioGroup defaultValue="48h" className="my-4 space-y-2" onValueChange={setStatusDuration}>
                         <div className="flex items-center space-x-2">
                         <RadioGroupItem value="48h" id="r1" />
-                        <Label htmlFor="r1">⏰ Auto-delete after 48 hours</Label>
+                        <Label htmlFor="r1">⏰ Nach 48 Stunden automatisch löschen</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                         <RadioGroupItem value="forever" id="r2" />
-                        <Label htmlFor="r2">♾️ Keep forever (in your profile archive)</Label>
+                        <Label htmlFor="r2">♾️ Für immer behalten (in deinem Profilarchiv)</Label>
                         </div>
                     </RadioGroup>
                     <DialogFooter>
-                        <Button onClick={handlePostStatus} className="w-full bg-primary hover:bg-primary/90">Post Status</Button>
+                        <Button onClick={handlePostStatus} className="w-full bg-primary hover:bg-primary/90">Status posten</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -230,14 +230,14 @@ export default function CameraPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center relative">
-        {hasCameraPermission === null && <p>Requesting camera permission...</p>}
-        {hasCameraPermission === false && <p className="text-destructive">Camera access denied. Please enable it in your browser settings.</p>}
+        {hasCameraPermission === null && <p>Fordere Kameraberechtigung an...</p>}
+        {hasCameraPermission === false && <p className="text-destructive">Kamerazugriff verweigert. Bitte aktiviere ihn in deinen Browsereinstellungen.</p>}
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
       </main>
 
       <footer className="p-4 flex flex-col items-center gap-4">
         <div className="flex items-center gap-8">
-            <button onClick={() => setMode('photo')} className={cn('py-1 transition-colors', mode === 'photo' ? 'font-bold text-primary border-b-2 border-primary' : 'text-neutral-400')}>Photo</button>
+            <button onClick={() => setMode('photo')} className={cn('py-1 transition-colors', mode === 'photo' ? 'font-bold text-primary border-b-2 border-primary' : 'text-neutral-400')}>Foto</button>
             <button onClick={() => setMode('video')} className={cn('py-1 transition-colors', mode === 'video' ? 'font-bold text-primary border-b-2 border-primary' : 'text-neutral-400')}>Video</button>
         </div>
         <div className="w-full flex items-center justify-around">
@@ -247,7 +247,7 @@ export default function CameraPage() {
             <button
                 onClick={handleCapture}
                 className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-all"
-                aria-label={isRecording ? "Stop recording" : (mode === 'photo' ? 'Take photo' : 'Start recording')}
+                aria-label={isRecording ? "Aufnahme stoppen" : (mode === 'photo' ? 'Foto aufnehmen' : 'Aufnahme starten')}
             >
                 {mode === 'photo' ? (
                      <div className="w-16 h-16 bg-primary rounded-full"></div>

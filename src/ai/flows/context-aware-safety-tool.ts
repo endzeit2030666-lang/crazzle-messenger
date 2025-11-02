@@ -20,19 +20,20 @@ const AnalyzeCommunicationOutputSchema = z.object({
   isSensitiveDataDetected: z
     .boolean()
     .describe(
-      'Whether or not sensitive data like passwords or account numbers is detected in the communication.'
+      'Ob sensible Daten wie Passwörter oder Kontonummern in der Kommunikation erkannt werden.'
     ),
   isFraudPhishingScamLikely:
-    z.boolean().describe('Whether or not the communication exhibits indicators of fraud, phishing, or scam attempts.'),
+    z.boolean().describe('Ob die Kommunikation Anzeichen von Betrug, Phishing oder Scam-Versuchen aufweist.'),
   sensitiveDataType: z
     .string()
+
     .optional()
-    .describe('The type of sensitive data detected, if any (e.g., password, account number).'),
+    .describe('Die Art der erkannten sensiblen Daten, falls vorhanden (z.B. Passwort, Kontonummer).'),
   reason: z
     .string()
     .optional()
-    .describe('The reason for the fraud/phishing/scam determination, if applicable.'),
-  advice: z.string().optional().describe('Advice to display to the user'),
+    .describe('Der Grund für die Betrugs-/Phishing-/Scam-Einschätzung, falls zutreffend.'),
+  advice: z.string().optional().describe('Ein Ratschlag, der dem Benutzer angezeigt werden soll.'),
 });
 export type AnalyzeCommunicationOutput = z.infer<typeof AnalyzeCommunicationOutputSchema>;
 
@@ -44,15 +45,15 @@ const prompt = ai.definePrompt({
   name: 'analyzeCommunicationPrompt',
   input: {schema: AnalyzeCommunicationInputSchema},
   output: {schema: AnalyzeCommunicationOutputSchema},
-  prompt: `You are a security assistant that analyzes user communications to identify potential risks.
+  prompt: `Sie sind ein Sicherheitsassistent, der die Kommunikation von Benutzern analysiert, um potenzielle Risiken zu identifizieren.
 
-You will receive the content of a communication and must determine if it contains sensitive information or exhibits indicators of fraud, phishing, or scam attempts.
+Sie erhalten den Inhalt einer Kommunikation und müssen feststellen, ob sie sensible Informationen enthält oder Anzeichen von Betrug, Phishing oder Betrugsversuchen aufweist.
 
-Based on your analysis, set the isSensitiveDataDetected and isFraudPhishingScamLikely output fields appropriately. If sensitive data is detected, identify the type of data and include it in the sensitiveDataType field. If fraud, phishing, or scam is likely, provide the reason in the reason field.
+Setzen Sie auf der Grundlage Ihrer Analyse die Ausgabefelder isSensitiveDataDetected und isFraudPhishingScamLikely entsprechend. Wenn sensible Daten erkannt werden, identifizieren Sie die Art der Daten und nehmen Sie sie in das Feld sensitiveDataType auf. Wenn Betrug, Phishing oder Betrug wahrscheinlich ist, geben Sie den Grund im Feld reason an.
 
-Finally, add a short piece of advice to display to the user, that could help the user stay safe.
+Fügen Sie abschließend einen kurzen Ratschlag hinzu, der dem Benutzer angezeigt werden soll und ihm helfen könnte, sicher zu bleiben.
 
-Communication Content: {{{text}}}`,
+Kommunikationsinhalt: {{{text}}}`,
 });
 
 const analyzeCommunicationFlow = ai.defineFlow(

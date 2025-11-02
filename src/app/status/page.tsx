@@ -27,20 +27,20 @@ type Status = {
 const initialStatusUpdates: Status[] = [
   {
     userId: currentUser.id,
-    stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Just now' }],
+    stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
     viewed: true,
   },
   {
     userId: users[0].id,
     stories: [
-        { imageUrl: 'https://picsum.photos/seed/92/540/960', timestamp: '2 hours ago' },
-        { imageUrl: 'https://picsum.photos/seed/93/540/960', timestamp: '1 hour ago' }
+        { imageUrl: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
+        { imageUrl: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
     ],
     viewed: false,
   },
   {
     userId: users[2].id,
-    stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: '8 hours ago' }],
+    stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
     viewed: true,
   },
 ];
@@ -200,7 +200,7 @@ export default function StatusPage() {
                                 </div>
                                 <div>
                                     <h2 className="font-semibold text-primary">{user.name}</h2>
-                                    <p className="text-sm text-foreground">{status.stories[status.stories.length - 1].timestamp}</p>
+                                    <p className="text-sm text-white">{status.stories[status.stories.length - 1].timestamp}</p>
                                 </div>
                             </div>
                         )
@@ -226,7 +226,7 @@ export default function StatusPage() {
                                 </div>
                                 <div>
                                     <h2 className="font-semibold text-primary">{user.name}</h2>
-                                    <p className="text-sm text-foreground">{status.stories[status.stories.length - 1].timestamp}</p>
+                                    <p className="text-sm text-white">{status.stories[status.stories.length - 1].timestamp}</p>
                                 </div>
                             </div>
                         )

@@ -32,9 +32,9 @@ export default function ContactVerificationDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md bg-card">
         <DialogHeader>
-          <DialogTitle className="font-headline text-center text-2xl">Verify Identity</DialogTitle>
+          <DialogTitle className="font-headline text-center text-2xl">Identität verifizieren</DialogTitle>
           <DialogDescription className="text-center">
-            You can verify this contact's identity to ensure you are communicating with the right person.
+            Du kannst die Identität dieses Kontakts überprüfen, um sicherzustellen, dass du mit der richtigen Person kommunizierst.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-6 py-6">
@@ -59,13 +59,13 @@ export default function ContactVerificationDialog({
           )}
           
           <div className="w-full p-4 bg-muted rounded-lg text-center break-all">
-            <p className="text-xs text-muted-foreground mb-2">Public Key Fingerprint</p>
+            <p className="text-xs text-muted-foreground mb-2">Öffentlicher Schlüssel-Fingerabdruck</p>
             <p className="font-mono text-sm tracking-tighter">{contact.publicKey}</p>
           </div>
         </div>
          <div className="flex items-center justify-center text-sm text-muted-foreground">
             <Lock className="w-4 h-4 mr-2" />
-            Your communication is end-to-end encrypted.
+            Deine Kommunikation ist Ende-zu-Ende-verschlüsselt.
         </div>
       </DialogContent>
     </Dialog>

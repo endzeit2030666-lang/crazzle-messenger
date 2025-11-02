@@ -61,7 +61,7 @@ export default function ChatLayout() {
           return {
             ...convo,
             messages: forEveryone 
-              ? convo.messages.map(msg => msg.id === messageId ? { ...msg, content: "This message was deleted" } : msg)
+              ? convo.messages.map(msg => msg.id === messageId ? { ...msg, content: "Diese Nachricht wurde gelöscht" } : msg)
               : convo.messages.filter(msg => msg.id !== messageId),
           };
         }
@@ -161,7 +161,7 @@ export default function ChatLayout() {
           />
         ) : (
           <div className="flex-1 items-center justify-center text-muted-foreground bg-muted/20 hidden md:flex">
-            Select a conversation to start messaging.
+            Wähle eine Konversation, um mit dem Chatten zu beginnen.
           </div>
         )}
       </div>

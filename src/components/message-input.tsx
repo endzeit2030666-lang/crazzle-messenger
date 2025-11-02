@@ -145,7 +145,7 @@ export default function MessageInput({
   const handleFeatureNotImplemented = (featureName: string) => {
     toast({
       title: `${featureName}`,
-      description: 'This feature is for demonstration and is not yet implemented.',
+      description: 'Diese Funktion dient zu Demonstrationszwecken und ist noch nicht implementiert.',
     });
   };
 
@@ -222,7 +222,7 @@ export default function MessageInput({
         {analysis && (
           <Alert variant="destructive" className="mb-2">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Potential Risk Detected</AlertTitle>
+            <AlertTitle>Potenzielles Risiko erkannt</AlertTitle>
             <AlertDescription>{analysis.advice}</AlertDescription>
           </Alert>
         )}
@@ -235,7 +235,7 @@ export default function MessageInput({
             className="shrink-0"
           >
             <CameraIcon className="h-5 w-5" />
-            <span className="sr-only">Open camera</span>
+            <span className="sr-only">Kamera öffnen</span>
           </Button>
           <Popover>
             <PopoverTrigger asChild>
@@ -246,25 +246,25 @@ export default function MessageInput({
                 className="shrink-0"
               >
                 <Plus className="h-5 w-5" />
-                <span className="sr-only">Attach file</span>
+                <span className="sr-only">Datei anhängen</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-2 mb-2">
               <div className="grid grid-cols-1 gap-1">
                 <AttachmentButton
                   icon={ImageIcon}
-                  label="Image from Gallery"
-                  action={() => handleFeatureNotImplemented('Image from Gallery')}
+                  label="Bild aus Galerie"
+                  action={() => handleFeatureNotImplemented('Bild aus Galerie')}
                 />
                 <AttachmentButton
                   icon={Video}
-                  label="Video from Gallery"
-                  action={() => handleFeatureNotImplemented('Video from Gallery')}
+                  label="Video aus Galerie"
+                  action={() => handleFeatureNotImplemented('Video aus Galerie')}
                 />
                 <hr className="my-2 border-border" />
                 <AttachmentButton
                   icon={FileText}
-                  label="Document"
+                  label="Dokument"
                   formats=".pdf, .doc, .xls, .ppt, .txt..."
                 />
                 <AttachmentButton
@@ -274,12 +274,12 @@ export default function MessageInput({
                 />
                 <AttachmentButton
                   icon={FileArchive}
-                  label="Compressed"
+                  label="Komprimiert"
                   formats=".zip, .rar, .7z"
                 />
                 <AttachmentButton
                   icon={FileCode}
-                  label="Other"
+                  label="Andere"
                   formats=".html, .csv, .apk..."
                 />
               </div>
@@ -294,7 +294,7 @@ export default function MessageInput({
             className="shrink-0"
           >
             <Smile className="h-5 w-5" />
-            <span className="sr-only">Open emoji picker</span>
+            <span className="sr-only">Emoji-Picker öffnen</span>
           </Button>
 
           <Textarea
@@ -302,7 +302,7 @@ export default function MessageInput({
             value={text}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="Type an encrypted message..."
+            placeholder="Verschlüsselte Nachricht tippen..."
             className="flex-1 resize-none bg-muted border-0 focus-visible:ring-0 max-h-40 overflow-y-auto"
             rows={1}
           />
@@ -316,7 +316,7 @@ export default function MessageInput({
               className="shrink-0"
             >
               <Send className="h-5 w-5" />
-              <span className="sr-only">{isEditing ? 'Save changes' : 'Send message'}</span>
+              <span className="sr-only">{isEditing ? 'Änderungen speichern' : 'Nachricht senden'}</span>
             </Button>
           ) : (
             <TooltipProvider>
@@ -326,15 +326,15 @@ export default function MessageInput({
                     variant="ghost"
                     size="icon"
                     type="button"
-                    onClick={() => handleFeatureNotImplemented('Voice messages')}
+                    onClick={() => handleFeatureNotImplemented('Sprachnachrichten')}
                     className="shrink-0"
                   >
                     <Mic className="h-5 w-5 text-primary" />
-                    <span className="sr-only">Record voice message</span>
+                    <span className="sr-only">Sprachnachricht aufnehmen</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Record voice message</p>
+                  <p>Sprachnachricht aufnehmen</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -348,16 +348,16 @@ export default function MessageInput({
                   size="icon"
                   type="button"
                   onClick={() =>
-                    handleFeatureNotImplemented('Self-destructing messages')
+                    handleFeatureNotImplemented('Selbstzerstörende Nachrichten')
                   }
                   className="shrink-0"
                 >
                   <Clock className="h-5 w-5" />
-                  <span className="sr-only">Self-destructing message</span>
+                  <span className="sr-only">Selbstzerstörende Nachricht</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Self-destructing message</p>
+                <p>Selbstzerstörende Nachricht</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -371,5 +371,3 @@ export default function MessageInput({
     </div>
   );
 }
-
-    

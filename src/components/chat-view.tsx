@@ -64,16 +64,16 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
   
   const handleCall = (type: 'audio' | 'video') => {
     toast({
-        title: `Starting ${type} call...`,
-        description: "This feature is for demonstration purposes."
+        title: `${type === 'audio' ? 'Sprachanruf' : 'Videoanruf'} wird gestartet...`,
+        description: "Diese Funktion dient zu Demonstrationszwecken."
     })
   }
 
   const handleBlockContact = () => {
     setShowBlockDialog(false);
     toast({
-      title: `${headerDetails.name} has been blocked.`,
-      description: `You will no longer receive messages or calls from them.`
+      title: `${headerDetails.name} wurde blockiert.`,
+      description: `Du wirst keine Nachrichten oder Anrufe mehr von diesem Kontakt erhalten.`
     })
   }
   
@@ -82,7 +82,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
     setQuotedMessage({
         id: message.id,
         content: message.content,
-        senderName: sender?.name || 'Unknown'
+        senderName: sender?.name || 'Unbekannt'
     });
     setEditingMessage(null);
   };
@@ -105,9 +105,9 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
   const headerDetails = group ? {
       name: group.name,
       avatar: group.avatar,
-      info: `${group.participants.length} participants`
+      info: `${group.participants.length} Teilnehmer`
   } : {
-      name: contact?.name || "Unknown",
+      name: contact?.name || "Unbekannt",
       avatar: contact?.avatar || "",
       info: contact?.onlineStatus || "offline"
   };
@@ -128,7 +128,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
            <div className="flex items-center text-sm text-foreground">
              {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-green-500' : 'text-red-500')} /> {contact.onlineStatus}</>}
-             {group && <p>{group.participants.length} members</p>}
+             {group && <p>{group.participants.length} Mitglieder</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -137,10 +137,10 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
                     <TooltipTrigger asChild>
                          <Button variant="ghost" size="icon" onClick={() => handleCall('audio')}>
                             <Phone className="w-5 h-5 text-accent" />
-                            <span className="sr-only">Voice Call</span>
+                            <span className="sr-only">Sprachanruf</span>
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Voice Call</p></TooltipContent>
+                    <TooltipContent><p>Sprachanruf</p></TooltipContent>
                  </Tooltip>
              </TooltipProvider>
               <TooltipProvider>
@@ -148,10 +148,10 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
                     <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={() => handleCall('video')}>
                             <Video className="w-5 h-5 text-accent" />
-                            <span className="sr-only">Video Call</span>
+                            <span className="sr-only">Videoanruf</span>
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Video Call</p></TooltipContent>
+                    <TooltipContent><p>Videoanruf</p></TooltipContent>
                  </Tooltip>
              </TooltipProvider>
 
@@ -159,30 +159,30 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <MoreVertical className="w-5 h-5 text-accent" />
-                  <span className="sr-only">More options</span>
+                  <span className="sr-only">Weitere Optionen</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {contact && (
                   <DropdownMenuItem onClick={() => setVerificationDialogOpen(true)}>
                     <ShieldCheck className="mr-2 h-4 w-4" />
-                    <span>Verify Contact</span>
+                    <span>Kontakt verifizieren</span>
                   </DropdownMenuItem>
                 )}
                  <DropdownMenuItem>
                   <BellOff className="mr-2 h-4 w-4" />
-                  <span>Mute Notifications</span>
+                  <span>Benachrichtigungen stummschalten</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => toast({title: "Read Receipts toggled for this chat."})}>
+                <DropdownMenuItem onClick={() => toast({title: "Lesebestätigungen für diesen Chat umgeschaltet."})}>
                   <CheckCheck className="mr-2 h-4 w-4" />
-                  <span>Toggle Read Receipts</span>
+                  <span>Lesebestätigungen umschalten</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {contact && (
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowBlockDialog(true)}>
                     <Circle className="mr-2 h-4 w-4 fill-current" />
-                    <span>Block Contact</span>
+                    <span>Kontakt blockieren</span>
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -229,14 +229,14 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Block {headerDetails.name}?</AlertDialogTitle>
+            <AlertDialogTitle>{headerDetails.name} blockieren?</AlertDialogTitle>
             <AlertDialogDescription>
-              Blocked contacts will no longer be able to call you or send you messages. This contact will not be notified.
+              Blockierte Kontakte können dich nicht mehr anrufen oder dir Nachrichten senden. Dieser Kontakt wird nicht benachrichtigt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBlockContact} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Block</AlertDialogAction>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBlockContact} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Blockieren</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

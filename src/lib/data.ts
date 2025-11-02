@@ -5,7 +5,7 @@ const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id)?.
 
 export const currentUser: User = {
   id: 'user0',
-  name: 'You',
+  name: 'Du',
   avatar: findImage('avatar1'),
   onlineStatus: 'online',
   publicKey: '04:5A:CF:3B:4E:8C:9D:0F:1A:2B:3C:4D:5E:6F:7A:8B:9C:0D:1E:2F',
@@ -42,7 +42,7 @@ export const users: User[] = [
   },
     {
     id: 'user5',
-    name: 'Family Group',
+    name: 'Familiengruppe',
     avatar: findImage('groupAvatar'),
     onlineStatus: 'online',
     publicKey: '',
@@ -55,10 +55,10 @@ export const conversations: Conversation[] = [
     type: 'private',
     participants: [currentUser, users[0]],
     messages: [
-      { id: 'msg1', senderId: 'user1', content: 'Hey, how is it going?', timestamp: '10:30 AM', status: 'read', reactions: [] },
-      { id: 'msg2', senderId: 'user0', content: 'Pretty good! Working on the new secure messenger. You?', timestamp: '10:31 AM', status: 'read', reactions: [{ emoji: '👍', userId: 'user1', username: 'Alice' }] },
-      { id: 'msg3', senderId: 'user1', content: 'Awesome! I\'m testing it out now. The E2E encryption feels solid. How do I verify your key?', timestamp: '10:32 AM', status: 'read', reactions: [] },
-      { id: 'msg4', senderId: 'user0', content: 'Click on my name at the top of the chat. You\'ll see an option to verify my identity.', timestamp: '10:33 AM', status: 'delivered', reactions: [] },
+      { id: 'msg1', senderId: 'user1', content: 'Hey, wie geht\'s?', timestamp: '10:30', status: 'read', reactions: [] },
+      { id: 'msg2', senderId: 'user0', content: 'Ganz gut! Arbeite am neuen sicheren Messenger. Und du?', timestamp: '10:31', status: 'read', reactions: [{ emoji: '👍', userId: 'user1', username: 'Alice' }] },
+      { id: 'msg3', senderId: 'user1', content: 'Super! Ich teste ihn gerade. Die E2E-Verschlüsselung fühlt sich solide an. Wie verifiziere ich deinen Schlüssel?', timestamp: '10:32', status: 'read', reactions: [] },
+      { id: 'msg4', senderId: 'user0', content: 'Klicke oben im Chat auf meinen Namen. Dort siehst du eine Option, um meine Identität zu verifizieren.', timestamp: '10:33', status: 'delivered', reactions: [] },
     ],
     isPinned: true,
   },
@@ -67,18 +67,18 @@ export const conversations: Conversation[] = [
     type: 'private',
     participants: [currentUser, users[1]],
     messages: [
-      { id: 'msg5', senderId: 'user2', content: 'Can you send me the project files?', timestamp: 'Yesterday', status: 'read', reactions: [] },
-      { id: 'msg6', senderId: 'user0', content: 'Sure, sending them now. They are encrypted of course.', timestamp: 'Yesterday', status: 'read', reactions: [] },
+      { id: 'msg5', senderId: 'user2', content: 'Kannst du mir die Projektdateien schicken?', timestamp: 'Gestern', status: 'read', reactions: [] },
+      { id: 'msg6', senderId: 'user0', content: 'Klar, sende sie jetzt. Sie sind natürlich verschlüsselt.', timestamp: 'Gestern', status: 'read', reactions: [] },
       { 
         id: 'msg_yt', 
         senderId: 'user2', 
-        content: 'Check out this new song: https://www.youtube.com/watch?v=dQw4w9WgXcQ', 
-        timestamp: '11:00 AM', 
+        content: 'Schau dir diesen neuen Song an: https://www.youtube.com/watch?v=dQw4w9WgXcQ', 
+        timestamp: '11:00', 
         status: 'read',
         linkPreview: {
           url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
           image: findImage('youtubeThumbnail'),
-          title: 'Official Music Video',
+          title: 'Offizielles Musikvideo',
           description: 'youtube.com'
         },
         reactions: [],
@@ -90,8 +90,8 @@ export const conversations: Conversation[] = [
     type: 'private',
     participants: [currentUser, users[2]],
     messages: [
-      { id: 'msg7', senderId: 'user2', content: 'Let\'s try the self-destructing message feature.', timestamp: 'Yesterday', status: 'read', isSelfDestructing: true, reactions: [] },
-      { id: 'msg8', senderId: 'user0', content: 'Okay, this message will self-destruct in 5 minutes.', timestamp: 'Yesterday', status: 'read', isSelfDestructing: true, reactions: [] },
+      { id: 'msg7', senderId: 'user2', content: 'Lass uns die selbstzerstörende Nachrichtenfunktion ausprobieren.', timestamp: 'Gestern', status: 'read', isSelfDestructing: true, reactions: [] },
+      { id: 'msg8', senderId: 'user0', content: 'Okay, diese Nachricht wird sich in 5 Minuten selbst zerstören.', timestamp: 'Gestern', status: 'read', isSelfDestructing: true, reactions: [] },
     ],
     isMuted: true,
   },
@@ -100,7 +100,7 @@ export const conversations: Conversation[] = [
     type: 'private',
     participants: [currentUser, users[3]],
     messages: [
-        { id: 'msg9', senderId: 'user4', content: 'Are you available for a quick call?', timestamp: '2 days ago', status: 'read', reactions: [] },
+        { id: 'msg9', senderId: 'user4', content: 'Bist du für einen kurzen Anruf verfügbar?', timestamp: 'Vorgestern', status: 'read', reactions: [] },
     ],
   },
   {
@@ -109,14 +109,14 @@ export const conversations: Conversation[] = [
     participants: [currentUser, users[0], users[1], users[2]],
     groupDetails: {
       id: 'group1',
-      name: 'Family Group',
+      name: 'Familiengruppe',
       avatar: findImage('groupAvatar'),
       participants: [currentUser, users[0], users[1], users[2]],
     },
     messages: [
-        { id: 'gmsg1', senderId: 'user1', content: 'Hi everyone! What are we doing this weekend?', timestamp: '9:00 AM', status: 'read', reactions: [] },
-        { id: 'gmsg2', senderId: 'user2', content: 'I was thinking of a BBQ if the weather is good!', timestamp: '9:01 AM', status: 'read', reactions: [{ emoji: '❤️', userId: 'user1', username: 'Alice' }] },
-        { id: 'gmsg3', senderId: 'user0', content: 'Sounds great! I can bring salads.', timestamp: '9:05 AM', status: 'read', reactions: [] },
+        { id: 'gmsg1', senderId: 'user1', content: 'Hallo zusammen! Was machen wir dieses Wochenende?', timestamp: '09:00', status: 'read', reactions: [] },
+        { id: 'gmsg2', senderId: 'user2', content: 'Ich dachte an Grillen, wenn das Wetter gut ist!', timestamp: '09:01', status: 'read', reactions: [{ emoji: '❤️', userId: 'user1', username: 'Alice' }] },
+        { id: 'gmsg3', senderId: 'user0', content: 'Klingt super! Ich kann Salate mitbringen.', timestamp: '09:05', status: 'read', reactions: [] },
     ],
   },
 ];

@@ -13,7 +13,7 @@ export async function analyzeTextForSafety(
     const result = await analyzeCommunication({ text });
     return result;
   } catch (error) {
-    console.error("Error analyzing communication:", error);
+    console.error("Fehler bei der Analyse der Kommunikation:", error);
     return null;
   }
 }

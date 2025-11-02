@@ -63,7 +63,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
-    toast({ title: 'Message copied!' });
+    toast({ title: 'Nachricht kopiert!' });
   };
   
   const handleDelete = (forEveryone: boolean) => {
@@ -94,12 +94,12 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
     }
   };
 
-  if (message.content === "This message was deleted") {
+  if (message.content === "Diese Nachricht wurde gelöscht") {
      return (
        <div className={cn("flex items-center gap-2 my-4", isCurrentUser ? "justify-end" : "justify-start")}>
         <div className="flex items-center gap-2 text-xs italic text-muted-foreground bg-secondary/30 px-3 py-1.5 rounded-lg">
            <Trash2 className="h-3.5 w-3.5" />
-           <span>This message was deleted</span>
+           <span>Diese Nachricht wurde gelöscht</span>
         </div>
       </div>
      )
@@ -117,31 +117,31 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
             <DropdownMenuContent align={isCurrentUser ? "end" : "start"}>
                 <DropdownMenuItem onClick={() => onQuote(message)}>
                     <CornerUpRight className="mr-2 h-4 w-4" />
-                    <span>Reply</span>
+                    <span>Antworten</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowReactionPicker(true)}>
                     <Smile className="mr-2 h-4 w-4" />
-                    <span>React</span>
+                    <span>Reagieren</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleCopy}>
                     <Copy className="mr-2 h-4 w-4" />
-                    <span>Copy</span>
+                    <span>Kopieren</span>
                 </DropdownMenuItem>
                 {isCurrentUser && (
                     <DropdownMenuItem onClick={() => onEdit(message)}>
                         <Pencil className="mr-2 h-4 w-4" />
-                        <span>Edit</span>
+                        <span>Bearbeiten</span>
                     </DropdownMenuItem>
                 )}
                  {isCurrentUser && (
                     <DropdownMenuItem onClick={() => handleDelete(true)} className="text-destructive focus:text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Delete for everyone</span>
+                        <span>Für alle löschen</span>
                     </DropdownMenuItem>
                 )}
                  <DropdownMenuItem onClick={() => handleDelete(false)} className="text-destructive focus:text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Delete for me</span>
+                    <span>Für mich löschen</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -171,7 +171,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
                 <Shield className="h-3 w-3" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>End-to-end encrypted</p>
+                <p>Ende-zu-Ende-verschlüsselt</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -183,13 +183,13 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
                   <Clock className="h-3 w-3 text-destructive" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Self-destructing message</p>
+                  <p>Selbstzerstörende Nachricht</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
 
-          {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground/70")}>Edited</span>}
+          {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground/70")}>Bearbeitet</span>}
 
           <span className={cn("text-primary", isCurrentUser ? "text-primary-foreground/70" : "text-primary")}>
             {message.timestamp}
@@ -198,7 +198,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
         </div>
         {showReactionPicker && (
             <div className="absolute bottom-full mb-2 z-10">
-                <ReactionPicker onSelect={handleReaction} onPlusClick={() => toast({title: "Full emoji picker not implemented"})}/>
+                <ReactionPicker onSelect={handleReaction} onPlusClick={() => toast({title: "Vollständiger Emoji-Picker nicht implementiert"})}/>
             </div>
         )}
         {message.reactions.length > 0 && (
@@ -214,7 +214,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
                         </TooltipTrigger>
                         <TooltipContent>
                            {message.reactions.map(r => (
-                                <p key={r.userId}>{r.username} reacted with {r.emoji}</p>
+                                <p key={r.userId}>{r.username} reagierte mit {r.emoji}</p>
                            ))}
                         </TooltipContent>
                     </Tooltip>
