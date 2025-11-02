@@ -51,7 +51,7 @@ export default function ChatView({ conversation, contact, onSendMessage }: ChatV
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold">{contact.name}</h2>
           <div className="flex items-center text-sm text-muted-foreground">
-             <Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", onlineStatusColors[contact.onlineStatus])} />
+             <Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", onlineStatusColors[contact.onlineStatus] === 'text-green-400' ? 'text-primary' : onlineStatusColors[contact.onlineStatus])} />
             {contact.onlineStatus}
           </div>
         </div>

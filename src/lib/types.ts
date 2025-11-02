@@ -6,6 +6,13 @@ export type User = {
   publicKey: string;
 };
 
+export type LinkPreviewData = {
+  url: string;
+  image: string;
+  title: string;
+  description: string;
+}
+
 export type Message = {
   id: string;
   senderId: string;
@@ -13,6 +20,7 @@ export type Message = {
   timestamp: string;
   status: 'sent' | 'delivered' | 'read';
   isSelfDestructing?: boolean;
+  linkPreview?: LinkPreviewData;
 };
 
 export type Conversation = {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition, useRef } from "react";
-import { Send, Paperclip, Clock, AlertTriangle } from "lucide-react";
+import { Send, Clock, AlertTriangle, Mic, Plus, FileText, ImageIcon, Video, Music, FileArchive, FileCode, FileQuestion } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,6 +9,8 @@ import { analyzeTextForSafety } from "@/app/actions";
 import type { AnalyzeCommunicationOutput } from "@/ai/flows/context-aware-safety-tool";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 
 type MessageInputProps = {
   onSendMessage: (content: string) => void;
@@ -72,19 +74,24 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     }
   }
 
-  const handleSelfDestructClick = () => {
+  const handleFeatureNotImplemented = (featureName: string) => {
     toast({
-      title: "Self-Destructing Messages",
+      title: `${featureName}`,
       description: "This feature is for demonstration and is not yet implemented.",
     });
   };
-
-  const handleAttachClick = () => {
-    toast({
-      title: "File attachments",
-      description: "This feature is for demonstration and is not yet implemented.",
-    });
-  }
+  
+  const AttachmentButton = ({ icon: Icon, label, formats }: { icon: React.ElementType, label: string, formats: string }) => (
+    <Button variant="ghost" className="w-full justify-start h-auto py-3" onClick={() => handleFeatureNotImplemented(label)}>
+      <div className="flex items-center gap-4">
+        <Icon className="h-6 w-6 text-primary" />
+        <div className="text-left">
+          <p className="font-semibold">{label}</p>
+          <p className="text-xs text-muted-foreground">{formats}</p>
+        </div>
+      </div>
+    </Button>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
@@ -96,6 +103,24 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
         </Alert>
       )}
       <div className="flex items-end gap-2">
+         <Popover>
+          <PopoverTrigger asChild>
+             <Button variant="ghost" size="icon" type="button" className="shrink-0">
+                <Plus className="h-5 w-5" />
+                <span className="sr-only">Attach file</span>
+              </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-2">
+            <div className="grid grid-cols-1 gap-1">
+               <AttachmentButton icon={FileText} label="Document" formats=".pdf, .doc, .xls, .ppt, .txt..." />
+               <AttachmentButton icon={ImageIcon} label="Image" formats=".jpg, .png, .gif, .webp" />
+               <AttachmentButton icon={Video} label="Video" formats=".mp4, .mkv, .avi, .mov..." />
+               <AttachmentButton icon={Music} label="Audio" formats=".mp3, .wav, .aac, .ogg..." />
+               <AttachmentButton icon={FileArchive} label="Compressed" formats=".zip, .rar, .7z" />
+               <AttachmentButton icon={FileCode} label="Other" formats=".html, .csv, .apk..." />
+            </div>
+          </PopoverContent>
+        </Popover>
         <Textarea
           ref={textareaRef}
           value={text}
@@ -105,22 +130,30 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
           className="flex-1 resize-none bg-muted border-border max-h-40 overflow-y-auto"
           rows={1}
         />
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" type="button" onClick={handleAttachClick}>
-                <Paperclip className="h-5 w-5" />
-                <span className="sr-only">Attach file</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Attach file</p></TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        
+        {text ? (
+            <Button type="submit" size="icon" disabled={!text.trim() || isPending} className="shrink-0">
+                <Send className="h-5 w-5" />
+                <span className="sr-only">Send message</span>
+            </Button>
+        ) : (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" type="button" onClick={() => handleFeatureNotImplemented('Voice messages')} className="shrink-0">
+                            <Mic className="h-5 w-5 text-primary" />
+                            <span className="sr-only">Record voice message</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Record voice message</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        )}
 
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" type="button" onClick={handleSelfDestructClick}>
+                    <Button variant="ghost" size="icon" type="button" onClick={() => handleFeatureNotImplemented('Self-destructing messages')} className="shrink-0">
                         <Clock className="h-5 w-5" />
                         <span className="sr-only">Self-destructing message</span>
                     </Button>
@@ -128,11 +161,6 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
                 <TooltipContent><p>Self-destructing message</p></TooltipContent>
             </Tooltip>
         </TooltipProvider>
-
-        <Button type="submit" size="icon" disabled={!text.trim() || isPending}>
-          <Send className="h-5 w-5" />
-          <span className="sr-only">Send message</span>
-        </Button>
       </div>
     </form>
   );

@@ -59,6 +59,19 @@ export const conversations: Conversation[] = [
     messages: [
       { id: 'msg5', senderId: 'user2', content: 'Can you send me the project files?', timestamp: 'Yesterday', status: 'read' },
       { id: 'msg6', senderId: 'user0', content: 'Sure, sending them now. They are encrypted of course.', timestamp: 'Yesterday', status: 'read' },
+      { 
+        id: 'msg_yt', 
+        senderId: 'user2', 
+        content: 'Check out this new song: https://www.youtube.com/watch?v=dQw4w9WgXcQ', 
+        timestamp: '11:00 AM', 
+        status: 'read',
+        linkPreview: {
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          image: findImage('youtubeThumbnail'),
+          title: 'Official Music Video',
+          description: 'youtube.com'
+        }
+      },
     ],
   },
   {

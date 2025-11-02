@@ -35,6 +35,12 @@
       "description": "QR code for verification",
       "imageUrl": "https://images.unsplash.com/photo-1571867424488-4565932edb41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxxciUyMGNvZGV8ZW58MHx8fHwxNzYyMDI0NjM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "qr code"
+    },
+    {
+      "id": "youtubeThumbnail",
+      "description": "YouTube video thumbnail",
+      "imageUrl": "https://images.unsplash.com/photo-1495195129352-aeb325a55b65?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8eW91dHViZSUyMHRodW1ibmFpbHxlbnwwfHx8fDE3NjIwNjA4MDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "youtube thumbnail"
     }
   ]
 }

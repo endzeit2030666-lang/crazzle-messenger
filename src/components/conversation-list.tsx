@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Lock } from "lucide-react";
+import { Search, Lock, Camera } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
 type ConversationListProps = {
   conversations: Conversation[];
@@ -33,8 +35,31 @@ export default function ConversationList({
     <aside className="w-full max-w-xs h-full flex flex-col border-r border-border bg-muted/30">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-headline text-2xl font-bold text-primary">CipherCom</h1>
-          <Lock className="w-5 h-5 text-accent" />
+          <h1 className="font-headline text-2xl font-bold text-primary">Crazzle</h1>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Camera className="w-5 h-5 text-accent" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <div className="p-2 max-w-xs">
+                            <h3 className="font-bold mb-1">Status Updates</h3>
+                            <p className="text-sm text-muted-foreground mb-2">Share photos, videos, text, and links that disappear after 24 hours.</p>
+                            <h4 className="font-semibold text-xs mb-1">Privacy Settings:</h4>
+                            <ul className="list-disc list-inside text-xs text-muted-foreground">
+                                <li>My Contacts</li>
+                                <li>My Contacts except...</li>
+                                <li>Only share with...</li>
+                            </ul>
+                        </div>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            <Lock className="w-5 h-5 text-accent" />
+          </div>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -61,7 +86,7 @@ export default function ConversationList({
                 className={cn(
                   "w-full flex items-start p-3 rounded-lg text-left transition-colors",
                   selectedConversationId === convo.id
-                    ? "bg-accent text-accent-foreground"
+                    ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted"
                 )}
               >
@@ -74,9 +99,12 @@ export default function ConversationList({
                 <div className="flex-1 overflow-hidden">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold truncate">{contact.name}</h3>
-                    <p className="text-xs text-muted-foreground">{lastMessage?.timestamp}</p>
+                    <p className={cn("text-xs", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{lastMessage?.timestamp}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{lastMessage?.content}</p>
+                  <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-muted-foreground")}>
+                    {lastMessage?.senderId === currentUser.id && 'You: '}
+                    {lastMessage?.content}
+                  </p>
                 </div>
               </button>
             );

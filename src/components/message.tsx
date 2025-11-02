@@ -1,3 +1,5 @@
+"use client";
+
 import { Check, CheckCheck, Clock, Shield } from "lucide-react";
 import type { Message as MessageType } from "@/lib/types";
 import { currentUser } from "@/lib/data";
@@ -8,10 +10,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import Image from "next/image";
 
 type MessageProps = {
   message: MessageType;
 };
+
+const LinkPreview = ({ url, title, description, image }: { url: string, title: string, description: string, image: string }) => (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 block bg-secondary/50 rounded-lg overflow-hidden">
+        <Image src={image} alt={title} width={400} height={225} className="w-full h-auto object-cover" data-ai-hint="youtube thumbnail" />
+        <div className="p-3">
+            <h4 className="font-semibold text-sm text-foreground/90">{title}</h4>
+            <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+    </a>
+)
 
 export default function Message({ message }: MessageProps) {
   const isCurrentUser = message.senderId === currentUser.id;
@@ -20,7 +33,7 @@ export default function Message({ message }: MessageProps) {
     switch (status) {
       case 'sent': return <Check className="h-4 w-4" />;
       case 'delivered': return <CheckCheck className="h-4 w-4" />;
-      case 'read': return <CheckCheck className="h-4 w-4 text-accent" />;
+      case 'read': return <CheckCheck className="h-4 w-4 text-primary" />;
       default: return null;
     }
   };
@@ -36,6 +49,9 @@ export default function Message({ message }: MessageProps) {
         )}
       >
         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        {message.linkPreview && (
+          <LinkPreview {...message.linkPreview} />
+        )}
         <div className="flex items-center gap-2.5 mt-2 text-xs">
           <TooltipProvider delayDuration={0}>
             <Tooltip>
