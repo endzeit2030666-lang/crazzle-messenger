@@ -138,7 +138,7 @@ export default function StatusPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="font-headline text-xl font-bold ml-4">Status</h1>
+        <h1 className="font-headline text-xl font-bold ml-4 text-primary">Status</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -157,7 +157,7 @@ export default function StatusPage() {
                 </div>
               </div>
               <div>
-                <h2 className="font-semibold text-lg">Mein Status</h2>
+                <h2 className="font-semibold text-lg text-primary">Mein Status</h2>
                 <p className="text-sm text-muted-foreground">Tippen, um Status hinzuzufügen</p>
               </div>
             </div>
@@ -185,7 +185,7 @@ export default function StatusPage() {
 
         {recentUpdates.length > 0 && (
             <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-2">NEUE MELDUNGEN</h3>
+                <h3 className="text-sm font-semibold text-primary mb-2 px-2">NEUE MELDUNGEN</h3>
                 <div className="space-y-1">
                     {recentUpdates.map(status => {
                         const user = getUserById(status.userId);
@@ -199,8 +199,8 @@ export default function StatusPage() {
                                     </Avatar>
                                 </div>
                                 <div>
-                                    <h2 className="font-semibold">{user.name}</h2>
-                                    <p className="text-sm text-muted-foreground">{status.stories[status.stories.length - 1].timestamp}</p>
+                                    <h2 className="font-semibold text-primary">{user.name}</h2>
+                                    <p className="text-sm text-foreground">{status.stories[status.stories.length - 1].timestamp}</p>
                                 </div>
                             </div>
                         )
@@ -211,7 +211,7 @@ export default function StatusPage() {
 
         {viewedUpdates.length > 0 && (
             <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-2">ANGESEHEN</h3>
+                <h3 className="text-sm font-semibold text-primary mb-2 px-2">ANGESEHEN</h3>
                 <div className="space-y-1">
                     {viewedUpdates.map(status => {
                         const user = getUserById(status.userId);
@@ -225,8 +225,8 @@ export default function StatusPage() {
                                     </Avatar>
                                 </div>
                                 <div>
-                                    <h2 className="font-semibold">{user.name}</h2>
-                                    <p className="text-sm text-muted-foreground">{status.stories[status.stories.length - 1].timestamp}</p>
+                                    <h2 className="font-semibold text-primary">{user.name}</h2>
+                                    <p className="text-sm text-foreground">{status.stories[status.stories.length - 1].timestamp}</p>
                                 </div>
                             </div>
                         )
