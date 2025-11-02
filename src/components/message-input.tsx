@@ -363,9 +363,11 @@ export default function MessageInput({
           </TooltipProvider>
         </div>
       </form>
-      <div className={cn("absolute bottom-full w-full", isEmojiPickerOpen ? 'block' : 'hidden')}>
-        <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
-      </div>
+       <EmojiPicker
+        onEmojiSelect={handleEmojiSelect}
+        onClose={() => setEmojiPickerOpen(false)}
+        className={cn('absolute bottom-full w-full', isEmojiPickerOpen ? 'flex' : 'hidden')}
+      />
     </div>
   );
 }

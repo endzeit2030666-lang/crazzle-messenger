@@ -5,13 +5,16 @@ import { Button } from './ui/button';
 import { EMOJI_CATEGORIES } from '@/data/emojis';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
   onClose: () => void;
+  className?: string;
 }
 
-export function EmojiPicker({ onEmojiSelect, onClose }: EmojiPickerProps) {
+export function EmojiPicker({ onEmojiSelect, onClose, className }: EmojiPickerProps) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(EMOJI_CATEGORIES[0].id);
   const [recentlyUsed, setRecentlyUsed] = useState<string[]>([]);
@@ -28,7 +31,7 @@ export function EmojiPicker({ onEmojiSelect, onClose }: EmojiPickerProps) {
 
 
   return (
-    <div className="h-[45vh] bg-muted/80 backdrop-blur-sm border-t border-border rounded-t-lg flex flex-col">
+    <div className={cn("h-[45vh] bg-muted/80 backdrop-blur-sm border-t border-border rounded-t-lg flex flex-col", className)}>
       <div className="flex items-center justify-between p-2 border-b border-border">
         <div className="flex items-center gap-2 overflow-x-auto">
           {EMOJI_CATEGORIES.map((category) => (
