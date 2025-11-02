@@ -102,7 +102,7 @@ export default function ConversationList({
                   <p className={cn("text-xs", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{lastMessage?.timestamp}</p>
               </div>
             </div>
-            <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-muted-foreground")}>
+            <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-foreground")}>
               {lastMessageSender && `${lastMessageSender}: `}
               {lastMessage?.content}
             </p>
