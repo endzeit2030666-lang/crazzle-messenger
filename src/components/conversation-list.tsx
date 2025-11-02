@@ -40,10 +40,7 @@ export default function ConversationList({
   const { toast } = useToast();
 
   const handleCreateGroup = () => {
-      toast({
-          title: "Neue Gruppe erstellen",
-          description: "Diese Funktion ist noch nicht implementiert."
-      })
+      router.push('/group/create');
   }
 
   const { pinned, unpinned } = useMemo(() => {
