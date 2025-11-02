@@ -77,7 +77,7 @@ export default function ConversationList({
     const lastMessageSender = convo.type === 'group' && lastMessage ? convo.participants.find(p => p.id === lastMessage.senderId)?.name.split(' ')[0] : (lastMessage?.senderId === currentUser.id ? 'You' : undefined);
 
     return (
-      <div className="relative group">
+      <div className="relative">
         <div
           onClick={() => onConversationSelect(convo.id)}
           className={cn(
