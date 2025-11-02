@@ -15,6 +15,8 @@ import {
   FileArchive,
   FileCode,
   Camera as CameraIcon,
+  Smile,
+  X,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -44,6 +46,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   const [analysis, setAnalysis] =
     useState<AnalyzeCommunicationOutput | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
@@ -108,6 +111,18 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     });
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    const cursorPosition = textareaRef.current?.selectionStart || 0;
+    const newText = text.slice(0, cursorPosition) + emoji + text.slice(cursorPosition);
+    setText(newText);
+    
+    // Focus and set cursor position after emoji insertion
+    setTimeout(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
+    }, 0);
+  };
+
   const AttachmentButton = ({
     icon: Icon,
     label,
@@ -135,8 +150,61 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
       </div>
     </Button>
   );
+  
+  const EmojiPicker = () => {
+    const categories = {
+        '😊': { name: 'Smileys & People', emojis: ['😀', '😂', '😍', '🤔', '👍', '🙏', '👋', '❤️'] },
+        '🐱': { name: 'Animals & Nature', emojis: ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐨'] },
+        '🍔': { name: 'Food & Drink', emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇'] },
+        '⚽': { name: 'Activities', emojis: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱'] },
+        '🚗': { name: 'Travel & Places', emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑'] },
+        '💡': { name: 'Objects', emojis: ['💡', '🔦', '🏮', '🗑️', '🔧', '🔨', '🔩', '🔫'] },
+        '🔣': { name: 'Symbols', emojis: ['☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎'] },
+        '🏁': { name: 'Flags', emojis: ['🏳️', '🏴', '🏁', '🚩', '🎌', '🇺🇳', '🇪🇺', '🇺🇸'] },
+    };
+    const [search, setSearch] = useState('');
+    const [activeCategory, setActiveCategory] = useState('😊');
+
+    return (
+        <div className="h-[45vh] bg-muted/80 backdrop-blur-sm border-t border-border rounded-t-lg flex flex-col">
+            <div className="flex items-center justify-between p-2 border-b border-border">
+                <div className="flex items-center gap-2">
+                    {Object.keys(categories).map(cat => (
+                         <Button key={cat} variant={activeCategory === cat ? 'secondary': 'ghost'} size="icon" className="h-8 w-8" onClick={() => setActiveCategory(cat)}>
+                            {cat}
+                        </Button>
+                    ))}
+                </div>
+                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEmojiPickerOpen(false)}>
+                    <X className="h-5 w-5" />
+                </Button>
+            </div>
+            <div className="p-2">
+                <input type="text" placeholder="Emoji suchen..." className="w-full bg-background/50 border border-border rounded-md px-3 py-1.5 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 grid grid-cols-8 gap-2">
+                {(categories[activeCategory as keyof typeof categories]?.emojis || []).filter(e => e.includes(search)).map(emoji => (
+                    <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="text-2xl hover:bg-black/20 rounded-md transition-colors aspect-square flex items-center justify-center">
+                        {emoji}
+                    </button>
+                ))}
+            </div>
+             <div className="p-2 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-1">Zuletzt verwendet</p>
+                <div className="flex gap-2">
+                     {['😂', '❤️', '👍', '🤔', '🎉'].map(emoji => (
+                        <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="text-2xl hover:bg-black/20 rounded-md transition-colors p-1">
+                            {emoji}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
+  }
 
   return (
+    <div className="relative">
     <form onSubmit={handleSubmit} className="space-y-2">
       {analysis && (
         <Alert variant="destructive" className="mb-2">
@@ -145,7 +213,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
           <AlertDescription>{analysis.advice}</AlertDescription>
         </Alert>
       )}
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-2 p-2 bg-background rounded-lg">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -158,7 +226,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
               <span className="sr-only">Attach file</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-2">
+          <PopoverContent className="w-80 p-2 mb-2">
             <div className="grid grid-cols-1 gap-1">
               <AttachmentButton
                 icon={ImageIcon}
@@ -194,7 +262,28 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
             </div>
           </PopoverContent>
         </Popover>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          type="button"
+          onClick={() => setEmojiPickerOpen(!isEmojiPickerOpen)}
+          className="shrink-0"
+        >
+          <Smile className="h-5 w-5" />
+          <span className="sr-only">Open emoji picker</span>
+        </Button>
 
+        <Textarea
+          ref={textareaRef}
+          value={text}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          placeholder="Type an encrypted message..."
+          className="flex-1 resize-none bg-muted border-0 focus-visible:ring-0 max-h-40 overflow-y-auto"
+          rows={1}
+        />
+        
         <Button
           variant="ghost"
           size="icon"
@@ -205,16 +294,6 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
           <CameraIcon className="h-5 w-5" />
           <span className="sr-only">Open camera</span>
         </Button>
-
-        <Textarea
-          ref={textareaRef}
-          value={text}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder="Type an encrypted message..."
-          className="flex-1 resize-none bg-muted border-border max-h-40 overflow-y-auto"
-          rows={1}
-        />
 
         {text ? (
           <Button
@@ -271,5 +350,9 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
         </TooltipProvider>
       </div>
     </form>
+    {isEmojiPickerOpen && <EmojiPicker />}
+    </div>
   );
 }
+
+    
