@@ -38,7 +38,7 @@ import {
 type ChatViewProps = {
   conversation: Conversation;
   contact?: User;
-  onSendMessage: (content: string, quotedMessage?: MessageType['quotedMessage']) => void;
+  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number) => void;
   onEditMessage: (messageId: string, newContent: string) => void;
   onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
   onReact: (messageId: string, emoji: string) => void;
@@ -117,12 +117,16 @@ export default function ChatView({
     setQuotedMessage(undefined);
   };
   
-  const handleSendMessageSubmit = (content: string) => {
+  const handleSendMessageSubmit = (content: string, type: 'text' | 'audio' = 'text', duration?: number) => {
     if (editingMessage) {
       onEditMessage(editingMessage.id, content);
       setEditingMessage(null);
     } else {
-      onSendMessage(content, quotedMessage);
+      if (type === 'audio') {
+        onSendMessage(content, 'audio', duration);
+      } else {
+        onSendMessage(content, 'text');
+      }
       setQuotedMessage(undefined);
     }
   };

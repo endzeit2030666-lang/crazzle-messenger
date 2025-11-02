@@ -39,7 +39,7 @@ export type Message = {
       senderName: string;
   };
   isEdited?: boolean;
-  type?: 'text' | 'audio';
+  type: 'text' | 'audio';
   audioUrl?: string;
   audioDuration?: number;
 };

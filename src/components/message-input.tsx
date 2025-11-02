@@ -19,6 +19,7 @@ import {
   X,
   MessageSquareQuote,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ import { cn } from '@/lib/utils';
 import { EmojiPicker } from './emoji-picker';
 
 type MessageInputProps = {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number) => void;
   quotedMessage?: Message['quotedMessage'];
   onClearQuote: () => void;
   isEditing: boolean;
@@ -66,9 +67,95 @@ export default function MessageInput({
     useState<AnalyzeCommunicationOutput | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
+  
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      recordedChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        onSendMessage(audioUrl, 'audio', recordingTime);
+
+        // Stop all media tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      console.error("Fehler beim Zugriff auf das Mikrofon:", err);
+      toast({
+        variant: 'destructive',
+        title: 'Mikrofonzugriff verweigert',
+        description: 'Bitte aktivieren Sie die Mikrofonberechtigungen in Ihren Browsereinstellungen.',
+      });
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+    }
+    setIsRecording(false);
+  };
+  
+  const cancelRecording = () => {
+      if (mediaRecorderRef.current) {
+        // Stop without triggering onstop event
+        mediaRecorderRef.current.ondataavailable = null;
+        mediaRecorderRef.current.onstop = null;
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setIsRecording(false);
+      setRecordingTime(0);
+  }
 
   useEffect(() => {
     if (isEditing && editingMessage) {
@@ -116,7 +203,7 @@ export default function MessageInput({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onSendMessage(text.trim());
+      onSendMessage(text.trim(), 'text');
       setText('');
       setAnalysis(null);
       if (textareaRef.current) {
@@ -232,144 +319,175 @@ export default function MessageInput({
           </Alert>
         )}
         <div className={cn("flex items-end gap-2 p-2 bg-background", !quotedMessage && !isEditing ? "rounded-lg" : "rounded-b-lg")}>
-           <Button
-            variant="ghost"
-            size="icon"
-            type="button"
-            onClick={() => router.push('/status/camera')}
-            className="shrink-0"
-            disabled={disabled}
-          >
-            <CameraIcon className="h-5 w-5" />
-            <span className="sr-only">Kamera öffnen</span>
-          </Button>
-          <Popover>
-            <PopoverTrigger asChild>
+          {isRecording ? (
+            <div className="flex-1 flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 type="button"
+                onClick={cancelRecording}
+                className="shrink-0 text-destructive"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+              <div className="flex-1 bg-muted rounded-full h-10 flex items-center px-4">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                  <span className="font-mono text-sm text-muted-foreground">{formatTime(recordingTime)}</span>
+              </div>
+               <Button
+                type="button"
+                size="icon"
+                onClick={stopRecording}
+                className="shrink-0 bg-primary hover:bg-primary/90"
+              >
+                <Send className="h-5 w-5" />
+                <span className="sr-only">Sprachnachricht senden</span>
+              </Button>
+            </div>
+          ) : (
+            <>
+               <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={() => router.push('/status/camera')}
                 className="shrink-0"
                 disabled={disabled}
               >
-                <Plus className="h-5 w-5" />
-                <span className="sr-only">Datei anhängen</span>
+                <CameraIcon className="h-5 w-5" />
+                <span className="sr-only">Kamera öffnen</span>
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-2 mb-2">
-              <div className="grid grid-cols-1 gap-1">
-                <AttachmentButton
-                  icon={ImageIcon}
-                  label="Bild aus Galerie"
-                />
-                <AttachmentButton
-                  icon={Video}
-                  label="Video aus Galerie"
-                />
-                <hr className="my-2 border-border" />
-                <AttachmentButton
-                  icon={FileText}
-                  label="Dokument"
-                  formats=".pdf, .doc, .xls, .ppt, .txt..."
-                />
-                <AttachmentButton
-                  icon={Music}
-                  label="Audio"
-                  formats=".mp3, .wav, .aac, .ogg..."
-                />
-                <AttachmentButton
-                  icon={FileArchive}
-                  label="Komprimiert"
-                  formats=".zip, .rar, .7z"
-                />
-                <AttachmentButton
-                  icon={FileCode}
-                  label="Andere"
-                  formats=".html, .csv, .apk..."
-                />
-              </div>
-            </PopoverContent>
-          </Popover>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            type="button"
-            onClick={() => setEmojiPickerOpen(!isEmojiPickerOpen)}
-            className="shrink-0"
-            disabled={disabled}
-          >
-            <Smile className="h-5 w-5" />
-            <span className="sr-only">Emoji-Picker öffnen</span>
-          </Button>
-
-          <Textarea
-            ref={textareaRef}
-            value={text}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            placeholder={disabled ? "Kontakt blockiert" : "Verschlüsselte Nachricht tippen..."}
-            className="flex-1 resize-none bg-muted border-0 focus-visible:ring-0 max-h-40 overflow-y-auto"
-            rows={1}
-            disabled={disabled}
-          />
-          
-
-          {text ? (
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!text.trim() || disabled}
-              className="shrink-0"
-            >
-              <Send className="h-5 w-5" />
-              <span className="sr-only">{isEditing ? 'Änderungen speichern' : 'Nachricht senden'}</span>
-            </Button>
-          ) : (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     type="button"
-                    onClick={() => handleFeatureNotImplemented('Sprachnachrichten')}
                     className="shrink-0"
                     disabled={disabled}
                   >
-                    <Mic className="h-5 w-5 text-primary" />
-                    <span className="sr-only">Sprachnachricht aufnehmen</span>
+                    <Plus className="h-5 w-5" />
+                    <span className="sr-only">Datei anhängen</span>
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Sprachnachricht aufnehmen</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-2 mb-2">
+                  <div className="grid grid-cols-1 gap-1">
+                    <AttachmentButton
+                      icon={ImageIcon}
+                      label="Bild aus Galerie"
+                    />
+                    <AttachmentButton
+                      icon={Video}
+                      label="Video aus Galerie"
+                    />
+                    <hr className="my-2 border-border" />
+                    <AttachmentButton
+                      icon={FileText}
+                      label="Dokument"
+                      formats=".pdf, .doc, .xls, .ppt, .txt..."
+                    />
+                    <AttachmentButton
+                      icon={Music}
+                      label="Audio"
+                      formats=".mp3, .wav, .aac, .ogg..."
+                    />
+                    <AttachmentButton
+                      icon={FileArchive}
+                      label="Komprimiert"
+                      formats=".zip, .rar, .7z"
+                    />
+                    <AttachmentButton
+                      icon={FileCode}
+                      label="Andere"
+                      formats=".html, .csv, .apk..."
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={() => setEmojiPickerOpen(!isEmojiPickerOpen)}
+                className="shrink-0"
+                disabled={disabled}
+              >
+                <Smile className="h-5 w-5" />
+                <span className="sr-only">Emoji-Picker öffnen</span>
+              </Button>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+              <Textarea
+                ref={textareaRef}
+                value={text}
+                onChange={handleInput}
+                onKeyDown={handleKeyDown}
+                placeholder={disabled ? "Kontakt blockiert" : "Verschlüsselte Nachricht tippen..."}
+                className="flex-1 resize-none bg-muted border-0 focus-visible:ring-0 max-h-40 overflow-y-auto"
+                rows={1}
+                disabled={disabled}
+              />
+
+              {text ? (
                 <Button
-                  variant="ghost"
+                  type="submit"
                   size="icon"
-                  type="button"
-                  onClick={() =>
-                    handleFeatureNotImplemented('Selbstzerstörende Nachrichten')
-                  }
+                  disabled={!text.trim() || disabled}
                   className="shrink-0"
-                  disabled={disabled}
                 >
-                  <Clock className="h-5 w-5" />
-                  <span className="sr-only">Selbstzerstörende Nachricht</span>
+                  <Send className="h-5 w-5" />
+                  <span className="sr-only">{isEditing ? 'Änderungen speichern' : 'Nachricht senden'}</span>
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Selbstzerstörende Nachricht</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        onMouseDown={startRecording}
+                        onMouseUp={stopRecording}
+                        onTouchStart={startRecording}
+                        onTouchEnd={stopRecording}
+                        className="shrink-0"
+                        disabled={disabled}
+                      >
+                        <Mic className="h-5 w-5 text-primary" />
+                        <span className="sr-only">Sprachnachricht aufnehmen</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Sprachnachricht aufnehmen</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() =>
+                        handleFeatureNotImplemented('Selbstzerstörende Nachrichten')
+                      }
+                      className="shrink-0"
+                      disabled={disabled}
+                    >
+                      <Clock className="h-5 w-5" />
+                      <span className="sr-only">Selbstzerstörende Nachricht</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Selbstzerstörende Nachricht</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
+          )}
         </div>
       </form>
        <EmojiPicker

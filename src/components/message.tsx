@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile } from "lucide-react";
+import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile, Play, Pause } from "lucide-react";
 import type { Message as MessageType, User } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import {
@@ -20,6 +20,89 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Slider } from './ui/slider';
+
+
+const AudioMessage = ({ message }: { message: MessageType }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateProgress = () => {
+      setProgress((audio.currentTime / audio.duration) * 100);
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateProgress);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+  
+  const formatTime = (time: number) => {
+    if (isNaN(time) || time === 0) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleSliderChange = (value: number[]) => {
+    if (audioRef.current) {
+        const newTime = (value[0] / 100) * audioRef.current.duration;
+        audioRef.current.currentTime = newTime;
+        setProgress(value[0]);
+    }
+  };
+
+  const isCurrentUser = message.senderId === currentUser.id;
+
+  return (
+    <div className="flex items-center gap-3 w-64">
+      <audio ref={audioRef} src={message.audioUrl} preload="metadata" />
+      <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isCurrentUser ? "bg-white/20 hover:bg-white/30" : "bg-primary/20 hover:bg-primary/30")} onClick={togglePlay}>
+        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+      </Button>
+      <div className="flex-1 flex flex-col gap-1">
+        <Slider
+          value={[progress]}
+          onValueChange={handleSliderChange}
+          max={100}
+          step={1}
+          className={cn("[&>div>span]:bg-white", isCurrentUser ? "[&>div>span]:bg-white" : "[&>div>span]:bg-primary")}
+        />
+        <div className="text-xs flex justify-between">
+           <span>{formatTime(currentTime)}</span>
+           <span>{formatTime(message.audioDuration || 0)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 
 type MessageProps = {
@@ -62,8 +145,10 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
   const { toast } = useToast();
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
-    toast({ title: 'Nachricht kopiert!' });
+    if (message.content) {
+      navigator.clipboard.writeText(message.content);
+      toast({ title: 'Nachricht kopiert!' });
+    }
   };
   
   const handleDelete = (forEveryone: boolean) => {
@@ -123,11 +208,11 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
                     <Smile className="mr-2 h-4 w-4" />
                     <span>Reagieren</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopy}>
+                {message.type !== 'audio' && <DropdownMenuItem onClick={handleCopy}>
                     <Copy className="mr-2 h-4 w-4" />
                     <span>Kopieren</span>
-                </DropdownMenuItem>
-                {isCurrentUser && (
+                </DropdownMenuItem>}
+                {isCurrentUser && message.type === 'text' && (
                     <DropdownMenuItem onClick={() => onEdit(message)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         <span>Bearbeiten</span>
@@ -160,7 +245,13 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
                 <p className="truncate">{message.quotedMessage.content}</p>
             </a>
         )}
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        
+        {message.type === 'audio' ? (
+          <AudioMessage message={message} />
+        ) : (
+          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        )}
+        
         {message.linkPreview && (
           <LinkPreview {...message.linkPreview} />
         )}
