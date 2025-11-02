@@ -93,7 +93,7 @@ export default function ConversationList({
             </AvatarImage>
             <AvatarFallback className={cn("text-primary", selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 overflow-hidden pr-10">
+          <div className="flex-1 overflow-hidden pr-5">
             <div className="flex items-center justify-between">
               <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{name}</h3>
               <div className="flex items-center gap-2">
