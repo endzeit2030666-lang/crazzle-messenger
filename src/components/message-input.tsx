@@ -41,7 +41,7 @@ import { currentUser } from '@/lib/data';
 import type { Message } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { EMOJI_CATEGORIES } from '@/data/emojis';
+import { EmojiPicker } from './emoji-picker';
 
 type MessageInputProps = {
   onSendMessage: (content: string, quotedMessage?: Message['quotedMessage']) => void;
@@ -135,6 +135,8 @@ export default function MessageInput({
         onStopEditing();
       } else if (quotedMessage) {
         onClearQuote();
+      } else if (isEmojiPickerOpen) {
+        setEmojiPickerOpen(false);
       }
     }
   };
@@ -185,65 +187,6 @@ export default function MessageInput({
       </div>
     </Button>
   );
-  
-  const EmojiPicker = () => {
-    const [search, setSearch] = useState('');
-    const [activeCategory, setActiveCategory] = useState(EMOJI_CATEGORIES[0].id);
-    const [recentlyUsed, setRecentlyUsed] = useState(['😂', '❤️', '👍', '🤔', '🎉']);
-
-    const activeEmojis = EMOJI_CATEGORIES.find(c => c.id === activeCategory)?.emojis || [];
-    const filteredEmojis = activeEmojis.filter(e => e.includes(search));
-
-    return (
-        <div className="h-[45vh] bg-muted/80 backdrop-blur-sm border-t border-border rounded-t-lg flex flex-col">
-             <div className="flex items-center justify-between p-2 border-b border-border">
-                <div className="flex items-center gap-2 overflow-x-auto">
-                    {EMOJI_CATEGORIES.map((category) => (
-                         <TooltipProvider key={category.id}>
-                             <Tooltip>
-                                 <TooltipTrigger asChild>
-                                     <Button variant={activeCategory === category.id ? 'secondary': 'ghost'} size="icon" className="h-8 w-8" onClick={() => setActiveCategory(category.id)}>
-                                        {category.icon}
-                                    </Button>
-                                 </TooltipTrigger>
-                                 <TooltipContent>
-                                     <p>{category.name}</p>
-                                 </TooltipContent>
-                             </Tooltip>
-                         </TooltipProvider>
-                    ))}
-                </div>
-                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEmojiPickerOpen(false)}>
-                    <X className="h-5 w-5" />
-                </Button>
-            </div>
-            <div className="p-2">
-                <input type="text" placeholder="Emoji suchen..." className="w-full bg-background/50 border border-border rounded-md px-3 py-1.5 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 grid grid-cols-8 gap-2">
-                {filteredEmojis.map((emoji, index) => (
-                    <button key={`${emoji}-${index}`} onClick={() => {
-                        handleEmojiSelect(emoji);
-                        const newRecent = [emoji, ...recentlyUsed.filter(r => r !== emoji)];
-                        setRecentlyUsed(Array.from(new Set(newRecent)).slice(0, 8));
-                    }} className="text-2xl hover:bg-black/20 rounded-md transition-colors aspect-square flex items-center justify-center">
-                        {emoji}
-                    </button>
-                ))}
-            </div>
-             <div className="p-2 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-1">Zuletzt verwendet</p>
-                <div className="flex gap-2">
-                     {recentlyUsed.map((emoji, index) => (
-                        <button key={`recent-${emoji}-${index}`} onClick={() => handleEmojiSelect(emoji)} className="text-2xl hover:bg-black/20 rounded-md transition-colors p-1">
-                            {emoji}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </div>
-    )
-  }
 
   return (
     <div className="relative">
@@ -422,7 +365,7 @@ export default function MessageInput({
       </form>
       {isEmojiPickerOpen && 
           <div className="absolute bottom-full w-full">
-            <EmojiPicker />
+            <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setEmojiPickerOpen(false)} />
           </div>
       }
     </div>
