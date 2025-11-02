@@ -72,9 +72,9 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
 
   const StatusIcon = ({ status }: { status: MessageType['status']}) => {
     switch (status) {
-      case 'sent': return <Check className="h-4 w-4" />;
-      case 'delivered': return <CheckCheck className="h-4 w-4" />;
-      case 'read': return <CheckCheck className="h-4 w-4 text-primary" />;
+      case 'sent': return <Check className="h-4 w-4 text-red-500" />;
+      case 'delivered': return <CheckCheck className="h-4 w-4 text-yellow-500" />;
+      case 'read': return <CheckCheck className="h-4 w-4 text-green-500" />;
       default: return null;
     }
   };
