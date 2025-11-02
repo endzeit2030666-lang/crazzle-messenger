@@ -77,7 +77,7 @@ export default function ConversationList({
     const lastMessageSender = convo.type === 'group' && lastMessage ? convo.participants.find(p => p.id === lastMessage.senderId)?.name.split(' ')[0] : (lastMessage?.senderId === currentUser.id ? 'You' : undefined);
 
     return (
-      <div className="relative">
+      <div className="relative group">
         <div
           onClick={() => onConversationSelect(convo.id)}
           className={cn(
@@ -99,7 +99,7 @@ export default function ConversationList({
               <div className="flex items-center gap-2">
                   {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
                   {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
-                  <p className={cn("text-xs", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{lastMessage?.timestamp}</p>
+                  <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-accent")}>{lastMessage?.timestamp}</p>
               </div>
             </div>
             <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-foreground")}>
@@ -108,31 +108,33 @@ export default function ConversationList({
             </p>
           </div>
         </div>
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 z-10">
-                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64">
-              <DropdownMenuItem onClick={() => onPinToggle(convo.id)}>
-                {convo.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-                <span>{convo.isPinned ? 'Unpin' : 'Pin'} Chat</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onMuteToggle(convo.id)}>
-                 {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-                <span>{convo.isMuted ? 'Unmute' : 'Mute'}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Archive className="mr-2 h-4 w-4" />
-                <span>Archive</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                <span>Delete</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 z-10">
+                      <MoreVertical className="w-4 h-4 text-accent" />
+                  </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64">
+                <DropdownMenuItem onClick={() => onPinToggle(convo.id)}>
+                  {convo.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                  <span>{convo.isPinned ? 'Unpin' : 'Pin'} Chat</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onMuteToggle(convo.id)}>
+                  {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                  <span>{convo.isMuted ? 'Unmute' : 'Mute'}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Archive className="mr-2 h-4 w-4" />
+                  <span>Archive</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     );
   };
