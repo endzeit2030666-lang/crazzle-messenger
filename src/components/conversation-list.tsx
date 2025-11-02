@@ -78,42 +78,43 @@ export default function ConversationList({
 
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <div
-            onContextMenu={(e) => {
-              e.preventDefault();
-              // This is handled by DropdownMenuTrigger's default behavior
-            }}
-            onClick={() => onConversationSelect(convo.id)}
-            className={cn(
-              "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer",
-              selectedConversationId === convo.id
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
-            )}
+        <div
+          onClick={() => onConversationSelect(convo.id)}
+          className={cn(
+            "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer relative",
+            selectedConversationId === convo.id
+              ? "bg-primary text-primary-foreground"
+              : "hover:bg-muted"
+          )}
+        >
+          <DropdownMenuTrigger
+            asChild
+            onClick={(e) => e.stopPropagation()} // Prevent chat selection when opening menu
+            onContextMenu={(e) => e.preventDefault()}
           >
-            <Avatar className="w-10 h-10 mr-3">
-              <AvatarImage asChild>
-                <Image src={avatar} alt={name} width={40} height={40} data-ai-hint="person portrait" />
-              </AvatarImage>
-              <AvatarFallback className={cn(selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 overflow-hidden">
-              <div className="flex items-center justify-between">
-                <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{name}</h3>
-                <div className="flex items-center gap-2">
-                    {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
-                    {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
-                    <p className={cn("text-xs", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{lastMessage?.timestamp}</p>
-                </div>
+            <div className="absolute inset-0 z-0" />
+          </DropdownMenuTrigger>
+          <Avatar className="w-10 h-10 mr-3">
+            <AvatarImage asChild>
+              <Image src={avatar} alt={name} width={40} height={40} data-ai-hint="person portrait" />
+            </AvatarImage>
+            <AvatarFallback className={cn(selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 overflow-hidden">
+            <div className="flex items-center justify-between">
+              <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{name}</h3>
+              <div className="flex items-center gap-2">
+                  {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
+                  {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
+                  <p className={cn("text-xs", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{lastMessage?.timestamp}</p>
               </div>
-              <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-muted-foreground")}>
-                {lastMessageSender && `${lastMessageSender}: `}
-                {lastMessage?.content}
-              </p>
             </div>
+            <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-muted-foreground")}>
+              {lastMessageSender && `${lastMessageSender}: `}
+              {lastMessage?.content}
+            </p>
           </div>
-        </DropdownMenuTrigger>
+        </div>
         <DropdownMenuContent className="w-64" side="top" align="start">
           <DropdownMenuItem onClick={() => onPinToggle(convo.id)}>
             {convo.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
