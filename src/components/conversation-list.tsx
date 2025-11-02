@@ -30,6 +30,7 @@ type ConversationListProps = {
   onPinToggle: (id: string) => void;
   onMuteToggle: (id: string) => void;
   onBlockContact: (contactId: string) => void;
+  onUnblockContact: (contactId: string) => void;
   blockedUsers: Set<string>;
   onNavigateToSettings: () => void;
 };
@@ -41,6 +42,7 @@ export default function ConversationList({
   onPinToggle,
   onMuteToggle,
   onBlockContact,
+  onUnblockContact,
   blockedUsers,
   onNavigateToSettings
 }: ConversationListProps) {
@@ -69,8 +71,16 @@ export default function ConversationList({
     const lastMessage = convo.messages[convo.messages.length - 1];
     const lastMessageSender = (lastMessage?.senderId === currentUser.id ? 'Du' : undefined);
 
+    const handleBlockToggle = () => {
+      if (isBlocked) {
+        onUnblockContact(contact.id);
+      } else {
+        onBlockContact(contact.id);
+      }
+    }
+
     return (
-      <div className="relative">
+      <div className="relative group/item">
         <div
           onClick={() => onConversationSelect(convo.id)}
           className={cn(
@@ -78,7 +88,8 @@ export default function ConversationList({
             selectedConversationId === convo.id
               ? "bg-primary text-primary-foreground"
               : "hover:bg-muted",
-             isBlocked && "opacity-50 pointer-events-none"
+             isBlocked && !selectedConversationId ? "opacity-50" : "", // Grey out if blocked and not selected
+             isBlocked && selectedConversationId === convo.id ? "opacity-100 bg-destructive/20" : "",
           )}
         >
           <Avatar className="w-10 h-10 mr-3">
@@ -97,12 +108,16 @@ export default function ConversationList({
               </div>
             </div>
             <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-foreground")}>
-              {lastMessageSender && `${lastMessageSender}: `}
-              {lastMessage?.content}
+              { isBlocked ? "Dieser Kontakt ist blockiert" : (
+                <>
+                  {lastMessageSender && `${lastMessageSender}: `}
+                  {lastMessage?.content}
+                </>
+              )}
             </p>
           </div>
         </div>
-        <div className="absolute right-1 top-1/2 -translate-y-1/2">
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity">
           <DropdownMenu>
               <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 z-10">
@@ -123,9 +138,9 @@ export default function ConversationList({
                   <span>Archivieren</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onBlockContact(contact.id)}>
+                <DropdownMenuItem onClick={handleBlockToggle} className={cn(isBlocked && "text-green-500 focus:text-green-500")}>
                   <XCircle className="mr-2 h-4 w-4" />
-                  <span>Kontakt blockieren</span>
+                  <span>{isBlocked ? 'Blockierung aufheben' : 'Kontakt blockieren'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast({ title: 'Löschen noch nicht implementiert' })}>
                   <Trash2 className="mr-2 h-4 w-4" />
