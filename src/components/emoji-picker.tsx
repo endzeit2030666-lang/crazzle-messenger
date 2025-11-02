@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { EMOJI_CATEGORIES } from '@/data/emojis';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { X, Clock } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
@@ -23,16 +23,8 @@ export function EmojiPicker({ onEmojiSelect, onClose, className }: EmojiPickerPr
     if (storedRecent) {
       const parsedRecent = JSON.parse(storedRecent);
       setRecentlyUsed(parsedRecent);
-      if (parsedRecent.length > 0) {
-        setActiveCategory('recent');
-      }
     }
   }, []);
-
-  const allCategories = [
-    ...(recentlyUsed.length > 0 ? [{ id: 'recent', name: 'Zuletzt verwendet', icon: <Clock className="w-5 h-5" />, emojis: recentlyUsed }] : []),
-    ...EMOJI_CATEGORIES
-  ];
 
   const handleSelect = (emoji: string) => {
     onEmojiSelect(emoji);
@@ -41,13 +33,13 @@ export function EmojiPicker({ onEmojiSelect, onClose, className }: EmojiPickerPr
     localStorage.setItem('recentlyUsedEmojis', JSON.stringify(newRecent));
   };
   
-  const activeEmojis = allCategories.find((c) => c.id === activeCategory)?.emojis || [];
+  const activeEmojis = EMOJI_CATEGORIES.find((c) => c.id === activeCategory)?.emojis || [];
 
   return (
     <div className={cn("h-[45vh] bg-muted/80 backdrop-blur-sm border-t border-border rounded-t-lg flex flex-col", className)}>
       <div className="flex items-center justify-between p-2 border-b border-border">
         <div className="flex items-center gap-2 overflow-x-auto">
-          {allCategories.map((category) => (
+          {EMOJI_CATEGORIES.map((category) => (
               <TooltipProvider key={category.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -72,6 +64,22 @@ export function EmojiPicker({ onEmojiSelect, onClose, className }: EmojiPickerPr
           <X className="h-5 w-5" />
         </Button>
       </div>
+      {recentlyUsed.length > 0 && (
+        <div className="p-2 border-b border-border">
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Zuletzt verwendet</p>
+          <div className="grid grid-cols-8 gap-1">
+            {recentlyUsed.slice(0, 16).map((emoji, index) => (
+              <button
+                key={`recent-${emoji}-${index}`}
+                onClick={() => handleSelect(emoji)}
+                className="text-2xl hover:bg-black/20 rounded-md transition-colors aspect-square flex items-center justify-center"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-2 grid grid-cols-8 gap-1">
         {activeEmojis.map((emoji, index) => (
           <button
