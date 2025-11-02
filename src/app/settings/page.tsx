@@ -43,6 +43,15 @@ export default function SettingsPage() {
   const [readReceipts, setReadReceipts] = useState(true);
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [blockedContacts, setBlockedContacts] = useState(['Alice', 'Bob', 'Charlie']);
+
+  const unblockContact = (contactName: string) => {
+    setBlockedContacts(prev => prev.filter(c => c !== contactName));
+    toast({
+        title: "Blockierung aufgehoben",
+        description: `${contactName} ist nicht mehr blockiert.`
+    });
+  }
 
 
   return (
@@ -76,7 +85,7 @@ export default function SettingsPage() {
               </div>
               <span className="flex-1 text-left font-medium">Blockierte Kontakte</span>
               <div className="flex items-center">
-                  <span className="text-white mr-2">3</span>
+                  <span className="text-white mr-2">{blockedContacts.length}</span>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
           </button>
@@ -87,24 +96,25 @@ export default function SettingsPage() {
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Blockierte Kontakte</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-primary">Blockierte Kontakte</AlertDialogTitle>
+            <AlertDialogDescription className="text-white">
               Sie erhalten keine Nachrichten oder Anrufe von diesen Kontakten.
             </AlertDialogDescription>
           </AlertDialogHeader>
             <div className="space-y-2 py-4">
-                <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
-                    <span>Alice</span>
-                    <Button variant="outline" size="sm">Entsperren</Button>
-                </div>
-                 <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
-                    <span>Bob</span>
-                    <Button variant="outline" size="sm">Entsperren</Button>
-                </div>
-                 <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
-                    <span>Charlie</span>
-                    <Button variant="outline" size="sm">Entsperren</Button>
-                </div>
+                {blockedContacts.map(contact => (
+                    <div key={contact} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
+                        <span className="text-red-500 font-medium">{contact}</span>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-green-500 border-green-500 hover:bg-green-500/10 hover:text-green-500"
+                            onClick={() => unblockContact(contact)}
+                        >
+                            Entsperren
+                        </Button>
+                    </div>
+                ))}
             </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Schließen</AlertDialogCancel>
