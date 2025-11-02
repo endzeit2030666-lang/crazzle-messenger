@@ -60,6 +60,7 @@ export const conversations: Conversation[] = [
       { id: 'msg3', senderId: 'user1', content: 'Awesome! I\'m testing it out now. The E2E encryption feels solid. How do I verify your key?', timestamp: '10:32 AM', status: 'read', reactions: [] },
       { id: 'msg4', senderId: 'user0', content: 'Click on my name at the top of the chat. You\'ll see an option to verify my identity.', timestamp: '10:33 AM', status: 'delivered', reactions: [] },
     ],
+    isPinned: true,
   },
   {
     id: 'conv2',
@@ -92,6 +93,7 @@ export const conversations: Conversation[] = [
       { id: 'msg7', senderId: 'user2', content: 'Let\'s try the self-destructing message feature.', timestamp: 'Yesterday', status: 'read', isSelfDestructing: true, reactions: [] },
       { id: 'msg8', senderId: 'user0', content: 'Okay, this message will self-destruct in 5 minutes.', timestamp: 'Yesterday', status: 'read', isSelfDestructing: true, reactions: [] },
     ],
+    isMuted: true,
   },
   {
     id: 'conv4',

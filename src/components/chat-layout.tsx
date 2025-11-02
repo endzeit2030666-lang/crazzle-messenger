@@ -34,12 +34,34 @@ export default function ChatLayout() {
     );
   };
 
+  const togglePinConversation = (conversationId: string) => {
+    setConversations(prev =>
+      prev.map(convo =>
+        convo.id === conversationId
+          ? { ...convo, isPinned: !convo.isPinned }
+          : convo
+      )
+    );
+  };
+  
+  const toggleMuteConversation = (conversationId: string) => {
+    setConversations(prev =>
+      prev.map(convo =>
+        convo.id === conversationId
+          ? { ...convo, isMuted: !convo.isMuted }
+          : convo
+      )
+    );
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       <ConversationList
         conversations={conversations}
         selectedConversationId={selectedConversationId}
         onConversationSelect={setSelectedConversationId}
+        onPinToggle={togglePinConversation}
+        onMuteToggle={toggleMuteConversation}
       />
       <div className="flex-1 flex flex-col">
         {selectedConversation ? (

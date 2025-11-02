@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video } from "lucide-react";
-import type { Conversation, User, Group } from "@/lib/types";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, Bell, CheckCheck } from "lucide-react";
+import type { Conversation, User, Group, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Message from "@/components/message";
@@ -17,6 +17,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type ChatViewProps = {
   conversation: Conversation;
@@ -28,6 +45,7 @@ type ChatViewProps = {
 export default function ChatView({ conversation, contact, group, onSendMessage }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -46,6 +64,14 @@ export default function ChatView({ conversation, contact, group, onSendMessage }
     toast({
         title: `Starting ${type} call...`,
         description: "This feature is for demonstration purposes."
+    })
+  }
+
+  const handleBlockContact = () => {
+    setShowBlockDialog(false);
+    toast({
+      title: `${headerDetails.name} has been blocked.`,
+      description: `You will no longer receive messages or calls from them.`
     })
   }
 
@@ -99,27 +125,38 @@ export default function ChatView({ conversation, contact, group, onSendMessage }
                  </Tooltip>
              </TooltipProvider>
 
-            {contact && (
-            <ContactVerificationDialog
-            open={isVerificationDialogOpen}
-            onOpenChange={setVerificationDialogOpen}
-            contact={contact}
-            >
-            <TooltipProvider>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setVerificationDialogOpen(true)}>
-                    <ShieldCheck className="w-5 h-5 text-accent" />
-                    <span className="sr-only">Verify Contact</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Verify Contact's Identity</p>
-                </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-            </ContactVerificationDialog>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="w-5 h-5 text-accent" />
+                  <span className="sr-only">More options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {contact && (
+                  <DropdownMenuItem onClick={() => setVerificationDialogOpen(true)}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    <span>Verify Contact</span>
+                  </DropdownMenuItem>
+                )}
+                 <DropdownMenuItem>
+                  <BellOff className="mr-2 h-4 w-4" />
+                  <span>Mute Notifications</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toast({title: "Read Receipts toggled for this chat."})}>
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                  <span>Toggle Read Receipts</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {contact && (
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowBlockDialog(true)}>
+                    <Circle className="mr-2 h-4 w-4 fill-current" />
+                    <span>Block Contact</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       </header>
 
@@ -132,6 +169,30 @@ export default function ChatView({ conversation, contact, group, onSendMessage }
       <footer className="p-4 border-t border-border mt-auto">
         <MessageInput onSendMessage={onSendMessage} />
       </footer>
+
+      {contact && (
+        <ContactVerificationDialog
+        open={isVerificationDialogOpen}
+        onOpenChange={setVerificationDialogOpen}
+        contact={contact}
+        />
+      )}
+
+      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block {headerDetails.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Blocked contacts will no longer be able to call you or send you messages. This contact will not be notified.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBlockContact} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Block</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

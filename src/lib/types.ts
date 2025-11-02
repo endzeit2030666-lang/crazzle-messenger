@@ -32,7 +32,8 @@ export type Message = {
       id: string;
       content: string;
       senderName: string;
-  }
+  };
+  isEdited?: boolean;
 };
 
 export type Group = {
@@ -48,4 +49,6 @@ export type Conversation = {
   participants: User[];
   messages: Message[];
   groupDetails?: Group;
+  isPinned?: boolean;
+  isMuted?: boolean;
 };

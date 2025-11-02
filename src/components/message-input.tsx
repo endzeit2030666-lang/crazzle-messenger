@@ -17,6 +17,7 @@ import {
   Camera as CameraIcon,
   Smile,
   X,
+  MessageSquareQuote,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -35,12 +36,28 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { currentUser } from '@/lib/data';
+import type { Message } from '@/lib/types';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 type MessageInputProps = {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, quotedMessage?: Message['quotedMessage']) => void;
+  quotedMessage?: Message['quotedMessage'];
+  onClearQuote: () => void;
+  isEditing: boolean;
+  editingMessage: Message | null;
+  onStopEditing: () => void;
 };
 
-export default function MessageInput({ onSendMessage }: MessageInputProps) {
+export default function MessageInput({
+  onSendMessage,
+  quotedMessage,
+  onClearQuote,
+  isEditing,
+  editingMessage,
+  onStopEditing,
+}: MessageInputProps) {
   const [text, setText] = useState('');
   const [debouncedText, setDebouncedText] = useState('');
   const [analysis, setAnalysis] =
@@ -52,6 +69,15 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   const router = useRouter();
 
   useEffect(() => {
+    if (isEditing && editingMessage) {
+      setText(editingMessage.content);
+      textareaRef.current?.focus();
+    } else {
+      setText('');
+    }
+  }, [isEditing, editingMessage]);
+
+  useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedText(text);
     }, 500);
@@ -60,7 +86,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   }, [text]);
 
   useEffect(() => {
-    if (debouncedText.trim()) {
+    if (debouncedText.trim() && !isEditing) {
       startTransition(async () => {
         const result = await analyzeTextForSafety(debouncedText);
         if (
@@ -75,7 +101,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     } else {
       setAnalysis(null);
     }
-  }, [debouncedText]);
+  }, [debouncedText, isEditing]);
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -88,7 +114,12 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onSendMessage(text.trim());
+      if (isEditing) {
+        // This part needs to be handled in the parent component
+        onSendMessage(text.trim());
+      } else {
+        onSendMessage(text.trim(), quotedMessage);
+      }
       setText('');
       setAnalysis(null);
       if (textareaRef.current) {
@@ -102,7 +133,15 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
       e.preventDefault();
       handleSubmit(e);
     }
+    if (e.key === 'Escape') {
+      if (isEditing) {
+        onStopEditing();
+      } else if (quotedMessage) {
+        onClearQuote();
+      }
+    }
   };
+  
 
   const handleFeatureNotImplemented = (featureName: string) => {
     toast({
@@ -116,7 +155,6 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     const newText = text.slice(0, cursorPosition) + emoji + text.slice(cursorPosition);
     setText(newText);
     
-    // Focus and set cursor position after emoji insertion
     setTimeout(() => {
         textareaRef.current?.focus();
         textareaRef.current?.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
@@ -153,26 +191,36 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   
   const EmojiPicker = () => {
     const categories = {
-        '😊': { name: 'Smileys & People', emojis: ['😀', '😂', '😍', '🤔', '👍', '🙏', '👋', '❤️'] },
-        '🐱': { name: 'Animals & Nature', emojis: ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐨'] },
-        '🍔': { name: 'Food & Drink', emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇'] },
-        '⚽': { name: 'Activities', emojis: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱'] },
-        '🚗': { name: 'Travel & Places', emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑'] },
-        '💡': { name: 'Objects', emojis: ['💡', '🔦', '🏮', '🗑️', '🔧', '🔨', '🔩', '🔫'] },
-        '🔣': { name: 'Symbols', emojis: ['☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎'] },
-        '🏁': { name: 'Flags', emojis: ['🏳️', '🏴', '🏁', '🚩', '🎌', '🇺🇳', '🇪🇺', '🇺🇸'] },
+        '😊': { name: 'Smileys & People', emojis: ['😀', '😂', '😍', '🤔', '👍', '🙏', '👋', '❤️', '🤩', '🥳', '🤯', '😭', '😡', '😱'] },
+        '🐱': { name: 'Animals & Nature', emojis: ['🐶', '🐱', '🐭', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵'] },
+        '🍔': { name: 'Food & Drink', emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍'] },
+        '⚽': { name: 'Activities', emojis: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🏒', '🏑', '🏏', '⛳'] },
+        '🚗': { name: 'Travel & Places', emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛵'] },
+        '💡': { name: 'Objects', emojis: ['💡', '🔦', '🏮', '🗑️', '🔧', '🔨', '🔩', '🔫', '💣', '🔪', '💊', '💉', '🩸', '⚰️'] },
+        '🔣': { name: 'Symbols', emojis: ['☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈️', '♉️'] },
+        '🏁': { name: 'Flags', emojis: ['🏳️', '🏴', '🏁', '🚩', '🎌', '🇺🇳', '🇪🇺', '🇺🇸', '🇩🇪', '🇫🇷', '🇬🇧', '🇮🇹', '🇪🇸', '🇯🇵'] },
     };
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('😊');
+    const [recentlyUsed, setRecentlyUsed] = useState(['😂', '❤️', '👍', '🤔', '🎉']);
 
     return (
         <div className="h-[45vh] bg-muted/80 backdrop-blur-sm border-t border-border rounded-t-lg flex flex-col">
-            <div className="flex items-center justify-between p-2 border-b border-border">
-                <div className="flex items-center gap-2">
-                    {Object.keys(categories).map(cat => (
-                         <Button key={cat} variant={activeCategory === cat ? 'secondary': 'ghost'} size="icon" className="h-8 w-8" onClick={() => setActiveCategory(cat)}>
-                            {cat}
-                        </Button>
+             <div className="flex items-center justify-between p-2 border-b border-border">
+                <div className="flex items-center gap-2 overflow-x-auto">
+                    {Object.entries(categories).map(([icon, {name}]) => (
+                         <TooltipProvider key={name}>
+                             <Tooltip>
+                                 <TooltipTrigger asChild>
+                                     <Button variant={activeCategory === icon ? 'secondary': 'ghost'} size="icon" className="h-8 w-8" onClick={() => setActiveCategory(icon)}>
+                                        {icon}
+                                    </Button>
+                                 </TooltipTrigger>
+                                 <TooltipContent>
+                                     <p>{name}</p>
+                                 </TooltipContent>
+                             </Tooltip>
+                         </TooltipProvider>
                     ))}
                 </div>
                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEmojiPickerOpen(false)}>
@@ -184,7 +232,11 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
             </div>
             <div className="flex-1 overflow-y-auto p-2 grid grid-cols-8 gap-2">
                 {(categories[activeCategory as keyof typeof categories]?.emojis || []).filter(e => e.includes(search)).map(emoji => (
-                    <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="text-2xl hover:bg-black/20 rounded-md transition-colors aspect-square flex items-center justify-center">
+                    <button key={emoji} onClick={() => {
+                        handleEmojiSelect(emoji);
+                        const newRecent = [emoji, ...recentlyUsed.filter(r => r !== emoji)];
+                        setRecentlyUsed(Array.from(new Set(newRecent)).slice(0, 8));
+                    }} className="text-2xl hover:bg-black/20 rounded-md transition-colors aspect-square flex items-center justify-center">
                         {emoji}
                     </button>
                 ))}
@@ -192,7 +244,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
              <div className="p-2 border-t border-border">
                 <p className="text-xs text-muted-foreground mb-1">Zuletzt verwendet</p>
                 <div className="flex gap-2">
-                     {['😂', '❤️', '👍', '🤔', '🎉'].map(emoji => (
+                     {recentlyUsed.map(emoji => (
                         <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="text-2xl hover:bg-black/20 rounded-md transition-colors p-1">
                             {emoji}
                         </button>
@@ -205,107 +257,156 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
 
   return (
     <div className="relative">
-    <form onSubmit={handleSubmit} className="space-y-2">
-      {analysis && (
-        <Alert variant="destructive" className="mb-2">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Potential Risk Detected</AlertTitle>
-          <AlertDescription>{analysis.advice}</AlertDescription>
-        </Alert>
-      )}
-      <div className="flex items-end gap-2 p-2 bg-background rounded-lg">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="shrink-0"
-            >
-              <Plus className="h-5 w-5" />
-              <span className="sr-only">Attach file</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-2 mb-2">
-            <div className="grid grid-cols-1 gap-1">
-              <AttachmentButton
-                icon={ImageIcon}
-                label="Image from Gallery"
-                action={() => handleFeatureNotImplemented('Image from Gallery')}
-              />
-              <AttachmentButton
-                icon={Video}
-                label="Video from Gallery"
-                action={() => handleFeatureNotImplemented('Video from Gallery')}
-              />
-              <hr className="my-2 border-border" />
-              <AttachmentButton
-                icon={FileText}
-                label="Document"
-                formats=".pdf, .doc, .xls, .ppt, .txt..."
-              />
-              <AttachmentButton
-                icon={Music}
-                label="Audio"
-                formats=".mp3, .wav, .aac, .ogg..."
-              />
-              <AttachmentButton
-                icon={FileArchive}
-                label="Compressed"
-                formats=".zip, .rar, .7z"
-              />
-              <AttachmentButton
-                icon={FileCode}
-                label="Other"
-                formats=".html, .csv, .apk..."
-              />
+      {isEditing && editingMessage && (
+        <div className="p-2 bg-muted rounded-t-lg text-sm flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-primary" />
+            <div>
+              <p className="font-semibold text-primary">Nachricht bearbeiten</p>
+              <p className="text-muted-foreground truncate max-w-xs">{editingMessage.content}</p>
             </div>
-          </PopoverContent>
-        </Popover>
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          type="button"
-          onClick={() => setEmojiPickerOpen(!isEmojiPickerOpen)}
-          className="shrink-0"
-        >
-          <Smile className="h-5 w-5" />
-          <span className="sr-only">Open emoji picker</span>
-        </Button>
-
-        <Textarea
-          ref={textareaRef}
-          value={text}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder="Type an encrypted message..."
-          className="flex-1 resize-none bg-muted border-0 focus-visible:ring-0 max-h-40 overflow-y-auto"
-          rows={1}
-        />
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          type="button"
-          onClick={() => router.push('/status/camera')}
-          className="shrink-0"
-        >
-          <CameraIcon className="h-5 w-5" />
-          <span className="sr-only">Open camera</span>
-        </Button>
-
-        {text ? (
-          <Button
-            type="submit"
+          </div>
+          <Button variant="ghost" size="icon" onClick={onStopEditing} className="h-7 w-7">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      {quotedMessage && (
+        <div className="p-2 bg-muted rounded-t-lg text-sm flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageSquareQuote className="w-4 h-4 text-primary" />
+            <div>
+              <p className="font-semibold text-primary">Antwort an {quotedMessage.senderName}</p>
+              <p className="text-muted-foreground truncate max-w-xs">{quotedMessage.content}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClearQuote} className="h-7 w-7">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-2">
+        {analysis && (
+          <Alert variant="destructive" className="mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Potential Risk Detected</AlertTitle>
+            <AlertDescription>{analysis.advice}</AlertDescription>
+          </Alert>
+        )}
+        <div className={cn("flex items-end gap-2 p-2 bg-background", !quotedMessage && !isEditing ? "rounded-lg" : "rounded-b-lg")}>
+           <Button
+            variant="ghost"
             size="icon"
-            disabled={!text.trim() || isPending}
+            type="button"
+            onClick={() => router.push('/status/camera')}
             className="shrink-0"
           >
-            <Send className="h-5 w-5" />
-            <span className="sr-only">Send message</span>
+            <CameraIcon className="h-5 w-5" />
+            <span className="sr-only">Open camera</span>
           </Button>
-        ) : (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                className="shrink-0"
+              >
+                <Plus className="h-5 w-5" />
+                <span className="sr-only">Attach file</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-2 mb-2">
+              <div className="grid grid-cols-1 gap-1">
+                <AttachmentButton
+                  icon={ImageIcon}
+                  label="Image from Gallery"
+                  action={() => handleFeatureNotImplemented('Image from Gallery')}
+                />
+                <AttachmentButton
+                  icon={Video}
+                  label="Video from Gallery"
+                  action={() => handleFeatureNotImplemented('Video from Gallery')}
+                />
+                <hr className="my-2 border-border" />
+                <AttachmentButton
+                  icon={FileText}
+                  label="Document"
+                  formats=".pdf, .doc, .xls, .ppt, .txt..."
+                />
+                <AttachmentButton
+                  icon={Music}
+                  label="Audio"
+                  formats=".mp3, .wav, .aac, .ogg..."
+                />
+                <AttachmentButton
+                  icon={FileArchive}
+                  label="Compressed"
+                  formats=".zip, .rar, .7z"
+                />
+                <AttachmentButton
+                  icon={FileCode}
+                  label="Other"
+                  formats=".html, .csv, .apk..."
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            type="button"
+            onClick={() => setEmojiPickerOpen(!isEmojiPickerOpen)}
+            className="shrink-0"
+          >
+            <Smile className="h-5 w-5" />
+            <span className="sr-only">Open emoji picker</span>
+          </Button>
+
+          <Textarea
+            ref={textareaRef}
+            value={text}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder="Type an encrypted message..."
+            className="flex-1 resize-none bg-muted border-0 focus-visible:ring-0 max-h-40 overflow-y-auto"
+            rows={1}
+          />
+          
+
+          {text ? (
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!text.trim() || isPending}
+              className="shrink-0"
+            >
+              <Send className="h-5 w-5" />
+              <span className="sr-only">{isEditing ? 'Save changes' : 'Send message'}</span>
+            </Button>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    onClick={() => handleFeatureNotImplemented('Voice messages')}
+                    className="shrink-0"
+                  >
+                    <Mic className="h-5 w-5 text-primary" />
+                    <span className="sr-only">Record voice message</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Record voice message</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -313,46 +414,23 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
                   variant="ghost"
                   size="icon"
                   type="button"
-                  onClick={() => handleFeatureNotImplemented('Voice messages')}
+                  onClick={() =>
+                    handleFeatureNotImplemented('Self-destructing messages')
+                  }
                   className="shrink-0"
                 >
-                  <Mic className="h-5 w-5 text-primary" />
-                  <span className="sr-only">Record voice message</span>
+                  <Clock className="h-5 w-5" />
+                  <span className="sr-only">Self-destructing message</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Record voice message</p>
+                <p>Self-destructing message</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        )}
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                type="button"
-                onClick={() =>
-                  handleFeatureNotImplemented('Self-destructing messages')
-                }
-                className="shrink-0"
-              >
-                <Clock className="h-5 w-5" />
-                <span className="sr-only">Self-destructing message</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Self-destructing message</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    </form>
-    {isEmojiPickerOpen && <EmojiPicker />}
+        </div>
+      </form>
+      {isEmojiPickerOpen && <EmojiPicker />}
     </div>
   );
 }
-
-    
