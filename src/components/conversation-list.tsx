@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Lock, Camera } from "lucide-react";
+import { Search, Lock, Camera, PlusCircle } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/logo";
+import { useToast } from "@/hooks/use-toast";
 
 type ConversationListProps = {
   conversations: Conversation[];
@@ -26,9 +27,20 @@ export default function ConversationList({
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+  const { toast } = useToast();
+
+  const handleCreateGroup = () => {
+      toast({
+          title: "Create New Group",
+          description: "This feature is for demonstration purposes."
+      })
+  }
 
   const filteredConversations = useMemo(() => {
     return conversations.filter(convo => {
+      if (convo.type === 'group') {
+          return convo.groupDetails?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      }
       const contact = convo.participants.find(p => p.id !== currentUser.id);
       return contact?.name.toLowerCase().includes(searchTerm.toLowerCase());
     });
@@ -55,14 +67,25 @@ export default function ConversationList({
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
-            <Lock className="w-5 h-5 text-accent" />
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCreateGroup}>
+                            <PlusCircle className="w-5 h-5 text-accent" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>New Group</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search contacts..."
+            placeholder="Search contacts or groups..."
             className="pl-9 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -72,9 +95,20 @@ export default function ConversationList({
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2 space-y-1">
           {filteredConversations.map(convo => {
-            const contact = convo.participants.find(p => p.id !== currentUser.id);
-            if (!contact) return null;
+            let name, avatar;
+            if (convo.type === 'group') {
+                name = convo.groupDetails?.name;
+                avatar = convo.groupDetails?.avatar;
+            } else {
+                const contact = convo.participants.find(p => p.id !== currentUser.id);
+                name = contact?.name;
+                avatar = contact?.avatar;
+            }
+
+            if (!name || !avatar) return null;
+            
             const lastMessage = convo.messages[convo.messages.length - 1];
+            const lastMessageSender = convo.type === 'group' && lastMessage ? convo.participants.find(p => p.id === lastMessage.senderId)?.name.split(' ')[0] : (lastMessage?.senderId === currentUser.id ? 'You' : undefined);
 
             return (
               <button
@@ -89,17 +123,17 @@ export default function ConversationList({
               >
                 <Avatar className="w-10 h-10 mr-3">
                   <AvatarImage asChild>
-                    <Image src={contact.avatar} alt={contact.name} width={40} height={40} data-ai-hint="person portrait" />
+                    <Image src={avatar} alt={name} width={40} height={40} data-ai-hint="person portrait" />
                   </AvatarImage>
-                  <AvatarFallback>{contact.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold truncate">{contact.name}</h3>
+                    <h3 className="font-semibold truncate">{name}</h3>
                     <p className={cn("text-xs", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{lastMessage?.timestamp}</p>
                   </div>
                   <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-muted-foreground")}>
-                    {lastMessage?.senderId === currentUser.id && 'You: '}
+                    {lastMessageSender && `${lastMessageSender}: `}
                     {lastMessage?.content}
                   </p>
                 </div>

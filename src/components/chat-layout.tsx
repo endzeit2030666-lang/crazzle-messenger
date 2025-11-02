@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Conversation, User, Message } from "@/lib/types";
+import type { Conversation, User, Message, Group } from "@/lib/types";
 import { conversations as initialConversations, currentUser } from "@/lib/data";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
@@ -22,6 +22,7 @@ export default function ChatLayout() {
       content: messageContent,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'sent' as const,
+      reactions: [],
     };
 
     setConversations(prev =>
@@ -41,11 +42,12 @@ export default function ChatLayout() {
         onConversationSelect={setSelectedConversationId}
       />
       <div className="flex-1 flex flex-col">
-        {selectedConversation && contact ? (
+        {selectedConversation ? (
           <ChatView
             key={selectedConversation.id}
             conversation={selectedConversation}
-            contact={contact}
+            contact={selectedConversation.type === 'private' ? selectedConversation.participants.find(p => p.id !== currentUser.id) : undefined}
+            group={selectedConversation.type === 'group' ? selectedConversation.groupDetails : undefined}
             onSendMessage={handleSendMessage}
           />
         ) : (

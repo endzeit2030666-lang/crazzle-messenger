@@ -40,25 +40,34 @@ export const users: User[] = [
     onlineStatus: 'online',
     publicKey: 'DE:F0:12:34:56:78:9A:BC:DE:F0:12:34:56:78:9A:BC:DE:F0:12:34',
   },
+    {
+    id: 'user5',
+    name: 'Family Group',
+    avatar: findImage('groupAvatar'),
+    onlineStatus: 'online',
+    publicKey: '',
+  },
 ];
 
 export const conversations: Conversation[] = [
   {
     id: 'conv1',
+    type: 'private',
     participants: [currentUser, users[0]],
     messages: [
-      { id: 'msg1', senderId: 'user1', content: 'Hey, how is it going?', timestamp: '10:30 AM', status: 'read' },
-      { id: 'msg2', senderId: 'user0', content: 'Pretty good! Working on the new secure messenger. You?', timestamp: '10:31 AM', status: 'read' },
-      { id: 'msg3', senderId: 'user1', content: 'Awesome! I\'m testing it out now. The E2E encryption feels solid. How do I verify your key?', timestamp: '10:32 AM', status: 'read' },
-      { id: 'msg4', senderId: 'user0', content: 'Click on my name at the top of the chat. You\'ll see an option to verify my identity.', timestamp: '10:33 AM', status: 'delivered' },
+      { id: 'msg1', senderId: 'user1', content: 'Hey, how is it going?', timestamp: '10:30 AM', status: 'read', reactions: [] },
+      { id: 'msg2', senderId: 'user0', content: 'Pretty good! Working on the new secure messenger. You?', timestamp: '10:31 AM', status: 'read', reactions: [{ emoji: '👍', userId: 'user1', username: 'Alice' }] },
+      { id: 'msg3', senderId: 'user1', content: 'Awesome! I\'m testing it out now. The E2E encryption feels solid. How do I verify your key?', timestamp: '10:32 AM', status: 'read', reactions: [] },
+      { id: 'msg4', senderId: 'user0', content: 'Click on my name at the top of the chat. You\'ll see an option to verify my identity.', timestamp: '10:33 AM', status: 'delivered', reactions: [] },
     ],
   },
   {
     id: 'conv2',
+    type: 'private',
     participants: [currentUser, users[1]],
     messages: [
-      { id: 'msg5', senderId: 'user2', content: 'Can you send me the project files?', timestamp: 'Yesterday', status: 'read' },
-      { id: 'msg6', senderId: 'user0', content: 'Sure, sending them now. They are encrypted of course.', timestamp: 'Yesterday', status: 'read' },
+      { id: 'msg5', senderId: 'user2', content: 'Can you send me the project files?', timestamp: 'Yesterday', status: 'read', reactions: [] },
+      { id: 'msg6', senderId: 'user0', content: 'Sure, sending them now. They are encrypted of course.', timestamp: 'Yesterday', status: 'read', reactions: [] },
       { 
         id: 'msg_yt', 
         senderId: 'user2', 
@@ -70,23 +79,42 @@ export const conversations: Conversation[] = [
           image: findImage('youtubeThumbnail'),
           title: 'Official Music Video',
           description: 'youtube.com'
-        }
+        },
+        reactions: [],
       },
     ],
   },
   {
     id: 'conv3',
+    type: 'private',
     participants: [currentUser, users[2]],
     messages: [
-      { id: 'msg7', senderId: 'user2', content: 'Let\'s try the self-destructing message feature.', timestamp: 'Yesterday', status: 'read', isSelfDestructing: true },
-      { id: 'msg8', senderId: 'user0', content: 'Okay, this message will self-destruct in 5 minutes.', timestamp: 'Yesterday', status: 'read', isSelfDestructing: true },
+      { id: 'msg7', senderId: 'user2', content: 'Let\'s try the self-destructing message feature.', timestamp: 'Yesterday', status: 'read', isSelfDestructing: true, reactions: [] },
+      { id: 'msg8', senderId: 'user0', content: 'Okay, this message will self-destruct in 5 minutes.', timestamp: 'Yesterday', status: 'read', isSelfDestructing: true, reactions: [] },
     ],
   },
   {
     id: 'conv4',
+    type: 'private',
     participants: [currentUser, users[3]],
     messages: [
-        { id: 'msg9', senderId: 'user4', content: 'Are you available for a quick call?', timestamp: '2 days ago', status: 'read' },
+        { id: 'msg9', senderId: 'user4', content: 'Are you available for a quick call?', timestamp: '2 days ago', status: 'read', reactions: [] },
+    ],
+  },
+  {
+    id: 'conv5',
+    type: 'group',
+    participants: [currentUser, users[0], users[1], users[2]],
+    groupDetails: {
+      id: 'group1',
+      name: 'Family Group',
+      avatar: findImage('groupAvatar'),
+      participants: [currentUser, users[0], users[1], users[2]],
+    },
+    messages: [
+        { id: 'gmsg1', senderId: 'user1', content: 'Hi everyone! What are we doing this weekend?', timestamp: '9:00 AM', status: 'read', reactions: [] },
+        { id: 'gmsg2', senderId: 'user2', content: 'I was thinking of a BBQ if the weather is good!', timestamp: '9:01 AM', status: 'read', reactions: [{ emoji: '❤️', userId: 'user1', username: 'Alice' }] },
+        { id: 'gmsg3', senderId: 'user0', content: 'Sounds great! I can bring salads.', timestamp: '9:05 AM', status: 'read', reactions: [] },
     ],
   },
 ];

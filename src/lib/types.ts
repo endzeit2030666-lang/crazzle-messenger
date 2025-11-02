@@ -13,6 +13,12 @@ export type LinkPreviewData = {
   description: string;
 }
 
+export type Reaction = {
+  emoji: string;
+  userId: string;
+  username: string;
+}
+
 export type Message = {
   id: string;
   senderId: string;
@@ -21,10 +27,25 @@ export type Message = {
   status: 'sent' | 'delivered' | 'read';
   isSelfDestructing?: boolean;
   linkPreview?: LinkPreviewData;
+  reactions: Reaction[];
+  quotedMessage?: {
+      id: string;
+      content: string;
+      senderName: string;
+  }
 };
+
+export type Group = {
+    id: string;
+    name: string;
+    avatar: string;
+    participants: User[];
+}
 
 export type Conversation = {
   id:string;
+  type: 'private' | 'group';
   participants: User[];
   messages: Message[];
+  groupDetails?: Group;
 };
