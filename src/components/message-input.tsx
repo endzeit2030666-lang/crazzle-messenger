@@ -149,6 +149,13 @@ export default function MessageInput({
     });
   };
 
+  const handleAttachmentClick = (label: string, formats?: string) => {
+    toast({
+      title: `${label} auswählen`,
+      description: `Dies würde den Dateimanager öffnen, um eine Datei auszuwählen. (${formats || 'Alle'})`,
+    });
+  };
+
   const handleEmojiSelect = (emoji: string) => {
     const cursorPosition = textareaRef.current?.selectionStart || 0;
     const newText = text.slice(0, cursorPosition) + emoji + text.slice(cursorPosition);
@@ -164,17 +171,15 @@ export default function MessageInput({
     icon: Icon,
     label,
     formats,
-    action,
   }: {
     icon: React.ElementType;
     label: string;
     formats?: string;
-    action?: () => void;
   }) => (
     <Button
       variant="ghost"
       className="w-full justify-start h-auto py-3"
-      onClick={action ? action : () => handleFeatureNotImplemented(label)}
+      onClick={() => handleAttachmentClick(label, formats)}
     >
       <div className="flex items-center gap-4">
         <Icon className="h-6 w-6 text-primary" />
@@ -254,12 +259,10 @@ export default function MessageInput({
                 <AttachmentButton
                   icon={ImageIcon}
                   label="Bild aus Galerie"
-                  action={() => handleFeatureNotImplemented('Bild aus Galerie')}
                 />
                 <AttachmentButton
                   icon={Video}
                   label="Video aus Galerie"
-                  action={() => handleFeatureNotImplemented('Video aus Galerie')}
                 />
                 <hr className="my-2 border-border" />
                 <AttachmentButton
