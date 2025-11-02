@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, Bell, CheckCheck, ArrowLeft, Smile, Plus, Camera, Send as SendIcon } from "lucide-react";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, CheckCheck, ArrowLeft, Smile, Plus, Camera, Send as SendIcon } from "lucide-react";
 import type { Conversation, User, Group, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -132,7 +132,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
         </Avatar>
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
-           <div className="flex items-center text-sm text-muted-foreground">
+           <div className="flex items-center text-sm text-foreground">
              {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-primary' : onlineStatusColors[contact.onlineStatus])} /> {contact.onlineStatus}</>}
              {group && <p>{group.participants.length} members</p>}
           </div>

@@ -191,7 +191,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
 
           {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground/70")}>Edited</span>}
 
-          <span className={cn(isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground")}>
+          <span className={cn("text-primary", isCurrentUser ? "text-primary-foreground/70" : "")}>
             {message.timestamp}
           </span>
           {isCurrentUser && <StatusIcon status={message.status} />}
