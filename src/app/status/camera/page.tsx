@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Video, Zap, RefreshCw, X, Image as ImageIcon, Send, Clock, Download, Trash2 } from 'lucide-react';
+import { Camera, Video, Zap, RefreshCw, X, FileImage, Send, Clock, Download, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
@@ -165,7 +165,7 @@ export default function CameraPage() {
         </div>
         <div className="w-full flex items-center justify-between">
             <Button variant="ghost" size="icon">
-                <ImageIcon className="w-7 h-7" />
+                <FileImage className="w-7 h-7" />
             </Button>
             <button
                 onClick={handleCapture}
