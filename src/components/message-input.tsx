@@ -44,7 +44,7 @@ import { cn } from '@/lib/utils';
 import { EmojiPicker } from './emoji-picker';
 
 type MessageInputProps = {
-  onSendMessage: (content: string, quotedMessage?: Message['quotedMessage']) => void;
+  onSendMessage: (content: string) => void;
   quotedMessage?: Message['quotedMessage'];
   onClearQuote: () => void;
   isEditing: boolean;
@@ -116,7 +116,7 @@ export default function MessageInput({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onSendMessage(text.trim(), quotedMessage);
+      onSendMessage(text.trim());
       setText('');
       setAnalysis(null);
       if (textareaRef.current) {

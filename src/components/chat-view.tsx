@@ -92,12 +92,12 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
     setQuotedMessage(undefined);
   };
   
-  const handleSendMessageSubmit = (content: string, quotedMsg?: MessageType['quotedMessage']) => {
+  const handleSendMessageSubmit = (content: string) => {
     if (editingMessage) {
       onEditMessage(editingMessage.id, content);
       setEditingMessage(null);
     } else {
-      onSendMessage(content, quotedMsg);
+      onSendMessage(content, quotedMessage);
       setQuotedMessage(undefined);
     }
   };
