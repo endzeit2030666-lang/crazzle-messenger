@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, ArrowLeft, Smile, Plus, Camera, Send as SendIcon } from "lucide-react";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, ArrowLeft, Smile, Plus, Camera, Send as SendIcon, CheckCheck } from "lucide-react";
 import type { Conversation, User, Group, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -61,12 +61,6 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [conversation.messages]);
-
-  const onlineStatusColors = {
-    online: 'text-green-400',
-    offline: 'text-slate-400',
-    away: 'text-amber-400',
-  }
   
   const handleCall = (type: 'audio' | 'video') => {
     toast({
@@ -133,7 +127,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
            <div className="flex items-center text-sm text-foreground">
-             {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-primary' : onlineStatusColors[contact.onlineStatus])} /> {contact.onlineStatus}</>}
+             {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-primary' : 'text-slate-400')} /> {contact.onlineStatus}</>}
              {group && <p>{group.participants.length} members</p>}
           </div>
         </div>

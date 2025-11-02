@@ -6,12 +6,10 @@ import { conversations as initialConversations, currentUser } from "@/lib/data";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function ChatLayout() {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const contact = selectedConversation?.participants.find(p => p.id !== currentUser.id);
@@ -126,14 +124,16 @@ export default function ChatLayout() {
   const handleBack = () => {
     setSelectedConversationId(null);
   };
-  
-  const showConversationList = isMobile ? !selectedConversationId : true;
-  const showChatView = isMobile ? !!selectedConversationId : true;
-
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      <div className={cn("w-full md:w-auto md:flex-shrink-0", showConversationList ? "block" : "hidden md:block")}>
+    <div className={cn(
+        "flex h-screen w-full overflow-hidden bg-background",
+        selectedConversationId && "md:grid md:grid-cols-[384px_1fr]"
+    )}>
+      <div className={cn(
+          "w-full md:w-96 md:flex-shrink-0 md:flex md:flex-col",
+          selectedConversationId && "hidden md:flex"
+      )}>
         <ConversationList
           conversations={conversations}
           selectedConversationId={selectedConversationId}
@@ -142,7 +142,7 @@ export default function ChatLayout() {
           onMuteToggle={toggleMuteConversation}
         />
       </div>
-      <div className={cn("flex-1 flex-col", showChatView ? "flex" : "hidden md:flex")}>
+      <div className={cn("flex-1 flex-col", selectedConversationId ? "flex" : "hidden md:flex")}>
         {selectedConversation ? (
           <ChatView
             key={selectedConversation.id}
