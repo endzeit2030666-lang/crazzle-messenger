@@ -53,7 +53,6 @@ export const conversations: Conversation[] = [
       { id: 'msg3', senderId: 'user1', content: 'Super! Ich teste ihn gerade. Die E2E-Verschlüsselung fühlt sich solide an. Wie verifiziere ich deinen Schlüssel?', timestamp: '10:32', status: 'read', reactions: [] },
       { id: 'msg4', senderId: 'user0', content: 'Klicke oben im Chat auf meinen Namen. Dort siehst du eine Option, um meine Identität zu verifizieren.', timestamp: '10:33', status: 'delivered', reactions: [] },
     ],
-    isPinned: true,
   },
   {
     id: 'conv2',

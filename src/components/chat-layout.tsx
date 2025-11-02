@@ -153,16 +153,6 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
     );
   };
 
-
-  const togglePinConversation = (conversationId: string) => {
-    setConversations(prev =>
-      prev.map(convo =>
-        convo.id === conversationId
-          ? { ...convo, isPinned: !convo.isPinned }
-          : convo
-      )
-    );
-  };
   
   const toggleMuteConversation = (conversationId: string) => {
     setConversations(prev =>
@@ -237,7 +227,6 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
           conversations={conversations}
           selectedConversationId={selectedConversationId}
           onConversationSelect={setSelectedConversationId}
-          onPinToggle={togglePinConversation}
           onMuteToggle={toggleMuteConversation}
           onBlockContact={blockContact}
           onUnblockContact={unblockContact}

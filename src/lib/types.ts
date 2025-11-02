@@ -48,6 +48,5 @@ export type Conversation = {
   type: 'private';
   participants: User[];
   messages: Message[];
-  isPinned?: boolean;
   isMuted?: boolean;
 };
