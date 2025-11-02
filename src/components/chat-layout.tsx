@@ -6,10 +6,12 @@ import { conversations as initialConversations, currentUser } from "@/lib/data";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function ChatLayout() {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const contact = selectedConversation?.participants.find(p => p.id !== currentUser.id);
@@ -124,10 +126,14 @@ export default function ChatLayout() {
   const handleBack = () => {
     setSelectedConversationId(null);
   };
+  
+  const showConversationList = isMobile ? !selectedConversationId : true;
+  const showChatView = isMobile ? !!selectedConversationId : true;
+
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      <div className={cn("w-full md:w-auto md:flex-shrink-0", selectedConversationId ? "hidden md:block" : "block")}>
+      <div className={cn("w-full md:w-auto md:flex-shrink-0", showConversationList ? "block" : "hidden md:block")}>
         <ConversationList
           conversations={conversations}
           selectedConversationId={selectedConversationId}
@@ -136,7 +142,7 @@ export default function ChatLayout() {
           onMuteToggle={toggleMuteConversation}
         />
       </div>
-      <div className={cn("flex-1 flex-col", selectedConversationId ? "flex" : "hidden md:flex")}>
+      <div className={cn("flex-1 flex-col", showChatView ? "flex" : "hidden md:flex")}>
         {selectedConversation ? (
           <ChatView
             key={selectedConversation.id}
@@ -150,7 +156,7 @@ export default function ChatLayout() {
             onReact={handleReaction}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground bg-muted/20">
+          <div className="flex-1 items-center justify-center text-muted-foreground bg-muted/20 hidden md:flex">
             Select a conversation to start messaging.
           </div>
         )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, CheckCheck, ArrowLeft, Smile, Plus, Camera, Send as SendIcon } from "lucide-react";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, ArrowLeft, Smile, Plus, Camera, Send as SendIcon } from "lucide-react";
 import type { Conversation, User, Group, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

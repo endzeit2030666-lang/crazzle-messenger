@@ -55,8 +55,8 @@ export default function ConversationList({
       return contact?.name.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
-    const pinned = filtered.filter(c => c.isPinned);
-    const unpinned = filtered.filter(c => !c.isPinned);
+    const pinned = filtered.filter(c => c.isPinned).sort((a, b) => (a.id > b.id ? -1 : 1));
+    const unpinned = filtered.filter(c => !c.isPinned).sort((a, b) => (a.id > b.id ? -1 : 1));
     return { pinned, unpinned };
   }, [conversations, searchTerm]);
 
@@ -92,7 +92,7 @@ export default function ConversationList({
               <AvatarImage asChild>
                 <Image src={avatar} alt={name} width={40} height={40} data-ai-hint="person portrait" />
               </AvatarImage>
-              <AvatarFallback className={cn(selectedConversationId === convo.id ? "text-primary-foreground" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className={cn(selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden">
               <div className="flex items-center justify-between">
@@ -134,7 +134,7 @@ export default function ConversationList({
 
 
   return (
-    <aside className="w-full h-full flex flex-col border-r border-border bg-muted/30 md:max-w-xs">
+    <aside className="w-full h-full flex flex-col border-r border-border bg-muted/30 md:w-96">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
