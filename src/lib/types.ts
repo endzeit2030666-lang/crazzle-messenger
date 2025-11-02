@@ -4,6 +4,9 @@ export type User = {
   avatar: string;
   onlineStatus: 'online' | 'offline' | 'away';
   publicKey: string;
+  bio?: string;
+  readReceiptsEnabled?: boolean;
+  blockedUsers?: string[];
 };
 
 export type LinkPreviewData = {
@@ -26,6 +29,8 @@ export type Message = {
   timestamp: string;
   status: 'sent' | 'delivered' | 'read';
   isSelfDestructing?: boolean;
+  selfDestructTimer?: number;
+  readAt?: number; // Timestamp when the message was read
   linkPreview?: LinkPreviewData;
   reactions: Reaction[];
   quotedMessage?: {
@@ -34,6 +39,9 @@ export type Message = {
       senderName: string;
   };
   isEdited?: boolean;
+  type?: 'text' | 'audio';
+  audioUrl?: string;
+  audioDuration?: number;
 };
 
 export type Group = {

@@ -145,7 +145,7 @@ export default function MessageInput({
   const handleFeatureNotImplemented = (featureName: string) => {
     toast({
       title: `${featureName}`,
-      description: 'Diese Funktion dient zu Demonstrationszwecken und ist noch nicht implementiert.',
+      description: 'Diese Funktion ist noch nicht implementiert.',
     });
   };
 

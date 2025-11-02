@@ -42,7 +42,7 @@ export default function ConversationList({
   const handleCreateGroup = () => {
       toast({
           title: "Neue Gruppe erstellen",
-          description: "Diese Funktion dient zu Demonstrationszwecken."
+          description: "Diese Funktion ist noch nicht implementiert."
       })
   }
 
@@ -122,13 +122,13 @@ export default function ConversationList({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onMuteToggle(convo.id)}>
                   {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-                  <span>{convo.isMuted ? 'Stumm AN' : 'Stumm AUS'}</span>
+                  <span>{convo.isMuted ? 'Stummschaltung aufheben' : 'Stummschalten'}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast({ title: 'Archivieren noch nicht implementiert' })}>
                   <Archive className="mr-2 h-4 w-4" />
                   <span>Archivieren</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast({ title: 'Löschen noch nicht implementiert' })}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   <span>Löschen</span>
                 </DropdownMenuItem>

@@ -66,12 +66,12 @@ export default function SettingsPage() {
         <h1 className="font-headline text-xl font-bold ml-4">Einstellungen</h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4 space-y-2">
-        <SettingsItem icon={User} label="Konto" onClick={() => setScreen('account')} />
+        <SettingsItem icon={User} label="Konto" onClick={() => toast({ title: 'Konto-Einstellungen nicht implementiert' })} />
         <SettingsItem icon={Lock} label="Sicherheit & Datenschutz" onClick={() => setScreen('security')} />
-        <SettingsItem icon={Bell} label="Benachrichtigungen" onClick={() => setScreen('notifications')} />
-        <SettingsItem icon={Palette} label="Darstellung" onClick={() => toast({ title: 'Nicht implementiert' })} />
-        <SettingsItem icon={PieChart} label="Speicher" onClick={() => toast({ title: 'Nicht implementiert' })} />
-        <SettingsItem icon={HelpCircle} label="Hilfe & Support" onClick={() => toast({ title: 'Nicht implementiert' })} />
+        <SettingsItem icon={Bell} label="Benachrichtigungen" onClick={() => toast({ title: 'Benachrichtigungs-Einstellungen nicht implementiert' })} />
+        <SettingsItem icon={Palette} label="Darstellung" onClick={() => toast({ title: 'Darstellungs-Einstellungen nicht implementiert' })} />
+        <SettingsItem icon={PieChart} label="Speicher" onClick={() => toast({ title: 'Speicher-Einstellungen nicht implementiert' })} />
+        <SettingsItem icon={HelpCircle} label="Hilfe & Support" onClick={() => toast({ title: 'Hilfe & Support nicht implementiert' })} />
         <div className="pt-4">
             <Button variant="destructive" className="w-full" onClick={() => toast({ title: 'Abgemeldet' })}>
                 <LogOut className="w-5 h-5 mr-2" />
@@ -109,7 +109,7 @@ export default function SettingsPage() {
                     <Label htmlFor="lock-immediately">Sofort sperren</Label>
                     <Switch id="lock-immediately" checked={lockImmediately} onCheckedChange={setLockImmediately} />
                 </div>
-                <Button variant="link" className="p-0 h-auto">PIN ändern</Button>
+                <Button variant="link" className="p-0 h-auto" onClick={() => toast({ title: 'PIN ändern nicht implementiert' })}>PIN ändern</Button>
                 </>
             )}
           </div>
