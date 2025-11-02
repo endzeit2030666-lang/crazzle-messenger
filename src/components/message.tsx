@@ -205,15 +205,8 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
     }
   };
 
-  if (message.content === "Diese Nachricht wurde gelöscht") {
-     return (
-       <div className={cn("flex items-center gap-2 my-4", isCurrentUser ? "justify-end" : "justify-start")}>
-        <div className="flex items-center gap-2 text-xs italic text-muted-foreground bg-secondary/30 px-3 py-1.5 rounded-lg">
-           <Trash2 className="h-3.5 w-3.5" />
-           <span>Diese Nachricht wurde gelöscht</span>
-        </div>
-      </div>
-     )
+  if (!message.content && !message.audioUrl) {
+    return null;
   }
 
   return (
@@ -221,7 +214,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
        <div className={cn("relative", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-6 w-6 transition-opacity opacity-0 group-hover:opacity-100">
                     <MoreHorizontal className="w-4 h-4" />
                 </Button>
             </DropdownMenuTrigger>
@@ -297,7 +290,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
              <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger>
-                  <Clock className="h-3 w-3 text-primary" />
+                  <Clock className="h-3 w-3 text-destructive" />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Selbstzerstörende Nachricht ({message.selfDestructDuration / 3600}h)</p>

@@ -114,11 +114,8 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   const handleDeleteMessage = (messageId: string, forEveryone: boolean) => {
     setConversations(prev =>
       prev.map(convo => {
-        if (convo.id === selectedConversationId || forEveryone) { // Also delete for other user in conversation
-          const newMessages = forEveryone 
-            ? convo.messages.map(msg => msg.id === messageId ? { ...msg, content: "Diese Nachricht wurde gelöscht", type: 'text', audioUrl: undefined, selfDestructDuration: undefined } : msg)
-            : convo.messages.filter(msg => msg.id !== messageId);
-          
+        if (convo.id === selectedConversationId || forEveryone) {
+          const newMessages = convo.messages.filter(msg => msg.id !== messageId);
           return { ...convo, messages: newMessages };
         }
         return convo;
