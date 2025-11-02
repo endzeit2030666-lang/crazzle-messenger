@@ -1,7 +1,7 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Search, Pin, BellOff, Trash2, Archive, PinOff, CameraIcon, Bell, MoreVertical, XCircle } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { currentUser } from "@/lib/data";
@@ -20,6 +20,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
+
 
 type ConversationListProps = {
   conversations: Conversation[];
@@ -29,6 +31,7 @@ type ConversationListProps = {
   onMuteToggle: (id: string) => void;
   onBlockContact: (contactId: string) => void;
   blockedUsers: Set<string>;
+  onNavigateToSettings: () => void;
 };
 
 export default function ConversationList({
@@ -38,11 +41,13 @@ export default function ConversationList({
   onPinToggle,
   onMuteToggle,
   onBlockContact,
-  blockedUsers
+  blockedUsers,
+  onNavigateToSettings
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const router = useRouter();
   const { toast } = useToast();
+  const router = useRouter();
+
 
   const { pinned, unpinned } = useMemo(() => {
     const filtered = conversations.filter(convo => {
@@ -158,7 +163,7 @@ export default function ConversationList({
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/settings')}>
+                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNavigateToSettings}>
                             <MoreVertical className="w-5 h-5 text-accent" />
                         </Button>
                     </TooltipTrigger>

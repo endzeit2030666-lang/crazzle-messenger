@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -7,12 +8,22 @@ import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function ChatLayout() {
+
+interface ChatLayoutProps {
+  blockedUsers: Set<string>;
+  setBlockedUsers: React.Dispatch<React.SetStateAction<Set<string>>>;
+  blockedContacts: User[];
+  allUsers: User[];
+}
+
+
+export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedContacts, allUsers }: ChatLayoutProps) {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set(['user2', 'user3']));
   const { toast } = useToast();
+  const router = useRouter();
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.id && blockedUsers.has(p.id));
@@ -160,6 +171,13 @@ export default function ChatLayout() {
   const handleBack = () => {
     setSelectedConversationId(null);
   };
+  
+  const navigateToSettings = () => {
+    const params = new URLSearchParams();
+    params.set('users', JSON.stringify(allUsers));
+    params.set('blocked', JSON.stringify(Array.from(blockedUsers)));
+    router.push(`/settings?${params.toString()}`);
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background md:grid md:grid-cols-[384px_1fr]">
@@ -177,6 +195,7 @@ export default function ChatLayout() {
           onMuteToggle={toggleMuteConversation}
           onBlockContact={blockContact}
           blockedUsers={blockedUsers}
+          onNavigateToSettings={navigateToSettings}
         />
       </div>
       <div

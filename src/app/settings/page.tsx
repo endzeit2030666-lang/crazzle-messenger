@@ -1,15 +1,13 @@
+
 'use client';
-import React from 'react';
-import { useState } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   ArrowLeft,
   ChevronRight,
   Shield,
-  CheckCircle,
   Bell,
   BellOff,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
@@ -22,8 +20,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
+import { useState, useEffect } from 'react';
+import type { User } from '@/lib/types';
+
 
 const SettingsToggleItem = ({ icon, label, checked, onCheckedChange }: { icon: React.ElementType; label: string; checked: boolean; onCheckedChange: (checked: boolean) => void }) => (
     <div className="w-full flex items-center p-4 rounded-lg">
@@ -38,19 +39,53 @@ const SettingsToggleItem = ({ icon, label, checked, onCheckedChange }: { icon: R
 
 export default function SettingsPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [readReceipts, setReadReceipts] = useState(true);
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
-  const [blockedContacts, setBlockedContacts] = useState(['Alice', 'Bob', 'Charlie']);
+  
+  const [blockedContacts, setBlockedContacts] = useState<User[]>([]);
+  const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
 
-  const unblockContact = (contactName: string) => {
-    setBlockedContacts(prev => prev.filter(c => c !== contactName));
-    toast({
-        title: "Blockierung aufgehoben",
-        description: `${contactName} ist nicht mehr blockiert.`
-    });
+
+  useEffect(() => {
+    const userParam = searchParams.get('users');
+    const blockedParam = searchParams.get('blocked');
+
+    if (userParam) {
+      setAllUsers(JSON.parse(userParam));
+    }
+    if (blockedParam) {
+      const blockedIds = JSON.parse(blockedParam);
+      setBlockedUserIds(blockedIds);
+    }
+  }, [searchParams]);
+
+   useEffect(() => {
+    const blocked = allUsers.filter(user => blockedUserIds.includes(user.id));
+    setBlockedContacts(blocked);
+  }, [blockedUserIds, allUsers]);
+
+  const unblockContact = (contactId: string) => {
+    const newBlockedIds = blockedUserIds.filter(id => id !== contactId);
+
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('blocked', JSON.stringify(newBlockedIds));
+    
+    // Using router.replace to avoid adding to history
+    router.replace(`${pathname}?${newParams.toString()}`);
+    
+    const contact = allUsers.find(u => u.id === contactId);
+    if(contact) {
+        toast({
+            title: "Blockierung aufgehoben",
+            description: `${contact.name} ist nicht mehr blockiert.`
+        });
+    }
   }
 
 
@@ -66,7 +101,7 @@ export default function SettingsPage() {
         
         <div className="bg-muted/50 rounded-lg">
           <SettingsToggleItem 
-            icon={CheckCircle} 
+            icon={Shield} 
             label="Lesebestätigungen"
             checked={readReceipts}
             onCheckedChange={setReadReceipts}
@@ -103,13 +138,13 @@ export default function SettingsPage() {
           </AlertDialogHeader>
             <div className="space-y-2 py-4">
                 {blockedContacts.map(contact => (
-                    <div key={contact} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
-                        <span className="text-red-500 font-medium">{contact}</span>
+                    <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
+                        <span className="text-red-500 font-medium">{contact.name}</span>
                         <Button 
                             variant="outline" 
                             size="sm" 
                             className="text-green-500 border-green-500 hover:bg-green-500/10 hover:text-green-500"
-                            onClick={() => unblockContact(contact)}
+                            onClick={() => unblockContact(contact.id)}
                         >
                             Entsperren
                         </Button>
