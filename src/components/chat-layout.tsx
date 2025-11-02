@@ -8,7 +8,7 @@ import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 
 interface ChatLayoutProps {
@@ -173,10 +173,11 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   };
   
   const navigateToSettings = () => {
-    const params = new URLSearchParams();
-    params.set('users', JSON.stringify(allUsers));
-    params.set('blocked', JSON.stringify(Array.from(blockedUsers)));
-    router.push(`/settings?${params.toString()}`);
+    // A real app would use a global state manager (Context, Redux, Zustand)
+    // to share state between pages. For this demo, we'll pass state via sessionStorage.
+    sessionStorage.setItem('allUsers', JSON.stringify(allUsers));
+    sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(blockedUsers)));
+    router.push('/settings');
   }
 
   return (

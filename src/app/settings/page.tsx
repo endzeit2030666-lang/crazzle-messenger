@@ -46,44 +46,40 @@ export default function SettingsPage() {
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   
-  const [blockedContacts, setBlockedContacts] = useState<User[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
+  const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
 
-  // This effect is not ideal, but for now we pass state via search params
+  // In a real app, this state would be managed globally (e.g., via Context or Zustand)
+  // For this demo, we'll use sessionStorage to persist state across page navigation
   useEffect(() => {
-    // A real app would use a proper state management solution (Context, Zustand, etc.)
-    const params = new URLSearchParams(window.location.search);
-    const usersParam = params.get('allUsers');
-    const blockedParam = params.get('blockedUsers');
-    if (usersParam) {
-      setAllUsers(JSON.parse(usersParam));
-    }
-    if (blockedParam) {
-      setBlockedUsers(new Set(JSON.parse(blockedParam)));
-    }
-  }, []);
+    try {
+      const usersJson = sessionStorage.getItem('allUsers');
+      const blockedJson = sessionStorage.getItem('blockedUsers');
 
-  useEffect(() => {
-    const blocked = allUsers.filter(user => blockedUsers.has(user.id));
-    setBlockedContacts(blocked);
-  }, [blockedUsers, allUsers]);
+      if (usersJson) {
+        setAllUsers(JSON.parse(usersJson));
+      }
+      if (blockedJson) {
+        setBlockedUserIds(new Set(JSON.parse(blockedJson)));
+      }
+    } catch (error) {
+        console.error("Failed to parse data from sessionStorage", error);
+        // Handle cases where sessionStorage is not available or data is corrupted
+        router.push('/');
+    }
+  }, [router]);
+
+  const blockedContacts = allUsers.filter(user => blockedUserIds.has(user.id));
 
   const unblockContact = (contactId: string) => {
-    const newBlocked = new Set(blockedUsers);
-    newBlocked.delete(contactId);
-    setBlockedUsers(newBlocked);
+    const newBlockedIds = new Set(blockedUserIds);
+    newBlockedIds.delete(contactId);
+    setBlockedUserIds(newBlockedIds);
     
-    // This is a workaround to "sync" state back to the main page.
-    // Again, a proper state management solution would be better.
-    const newParams = new URLSearchParams();
-    newParams.set('allUsers', JSON.stringify(allUsers));
-    newParams.set('blockedUsers', JSON.stringify(Array.from(newBlocked)));
-    
-    router.replace(`/?${newParams.toString()}`, );
+    sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlockedIds)));
     
     const contact = allUsers.find(u => u.id === contactId);
-    if(contact) {
+    if (contact) {
         toast({
             title: "Blockierung aufgehoben",
             description: `${contact.name} ist nicht mehr blockiert.`
@@ -95,7 +91,7 @@ export default function SettingsPage() {
   return (
     <div className="w-full h-screen bg-background text-foreground flex flex-col">
        <header className="flex items-center p-4 border-b border-border shadow-sm z-10 sticky top-0 bg-background">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="font-headline text-xl font-bold ml-4">Einstellungen</h1>
