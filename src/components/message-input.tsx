@@ -503,7 +503,7 @@ export default function MessageInput({
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-2 mb-2">
                     <div className="grid gap-1">
-                        <p className="font-medium text-sm px-2 py-1.5 text-foreground">Nachricht löschen nach...</p>
+                        <p className="font-medium text-sm px-2 py-1.5 text-black dark:text-foreground">Nachricht löschen nach...</p>
                         {selfDestructOptions.map(option => (
                            <Button
                             key={option.label}
