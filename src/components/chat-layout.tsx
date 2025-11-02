@@ -30,11 +30,18 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   useEffect(() => {
     const blockedJson = sessionStorage.getItem('blockedUsers');
     if (blockedJson) {
-      const newBlockedSet = new Set<string>(JSON.parse(blockedJson));
-      setBlockedUsers(newBlockedSet);
+      try {
+        const newBlockedSet = new Set<string>(JSON.parse(blockedJson));
+        setBlockedUsers(newBlockedSet);
+      } catch (e) {
+        console.error("Failed to parse blocked users from sessionStorage", e);
+        // Initialize with default if parsing fails
+        sessionStorage.setItem('blockedUsers', JSON.stringify(['user2', 'user3']));
+      }
+    } else {
+        // Initialize sessionStorage if it's not set
+        sessionStorage.setItem('blockedUsers', JSON.stringify(['user2', 'user3']));
     }
-    // We only want this to run on mount or when navigation events might occur,
-    // so we don't add dependencies that would cause it to re-run constantly.
   }, [setBlockedUsers]);
 
 
