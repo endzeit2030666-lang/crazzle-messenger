@@ -102,8 +102,8 @@ export default function ConversationList({
             <div className="flex items-center justify-between">
               <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{contact.name}</h3>
               <div className="flex items-center gap-2 pr-5">
-                  {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
-                  {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
+                  {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")} />}
+                  {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")} />}
                   <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-accent")}>{lastMessage?.timestamp}</p>
               </div>
             </div>
@@ -190,11 +190,11 @@ export default function ConversationList({
           </div>
         </div>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white" />
           <Input
             type="search"
             placeholder="Kontakte suchen..."
-            className="pl-9 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary placeholder:text-foreground"
+            className="pl-9 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary placeholder:text-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -204,11 +204,11 @@ export default function ConversationList({
         <nav className="p-2 space-y-1">
           {pinned.length > 0 && (
             <div className="mb-2">
-              <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider uppercase">Angepinnt</h3>
+              <h3 className="px-3 text-xs font-semibold text-white tracking-wider uppercase">Angepinnt</h3>
               {pinned.map(convo => <ConversationItem key={convo.id} convo={convo} />)}
             </div>
           )}
-          <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider uppercase">Alle Chats</h3>
+          <h3 className="px-3 text-xs font-semibold text-white tracking-wider uppercase">Alle Chats</h3>
           {unpinned.map(convo => <ConversationItem key={convo.id} convo={convo} />)}
         </nav>
       </div>
