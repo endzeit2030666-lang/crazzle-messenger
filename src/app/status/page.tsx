@@ -2,12 +2,20 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Camera, Type } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { currentUser, users } from '@/lib/data';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+
 
 type Status = {
   userId: string;
@@ -42,6 +50,7 @@ export default function StatusPage() {
   const [statuses, setStatuses] = useState(initialStatusUpdates);
   const [viewingStatus, setViewingStatus] = useState<Status | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const myStatus = statuses.find(s => s.userId === currentUser.id);
   const recentUpdates = statuses.filter(s => s.userId !== currentUser.id && !s.viewed);
@@ -55,6 +64,8 @@ export default function StatusPage() {
   const handleViewStatus = (status: Status) => {
     setViewingStatus(status);
     setCurrentStoryIndex(0);
+    // Mark as viewed
+    setStatuses(currentStatuses => currentStatuses.map(s => s.userId === status.userId ? { ...s, viewed: true } : s))
   }
   
   const handleCloseViewer = () => {
@@ -121,28 +132,46 @@ export default function StatusPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6">
-        <div
-          className="flex items-center gap-4 cursor-pointer"
-          onClick={() => router.push('/status/camera')}
-        >
-          <div className="relative">
-            <Avatar className="w-14 h-14">
-              <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-              <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
-              <Plus className="w-4 h-4 text-primary-foreground" />
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetTrigger asChild>
+            <div
+              className="flex items-center gap-4 cursor-pointer"
+            >
+              <div className="relative">
+                <Avatar className="w-14 h-14">
+                  <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+                  <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
+                  <Plus className="w-4 h-4 text-primary-foreground" />
+                </div>
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg">Mein Status</h2>
+                <p className="text-sm text-muted-foreground">Tippen, um Status hinzuzufügen</p>
+              </div>
             </div>
-          </div>
-          <div>
-            <h2 className="font-semibold text-lg">My Status</h2>
-            <p className="text-sm text-muted-foreground">Add to my status</p>
-          </div>
-        </div>
-        
+          </SheetTrigger>
+          <SheetContent side="bottom" className="rounded-t-lg">
+            <SheetHeader>
+              <SheetTitle className="text-center">Status erstellen</SheetTitle>
+            </SheetHeader>
+            <div className="grid gap-4 py-4">
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
+                <Type className="w-6 h-6 mr-4" />
+                <span className="text-lg">Text-Status</span>
+              </Button>
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
+                <Camera className="w-6 h-6 mr-4" />
+                <span className="text-lg">Foto oder Video</span>
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+
         {recentUpdates.length > 0 && (
             <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-2">RECENT UPDATES</h3>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-2">NEUE MELDUNGEN</h3>
                 <div className="space-y-1">
                     {recentUpdates.map(status => {
                         const user = getUserById(status.userId);
@@ -168,7 +197,7 @@ export default function StatusPage() {
 
         {viewedUpdates.length > 0 && (
             <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-2">VIEWED UPDATES</h3>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-2">ANGESEHEN</h3>
                 <div className="space-y-1">
                     {viewedUpdates.map(status => {
                         const user = getUserById(status.userId);
