@@ -134,12 +134,12 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
                     </DropdownMenuItem>
                 )}
                  {isCurrentUser && (
-                    <DropdownMenuItem onClick={() => handleDelete(true)} className="text-destructive">
+                    <DropdownMenuItem onClick={() => handleDelete(true)} className="text-destructive focus:text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Delete for everyone</span>
                     </DropdownMenuItem>
                 )}
-                 <DropdownMenuItem onClick={() => handleDelete(false)} className="text-destructive">
+                 <DropdownMenuItem onClick={() => handleDelete(false)} className="text-destructive focus:text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
                     <span>Delete for me</span>
                 </DropdownMenuItem>
@@ -189,7 +189,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
             </TooltipProvider>
           )}
 
-          {message.isEdited && <span className="italic text-primary-foreground/70">Edited</span>}
+          {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground/70")}>Edited</span>}
 
           <span className={cn(isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground")}>
             {message.timestamp}

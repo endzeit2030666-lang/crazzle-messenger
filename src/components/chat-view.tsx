@@ -97,7 +97,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
     setQuotedMessage(undefined);
   };
   
-  const handleSendMessage = (content: string, quotedMsg?: MessageType['quotedMessage']) => {
+  const handleSendMessageSubmit = (content: string, quotedMsg?: MessageType['quotedMessage']) => {
     if (editingMessage) {
       onEditMessage(editingMessage.id, content);
       setEditingMessage(null);
@@ -208,7 +208,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
 
       <footer className="p-4 border-t border-border mt-auto">
         <MessageInput 
-          onSendMessage={handleSendMessage}
+          onSendMessage={handleSendMessageSubmit}
           quotedMessage={quotedMessage}
           onClearQuote={() => setQuotedMessage(undefined)}
           isEditing={!!editingMessage}

@@ -115,12 +115,7 @@ export default function MessageInput({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      if (isEditing) {
-        // This part needs to be handled in the parent component
-        onSendMessage(text.trim());
-      } else {
-        onSendMessage(text.trim(), quotedMessage);
-      }
+      onSendMessage(text.trim(), quotedMessage);
       setText('');
       setAnalysis(null);
       if (textareaRef.current) {
