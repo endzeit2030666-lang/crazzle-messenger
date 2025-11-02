@@ -24,7 +24,7 @@ export function EmojiPicker({ onEmojiSelect, onClose }: EmojiPickerProps) {
   };
   
   const activeEmojis = EMOJI_CATEGORIES.find((c) => c.id === activeCategory)?.emojis || [];
-  const filteredEmojis = search ? EMOJI_CATEGORIES.flatMap(c => c.emojis).filter(e => e.includes(search)) : activeEmojis;
+  const filteredEmojis = search ? EMOJI_CATEGORIES.flatMap(c => c.emojis).filter(e => e.toLowerCase().includes(search.toLowerCase())) : activeEmojis;
 
 
   return (
