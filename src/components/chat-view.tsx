@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, ArrowLeft, Smile, Plus, Camera, Send as SendIcon, CheckCheck } from "lucide-react";
-import type { Conversation, User, Group, Message as MessageType } from "@/lib/types";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X } from "lucide-react";
+import type { Conversation, User, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Message from "@/components/message";
@@ -34,12 +34,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { currentUser } from "@/lib/data";
 
 type ChatViewProps = {
   conversation: Conversation;
   contact?: User;
-  group?: Group;
   onSendMessage: (content: string, quotedMessage?: MessageType['quotedMessage']) => void;
   onEditMessage: (messageId: string, newContent: string) => void;
   onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
@@ -47,7 +45,7 @@ type ChatViewProps = {
   onBack: () => void;
 };
 
-export default function ChatView({ conversation, contact, group, onSendMessage, onEditMessage, onDeleteMessage, onReact, onBack }: ChatViewProps) {
+export default function ChatView({ conversation, contact, onSendMessage, onEditMessage, onDeleteMessage, onReact, onBack }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
@@ -72,7 +70,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
   const handleBlockContact = () => {
     setShowBlockDialog(false);
     toast({
-      title: `${headerDetails.name} wurde blockiert.`,
+      title: `${contact?.name || 'Kontakt'} wurde blockiert.`,
       description: `Du wirst keine Nachrichten oder Anrufe mehr von diesem Kontakt erhalten.`
     })
   }
@@ -102,15 +100,19 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
     }
   };
 
-  const headerDetails = group ? {
-      name: group.name,
-      avatar: group.avatar,
-      info: `${group.participants.length} Teilnehmer`
-  } : {
+  const headerDetails = {
       name: contact?.name || "Unbekannt",
       avatar: contact?.avatar || "",
       info: contact?.onlineStatus || "offline"
   };
+
+  if (!contact) {
+      return (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground bg-muted/20">
+            Wähle eine Konversation, um mit dem Chatten zu beginnen.
+          </div>
+        );
+  }
 
   return (
     <div className="flex-1 flex flex-col h-screen bg-background">
@@ -127,8 +129,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
            <div className="flex items-center text-sm text-foreground">
-             {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-green-500' : 'text-red-500')} /> {contact.onlineStatus}</>}
-             {group && <p>{group.participants.length} Mitglieder</p>}
+             <Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-green-500' : 'text-red-500')} /> {contact.onlineStatus}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -163,28 +164,19 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {contact && (
                   <DropdownMenuItem onClick={() => setVerificationDialogOpen(true)}>
                     <ShieldCheck className="mr-2 h-4 w-4" />
                     <span>Kontakt verifizieren</span>
                   </DropdownMenuItem>
-                )}
                  <DropdownMenuItem>
                   <BellOff className="mr-2 h-4 w-4" />
                   <span>Benachrichtigungen stummschalten</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => toast({title: "Lesebestätigungen für diesen Chat umgeschaltet."})}>
-                  <CheckCheck className="mr-2 h-4 w-4" />
-                  <span>Lesebestätigungen umschalten</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {contact && (
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowBlockDialog(true)}>
-                    <Circle className="mr-2 h-4 w-4 fill-current" />
+                    <X className="mr-2 h-4 w-4" />
                     <span>Kontakt blockieren</span>
                   </DropdownMenuItem>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
         </div>
@@ -215,16 +207,14 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
         />
       </footer>
 
-      {contact && (
-        <ContactVerificationDialog
+      <ContactVerificationDialog
         open={isVerificationDialogOpen}
         onOpenChange={setVerificationDialogOpen}
         contact={contact}
         >
           {/* This is a dummy child to satisfy TypeScript. The dialog is triggered from the dropdown menu. */}
           <span className='hidden'></span>
-        </ContactVerificationDialog>
-      )}
+      </ContactVerificationDialog>
 
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
         <AlertDialogContent>

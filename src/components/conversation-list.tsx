@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, PlusCircle, Pin, BellOff, Trash2, Archive, PinOff, CameraIcon, Bell, MoreVertical } from "lucide-react";
+import { Search, Pin, BellOff, Trash2, Archive, PinOff, CameraIcon, Bell, MoreVertical } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import { Input } from "@/components/ui/input";
@@ -39,15 +39,8 @@ export default function ConversationList({
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleCreateGroup = () => {
-      router.push('/group/create');
-  }
-
   const { pinned, unpinned } = useMemo(() => {
     const filtered = conversations.filter(convo => {
-      if (convo.type === 'group') {
-          return convo.groupDetails?.name.toLowerCase().includes(searchTerm.toLowerCase());
-      }
       const contact = convo.participants.find(p => p.id !== currentUser.id);
       return contact?.name.toLowerCase().includes(searchTerm.toLowerCase());
     });
@@ -58,20 +51,12 @@ export default function ConversationList({
   }, [conversations, searchTerm]);
 
   const ConversationItem = ({ convo }: { convo: Conversation }) => {
-    let name, avatar;
-    if (convo.type === 'group') {
-        name = convo.groupDetails?.name;
-        avatar = convo.groupDetails?.avatar;
-    } else {
-        const contact = convo.participants.find(p => p.id !== currentUser.id);
-        name = contact?.name;
-        avatar = contact?.avatar;
-    }
+    const contact = convo.participants.find(p => p.id !== currentUser.id);
 
-    if (!name || !avatar) return null;
+    if (!contact) return null;
     
     const lastMessage = convo.messages[convo.messages.length - 1];
-    const lastMessageSender = convo.type === 'group' && lastMessage ? convo.participants.find(p => p.id === lastMessage.senderId)?.name.split(' ')[0] : (lastMessage?.senderId === currentUser.id ? 'Du' : undefined);
+    const lastMessageSender = (lastMessage?.senderId === currentUser.id ? 'Du' : undefined);
 
     return (
       <div className="relative">
@@ -86,13 +71,13 @@ export default function ConversationList({
         >
           <Avatar className="w-10 h-10 mr-3">
             <AvatarImage asChild>
-              <Image src={avatar} alt={name} width={40} height={40} data-ai-hint="person portrait" />
+              <Image src={contact.avatar} alt={contact.name} width={40} height={40} data-ai-hint="person portrait" />
             </AvatarImage>
-            <AvatarFallback className={cn("text-primary", selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
+            <AvatarFallback className={cn("text-primary", selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{contact.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden pr-5">
             <div className="flex items-center justify-between">
-              <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{name}</h3>
+              <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{contact.name}</h3>
               <div className="flex items-center gap-2 pr-5">
                   {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
                   {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
@@ -161,12 +146,12 @@ export default function ConversationList({
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCreateGroup}>
-                            <PlusCircle className="w-5 h-5 text-accent" />
+                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/settings')}>
+                            <MoreVertical className="w-5 h-5 text-accent" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Neue Gruppe</p>
+                        <p>Einstellungen</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
@@ -176,7 +161,7 @@ export default function ConversationList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Kontakte oder Gruppen suchen..."
+            placeholder="Kontakte suchen..."
             className="pl-9 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary placeholder:text-foreground"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

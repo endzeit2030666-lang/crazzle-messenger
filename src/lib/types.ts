@@ -44,19 +44,11 @@ export type Message = {
   audioDuration?: number;
 };
 
-export type Group = {
-    id: string;
-    name: string;
-    avatar: string;
-    participants: User[];
-}
-
 export type Conversation = {
   id:string;
-  type: 'private' | 'group';
+  type: 'private';
   participants: User[];
   messages: Message[];
-  groupDetails?: Group;
   isPinned?: boolean;
   isMuted?: boolean;
 };

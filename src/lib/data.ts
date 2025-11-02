@@ -40,13 +40,6 @@ export const users: User[] = [
     onlineStatus: 'online',
     publicKey: 'DE:F0:12:34:56:78:9A:BC:DE:F0:12:34:56:78:9A:BC:DE:F0:12:34',
   },
-    {
-    id: 'user5',
-    name: 'Familiengruppe',
-    avatar: findImage('groupAvatar'),
-    onlineStatus: 'online',
-    publicKey: '',
-  },
 ];
 
 export const conversations: Conversation[] = [
@@ -101,22 +94,6 @@ export const conversations: Conversation[] = [
     participants: [currentUser, users[3]],
     messages: [
         { id: 'msg9', senderId: 'user4', content: 'Bist du für einen kurzen Anruf verfügbar?', timestamp: 'Vorgestern', status: 'read', reactions: [] },
-    ],
-  },
-  {
-    id: 'conv5',
-    type: 'group',
-    participants: [currentUser, users[0], users[1], users[2]],
-    groupDetails: {
-      id: 'group1',
-      name: 'Familiengruppe',
-      avatar: findImage('groupAvatar'),
-      participants: [currentUser, users[0], users[1], users[2]],
-    },
-    messages: [
-        { id: 'gmsg1', senderId: 'user1', content: 'Hallo zusammen! Was machen wir dieses Wochenende?', timestamp: '09:00', status: 'read', reactions: [] },
-        { id: 'gmsg2', senderId: 'user2', content: 'Ich dachte an Grillen, wenn das Wetter gut ist!', timestamp: '09:01', status: 'read', reactions: [{ emoji: '❤️', userId: 'user1', username: 'Alice' }] },
-        { id: 'gmsg3', senderId: 'user0', content: 'Klingt super! Ich kann Salate mitbringen.', timestamp: '09:05', status: 'read', reactions: [] },
     ],
   },
 ];

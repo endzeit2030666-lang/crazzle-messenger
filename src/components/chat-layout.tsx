@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { Conversation, User, Message, Group } from "@/lib/types";
+import { useState } from "react";
+import type { Conversation, User, Message } from "@/lib/types";
 import { conversations as initialConversations, currentUser } from "@/lib/data";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
@@ -12,8 +12,7 @@ export default function ChatLayout() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
-  const contact = selectedConversation?.participants.find(p => p.id !== currentUser.id);
-
+  
   const handleSendMessage = (content: string, quotedMessage?: Message['quotedMessage']) => {
     if (!selectedConversationId) return;
 
@@ -30,7 +29,7 @@ export default function ChatLayout() {
     setConversations(prev =>
       prev.map(convo =>
         convo.id === selectedConversationId
-          ? { ...convo, messages: [...convo.messages, newMessage] }
+          ? { ...convo, messages: [...convo.messages, newMessage], type: 'private' }
           : convo
       )
     );
@@ -151,13 +150,12 @@ export default function ChatLayout() {
           <ChatView
             key={selectedConversation.id}
             conversation={selectedConversation}
-            onBack={handleBack}
-            contact={selectedConversation.type === 'private' ? selectedConversation.participants.find(p => p.id !== currentUser.id) : undefined}
-            group={selectedConversation.type === 'group' ? selectedConversation.groupDetails : undefined}
+            contact={selectedConversation.participants.find(p => p.id !== currentUser.id)}
             onSendMessage={handleSendMessage}
             onEditMessage={handleEditMessage}
             onDeleteMessage={handleDeleteMessage}
             onReact={handleReaction}
+            onBack={handleBack}
           />
         ) : (
           <div className="flex-1 items-center justify-center text-muted-foreground bg-muted/20 hidden md:flex">
