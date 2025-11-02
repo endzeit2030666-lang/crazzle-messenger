@@ -508,7 +508,7 @@ export default function MessageInput({
                            <Button
                             key={option.label}
                             variant="ghost"
-                            className={cn("w-full justify-start", selfDestructDuration === option.duration && "bg-accent")}
+                            className={cn("w-full justify-start", selfDestructDuration === option.duration && "bg-primary text-black")}
                             onClick={() => handleSetSelfDestruct(option.duration)}
                            >
                             {option.label}
