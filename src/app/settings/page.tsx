@@ -46,6 +46,7 @@ export default function SettingsPage() {
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   
+  // These will now be populated from sessionStorage, which is set by ChatLayout
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
 
@@ -57,7 +58,6 @@ export default function SettingsPage() {
       if (usersJson) {
         setAllUsers(JSON.parse(usersJson));
       } else {
-        // Handle case where users are not in session storage, maybe redirect or show error
         toast({variant: "destructive", title: "Fehler", description: "Benutzerdaten nicht gefunden."});
         router.push('/');
         return;
@@ -79,7 +79,7 @@ export default function SettingsPage() {
     newBlockedIds.delete(contactId);
     setBlockedUserIds(newBlockedIds); // Update local state immediately for UI responsiveness
     
-    // Persist the change
+    // Persist the change to sessionStorage so it can be picked up on the main page
     sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlockedIds)));
     
     const contact = allUsers.find(u => u.id === contactId);
@@ -90,11 +90,12 @@ export default function SettingsPage() {
         });
     }
   }
-
+  
   const handleGoBack = () => {
-    // Force a reload on the previous page to reflect state changes
-    window.location.assign('/');
+    // Navigate back to the home page. The home page will re-read sessionStorage.
+    router.push('/');
   }
+
 
   return (
     <div className="w-full h-screen bg-background text-foreground flex flex-col">

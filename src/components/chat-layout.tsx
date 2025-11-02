@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Conversation, User, Message } from "@/lib/types";
 import { conversations as initialConversations, currentUser } from "@/lib/data";
 import ConversationList from "@/components/conversation-list";
@@ -24,6 +24,19 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+
+  // Effect to re-read sessionStorage when the component might be re-rendered
+  // e.g., after navigating back from settings.
+  useEffect(() => {
+    const blockedJson = sessionStorage.getItem('blockedUsers');
+    if (blockedJson) {
+      const newBlockedSet = new Set<string>(JSON.parse(blockedJson));
+      setBlockedUsers(newBlockedSet);
+    }
+    // We only want this to run on mount or when navigation events might occur,
+    // so we don't add dependencies that would cause it to re-run constantly.
+  }, [setBlockedUsers]);
+
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.id && blockedUsers.has(p.id));
@@ -148,6 +161,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
     setBlockedUsers(prev => {
       const newBlocked = new Set(prev);
       newBlocked.add(contactId);
+       // Persist this to sessionStorage for the settings page
       sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
       return newBlocked;
     });
@@ -161,6 +175,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
     setBlockedUsers(prev => {
         const newBlocked = new Set(prev);
         newBlocked.delete(contactId);
+        // Persist this to sessionStorage for the settings page
         sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
         return newBlocked;
     });
@@ -175,6 +190,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   };
   
   const navigateToSettings = () => {
+    // Ensure the latest data is in sessionStorage before navigating
     sessionStorage.setItem('allUsers', JSON.stringify(allUsers));
     sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(blockedUsers)));
     router.push('/settings');
