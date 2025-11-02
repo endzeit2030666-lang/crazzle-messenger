@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Pin, BellOff, Trash2, Archive, PinOff, CameraIcon, Bell, MoreVertical, XCircle } from "lucide-react";
+import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import { Input } from "@/components/ui/input";
@@ -82,7 +82,7 @@ export default function ConversationList({
             selectedConversationId === convo.id
               ? "bg-primary text-primary-foreground"
               : "hover:bg-muted",
-             isBlocked && !selectedConversationId ? "opacity-50" : "", // Grey out if blocked and not selected
+             isBlocked && !selectedConversationId ? "opacity-50" : "",
              isBlocked && selectedConversationId === convo.id ? "opacity-100 bg-destructive/20" : "",
           )}
         >
@@ -96,11 +96,11 @@ export default function ConversationList({
             <div className="flex items-center justify-between">
               <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{contact.name}</h3>
               <div className="flex items-center gap-2 pr-5">
-                  {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
-                  <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")}>{lastMessage?.timestamp}</p>
+                  {convo.isMuted && <Bell className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")} />}
+                  <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
               </div>
             </div>
-            <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-foreground")}>
+            <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
               { isBlocked ? "Dieser Kontakt ist blockiert" : (
                 <>
                   {lastMessageSender && `${lastMessageSender}: `}
@@ -119,7 +119,7 @@ export default function ConversationList({
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-64">
                 <DropdownMenuItem onClick={() => onMuteToggle(convo.id)}>
-                  {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                  {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <Bell className="mr-2 h-4 w-4" />}
                   <span>{convo.isMuted ? 'Stummschaltung aufheben' : 'Stummschalten'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => toast({ title: 'Archivieren noch nicht implementiert' })}>
@@ -132,7 +132,7 @@ export default function ConversationList({
                   <span>{isBlocked ? 'Blockierung aufheben' : 'Kontakt blockieren'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast({ title: 'Löschen noch nicht implementiert' })}>
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <XCircle className="mr-2 h-4 w-4" />
                   <span>Löschen</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -191,10 +191,12 @@ export default function ConversationList({
       </div>
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2 space-y-1">
-          <h3 className="px-3 text-xs font-semibold text-muted-foreground tracking-wider uppercase">Alle Chats</h3>
+          <h3 className="px-3 text-xs font-semibold text-white tracking-wider uppercase">Alle Chats</h3>
           {filteredConversations.map(convo => <ConversationItem key={convo.id} convo={convo} />)}
         </nav>
       </div>
     </aside>
   );
 }
+
+    
