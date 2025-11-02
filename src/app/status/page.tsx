@@ -158,7 +158,7 @@ export default function StatusPage() {
               </div>
               <div>
                 <h2 className="font-semibold text-lg text-primary">Mein Status</h2>
-                <p className="text-sm text-muted-foreground">Tippen, um Status hinzuzufügen</p>
+                <p className="text-sm text-white">Tippen, um Status hinzuzufügen</p>
               </div>
             </div>
           </SheetTrigger>
@@ -218,7 +218,7 @@ export default function StatusPage() {
                         if (!user) return null;
                         return (
                             <div key={status.userId} className="flex items-center gap-4 p-2 rounded-lg cursor-pointer hover:bg-muted" onClick={() => handleViewStatus(status)}>
-                                <div className="relative p-0.5 border-2 border-border rounded-full">
+                                <div className="relative p-0.5 border-2 border-white rounded-full">
                                      <Avatar className="w-12 h-12">
                                         <AvatarImage src={user.avatar} alt={user.name} />
                                         <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
