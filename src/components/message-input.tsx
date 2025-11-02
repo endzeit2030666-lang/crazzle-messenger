@@ -18,6 +18,7 @@ import {
   Smile,
   X,
   MessageSquareQuote,
+  Pencil,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';

@@ -85,6 +85,14 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
   }
 
   const userReaction = message.reactions.find(r => r.userId === currentUser.id);
+  
+  const handleSwipe = (e: React.TouchEvent) => {
+    // A very basic swipe detection
+    const touch = e.changedTouches[0];
+    if (touch.clientX - (e.currentTarget.getBoundingClientRect().left) > 75) {
+       onQuote(message);
+    }
+  };
 
   if (message.content === "This message was deleted") {
      return (
@@ -98,7 +106,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, s
   }
 
   return (
-    <div className={cn("group flex items-end gap-2", isCurrentUser ? "justify-end" : "justify-start")}>
+    <div className={cn("group flex items-end gap-2", isCurrentUser ? "justify-end" : "justify-start")} onTouchEnd={handleSwipe}>
        <div className={cn("relative", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

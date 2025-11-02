@@ -34,18 +34,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { currentUser } from "@/lib/data";
 
 type ChatViewProps = {
   conversation: Conversation;
   contact?: User;
   group?: Group;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, quotedMessage?: MessageType['quotedMessage']) => void;
+  onEditMessage: (messageId: string, newContent: string) => void;
+  onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
+  onReact: (messageId: string, emoji: string) => void;
 };
 
-export default function ChatView({ conversation, contact, group, onSendMessage }: ChatViewProps) {
+export default function ChatView({ conversation, contact, group, onSendMessage, onEditMessage, onDeleteMessage, onReact }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [quotedMessage, setQuotedMessage] = useState<MessageType['quotedMessage'] | undefined>(undefined);
+  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -74,6 +81,31 @@ export default function ChatView({ conversation, contact, group, onSendMessage }
       description: `You will no longer receive messages or calls from them.`
     })
   }
+  
+  const handleQuote = (message: MessageType) => {
+    const sender = conversation.participants.find(p => p.id === message.senderId);
+    setQuotedMessage({
+        id: message.id,
+        content: message.content,
+        senderName: sender?.name || 'Unknown'
+    });
+    setEditingMessage(null);
+  };
+
+  const handleEdit = (message: MessageType) => {
+    setEditingMessage(message);
+    setQuotedMessage(undefined);
+  };
+  
+  const handleSendMessage = (content: string, quotedMsg?: MessageType['quotedMessage']) => {
+    if (editingMessage) {
+      onEditMessage(editingMessage.id, content);
+      setEditingMessage(null);
+    } else {
+      onSendMessage(content, quotedMsg);
+      setQuotedMessage(undefined);
+    }
+  };
 
   const headerDetails = group ? {
       name: group.name,
@@ -162,12 +194,27 @@ export default function ChatView({ conversation, contact, group, onSendMessage }
 
       <div ref={scrollAreaRef} className="flex-1 p-6 overflow-y-auto space-y-6">
         {conversation.messages.map((message) => (
-          <Message key={message.id} message={message} />
+          <Message 
+            key={message.id} 
+            message={message}
+            onQuote={handleQuote}
+            onEdit={handleEdit}
+            onDelete={onDeleteMessage}
+            onReact={onReact}
+            sender={conversation.participants.find(p => p.id === message.senderId)}
+          />
         ))}
       </div>
 
       <footer className="p-4 border-t border-border mt-auto">
-        <MessageInput onSendMessage={onSendMessage} />
+        <MessageInput 
+          onSendMessage={handleSendMessage}
+          quotedMessage={quotedMessage}
+          onClearQuote={() => setQuotedMessage(undefined)}
+          isEditing={!!editingMessage}
+          editingMessage={editingMessage}
+          onStopEditing={() => setEditingMessage(null)}
+        />
       </footer>
 
       {contact && (
