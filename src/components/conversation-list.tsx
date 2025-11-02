@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import Logo from "@/components/logo";
 
 type ConversationListProps = {
   conversations: Conversation[];
@@ -37,7 +38,10 @@ export default function ConversationList({
     <aside className="w-full max-w-xs h-full flex flex-col border-r border-border bg-muted/30">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-headline text-2xl font-bold text-primary">Crazzle</h1>
+          <div className="flex items-center gap-2">
+            <Logo className="w-8 h-8" />
+            <h1 className="font-headline text-2xl font-bold text-primary">Crazzle</h1>
+          </div>
           <div className="flex items-center gap-2">
             <TooltipProvider>
                 <Tooltip>

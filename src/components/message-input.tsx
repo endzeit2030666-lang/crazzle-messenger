@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Clock, AlertTriangle, Mic, Plus, FileText, ImageIcon, Video, Music, FileArchive, FileCode, Camera as CameraIcon, Video as VideoIcon } from "lucide-react";
+import { Send, Clock, AlertTriangle, Mic, Plus, FileText, ImageIcon, Video, Music, FileArchive, FileCode, Camera as CameraIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -116,7 +116,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
           <PopoverContent className="w-80 p-2">
             <div className="grid grid-cols-1 gap-1">
                 <AttachmentButton icon={CameraIcon} label="Camera" action={() => router.push('/status/camera')} />
-                <AttachmentButton icon={VideoIcon} label="Video" action={() => router.push('/status/camera')} />
+                <AttachmentButton icon={Video} label="Video" action={() => router.push('/status/camera')} />
                 <hr className="my-2 border-border"/>
                <AttachmentButton icon={FileText} label="Document" formats=".pdf, .doc, .xls, .ppt, .txt..." />
                <AttachmentButton icon={ImageIcon} label="Image" formats=".jpg, .png, .gif, .webp" />
