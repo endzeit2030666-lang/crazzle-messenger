@@ -134,7 +134,7 @@ export default function ConversationList({
 
 
   return (
-    <aside className="w-full max-w-xs h-full flex flex-col border-r border-border bg-muted/30">
+    <aside className="w-full h-full flex flex-col border-r border-border bg-muted/30 md:max-w-xs">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

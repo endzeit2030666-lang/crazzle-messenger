@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, Bell, CheckCheck } from "lucide-react";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, MessageSquareQuote, Trash2, Pencil, Copy, PinOff, BellOff, Bell, CheckCheck, ArrowLeft, Smile, Plus, Camera, Send as SendIcon } from "lucide-react";
 import type { Conversation, User, Group, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -44,9 +44,10 @@ type ChatViewProps = {
   onEditMessage: (messageId: string, newContent: string) => void;
   onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
   onReact: (messageId: string, emoji: string) => void;
+  onBack: () => void;
 };
 
-export default function ChatView({ conversation, contact, group, onSendMessage, onEditMessage, onDeleteMessage, onReact }: ChatViewProps) {
+export default function ChatView({ conversation, contact, group, onSendMessage, onEditMessage, onDeleteMessage, onReact, onBack }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
@@ -120,6 +121,9 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
   return (
     <div className="flex-1 flex flex-col h-screen bg-background">
       <header className="flex items-center p-4 border-b border-border shadow-sm z-10">
+        <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={onBack}>
+            <ArrowLeft className="w-5 h-5" />
+        </Button>
         <Avatar className="w-10 h-10 mr-4">
           <AvatarImage asChild>
              <Image src={headerDetails.avatar} alt={headerDetails.name} width={40} height={40} data-ai-hint="person portrait" />

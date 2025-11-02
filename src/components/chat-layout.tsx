@@ -5,10 +5,11 @@ import type { Conversation, User, Message, Group } from "@/lib/types";
 import { conversations as initialConversations, currentUser } from "@/lib/data";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
+import { cn } from "@/lib/utils";
 
 export default function ChatLayout() {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(conversations[0]?.id || null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const contact = selectedConversation?.participants.find(p => p.id !== currentUser.id);
@@ -120,20 +121,27 @@ export default function ChatLayout() {
     );
   }
 
+  const handleBack = () => {
+    setSelectedConversationId(null);
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      <ConversationList
-        conversations={conversations}
-        selectedConversationId={selectedConversationId}
-        onConversationSelect={setSelectedConversationId}
-        onPinToggle={togglePinConversation}
-        onMuteToggle={toggleMuteConversation}
-      />
-      <div className="flex-1 flex flex-col">
+      <div className={cn("w-full md:w-auto md:flex-shrink-0", selectedConversationId ? "hidden md:block" : "block")}>
+        <ConversationList
+          conversations={conversations}
+          selectedConversationId={selectedConversationId}
+          onConversationSelect={setSelectedConversationId}
+          onPinToggle={togglePinConversation}
+          onMuteToggle={toggleMuteConversation}
+        />
+      </div>
+      <div className={cn("flex-1 flex-col", selectedConversationId ? "flex" : "hidden md:flex")}>
         {selectedConversation ? (
           <ChatView
             key={selectedConversation.id}
             conversation={selectedConversation}
+            onBack={handleBack}
             contact={selectedConversation.type === 'private' ? selectedConversation.participants.find(p => p.id !== currentUser.id) : undefined}
             group={selectedConversation.type === 'group' ? selectedConversation.groupDetails : undefined}
             onSendMessage={handleSendMessage}
