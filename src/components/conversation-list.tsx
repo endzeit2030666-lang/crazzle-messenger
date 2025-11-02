@@ -108,11 +108,11 @@ export default function ConversationList({
             </p>
           </div>
         </div>
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 transition-opacity">
+        <div className="absolute right-1 top-1/2 -translate-y-1/2">
           <DropdownMenu>
               <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 z-10">
-                      <MoreVertical className="w-4 h-4 text-accent" />
+                      <MoreVertical className="w-4 h-4 text-foreground" />
                   </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-64">
