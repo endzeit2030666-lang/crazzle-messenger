@@ -79,10 +79,14 @@ export default function ConversationList({
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
+          <div
+            onContextMenu={(e) => {
+              e.preventDefault();
+              // This is handled by DropdownMenuTrigger's default behavior
+            }}
             onClick={() => onConversationSelect(convo.id)}
             className={cn(
-              "w-full flex items-start p-3 rounded-lg text-left transition-colors",
+              "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer",
               selectedConversationId === convo.id
                 ? "bg-primary text-primary-foreground"
                 : "hover:bg-muted"
@@ -108,7 +112,7 @@ export default function ConversationList({
                 {lastMessage?.content}
               </p>
             </div>
-          </button>
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-64" side="top" align="start">
           <DropdownMenuItem onClick={() => onPinToggle(convo.id)}>
