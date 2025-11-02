@@ -104,7 +104,7 @@ export default function ConversationList({
               <div className="flex items-center gap-2 pr-5">
                   {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")} />}
                   {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")} />}
-                  <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-accent")}>{lastMessage?.timestamp}</p>
+                  <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
               </div>
             </div>
             <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-foreground")}>
@@ -167,7 +167,7 @@ export default function ConversationList({
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/status')}>
-                            <CameraIcon className="w-5 h-5 text-accent" />
+                            <CameraIcon className="w-5 h-5 text-white" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -179,7 +179,7 @@ export default function ConversationList({
                 <Tooltip>
                     <TooltipTrigger asChild>
                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNavigateToSettings}>
-                            <MoreVertical className="w-5 h-5 text-accent" />
+                            <MoreVertical className="w-5 h-5 text-white" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>

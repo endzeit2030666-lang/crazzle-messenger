@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState } from "react";
@@ -157,7 +158,7 @@ export default function ChatView({
         </Avatar>
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
-           <div className="flex items-center text-sm text-foreground">
+           <div className="flex items-center text-sm text-white">
              <Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-green-500' : 'text-red-500')} /> {contact.onlineStatus}
           </div>
         </div>
@@ -166,7 +167,7 @@ export default function ChatView({
                  <Tooltip>
                     <TooltipTrigger asChild>
                          <Button variant="ghost" size="icon" onClick={() => handleCall('audio')}>
-                            <Phone className="w-5 h-5 text-accent" />
+                            <Phone className="w-5 h-5 text-white" />
                             <span className="sr-only">Sprachanruf</span>
                         </Button>
                     </TooltipTrigger>
@@ -177,7 +178,7 @@ export default function ChatView({
                  <Tooltip>
                     <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={() => handleCall('video')}>
-                            <Video className="w-5 h-5 text-accent" />
+                            <Video className="w-5 h-5 text-white" />
                             <span className="sr-only">Videoanruf</span>
                         </Button>
                     </TooltipTrigger>
@@ -188,7 +189,7 @@ export default function ChatView({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
-                  <MoreVertical className="w-5 h-5 text-accent" />
+                  <MoreVertical className="w-5 h-5 text-white" />
                   <span className="sr-only">Weitere Optionen</span>
                 </Button>
               </DropdownMenuTrigger>
