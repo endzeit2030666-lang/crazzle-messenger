@@ -143,6 +143,7 @@ const ReactionPicker = ({ onSelect, onPlusClick }: { onSelect: (emoji: string) =
 export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender }: MessageProps) {
   const isCurrentUser = message.senderId === currentUser.id;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [isDestroyed, setIsDestroyed] = useState(false);
   const { toast } = useToast();
   
   // Self-destruct logic
@@ -159,15 +160,14 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
 
       if (remainingTime > 0) {
         const timer = setTimeout(() => {
-          onDelete(message.id, true); // Delete for everyone
+          setIsDestroyed(true);
         }, remainingTime);
         return () => clearTimeout(timer);
       } else {
-        // If for some reason the component mounts after the destruction time, delete immediately.
-        onDelete(message.id, true);
+        setIsDestroyed(true);
       }
     }
-  }, [message.selfDestructDuration, message.readAt, message.id, onDelete]);
+  }, [message.selfDestructDuration, message.readAt, message.id]);
 
 
   const handleCopy = () => {
@@ -204,6 +204,10 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
        onQuote(message);
     }
   };
+
+  if (isDestroyed) {
+    return null;
+  }
 
   if (!message.content && !message.audioUrl) {
     return null;
