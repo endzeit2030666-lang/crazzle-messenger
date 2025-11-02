@@ -38,7 +38,7 @@ import {
 type ChatViewProps = {
   conversation: Conversation;
   contact?: User;
-  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, isSelfDestructing?: boolean) => void;
+  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, selfDestructDuration?: number) => void;
   onEditMessage: (messageId: string, newContent: string) => void;
   onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
   onReact: (messageId: string, emoji: string) => void;
@@ -119,12 +119,12 @@ export default function ChatView({
     setQuotedMessage(undefined);
   };
   
-  const handleSendMessageSubmit = (content: string, type: 'text' | 'audio' = 'text', duration?: number, isSelfDestructing?: boolean) => {
+  const handleSendMessageSubmit = (content: string, type: 'text' | 'audio' = 'text', duration?: number, selfDestructDuration?: number) => {
     if (editingMessage) {
       onEditMessage(editingMessage.id, content);
       setEditingMessage(null);
     } else {
-        onSendMessage(content, type, duration, isSelfDestructing);
+        onSendMessage(content, type, duration, selfDestructDuration);
         setQuotedMessage(undefined);
     }
   };

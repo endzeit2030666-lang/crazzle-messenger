@@ -28,8 +28,7 @@ export type Message = {
   content: string;
   timestamp: string;
   status: 'sent' | 'delivered' | 'read';
-  isSelfDestructing?: boolean;
-  selfDestructTimer?: number;
+  selfDestructDuration?: number; // Duration in seconds
   readAt: number | null; // Timestamp when the message was read
   linkPreview?: LinkPreviewData;
   reactions: Reaction[];

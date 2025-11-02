@@ -147,20 +147,27 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   
   // Self-destruct logic
   useEffect(() => {
-    if (message.isSelfDestructing && message.senderId !== currentUser.id && !message.readAt) {
+    if (message.selfDestructDuration && message.senderId !== currentUser.id && !message.readAt) {
       onMessageRead(message.id);
     }
-  }, [message.isSelfDestructing, message.senderId, message.readAt, message.id, onMessageRead]);
+  }, [message.selfDestructDuration, message.senderId, message.readAt, message.id, onMessageRead]);
 
   useEffect(() => {
-    if (message.isSelfDestructing && message.readAt) {
-      const timer = setTimeout(() => {
-        onDelete(message.id, true); // Delete for everyone
-      }, 5000); // 5 seconds timer
+    if (message.selfDestructDuration && message.readAt) {
+      const destructTime = message.readAt + (message.selfDestructDuration * 1000);
+      const remainingTime = destructTime - Date.now();
 
-      return () => clearTimeout(timer);
+      if (remainingTime > 0) {
+        const timer = setTimeout(() => {
+          onDelete(message.id, true); // Delete for everyone
+        }, remainingTime);
+        return () => clearTimeout(timer);
+      } else {
+        // If for some reason the component mounts after the destruction time, delete immediately.
+        onDelete(message.id, true);
+      }
     }
-  }, [message.isSelfDestructing, message.readAt, message.id, onDelete]);
+  }, [message.selfDestructDuration, message.readAt, message.id, onDelete]);
 
 
   const handleCopy = () => {
@@ -286,14 +293,14 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
             </Tooltip>
           </TooltipProvider>
 
-          {message.isSelfDestructing && (
+          {message.selfDestructDuration && (
              <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger>
-                  <Clock className="h-3 w-3 text-destructive" />
+                  <Clock className="h-3 w-3 text-primary" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Selbstzerstörende Nachricht</p>
+                  <p>Selbstzerstörende Nachricht ({message.selfDestructDuration / 3600}h)</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

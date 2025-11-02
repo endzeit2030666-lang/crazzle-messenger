@@ -43,7 +43,7 @@ import { cn } from '@/lib/utils';
 import { EmojiPicker } from './emoji-picker';
 
 type MessageInputProps = {
-  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, isSelfDestructing?: boolean) => void;
+  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, selfDestructDuration?: number) => void;
   quotedMessage?: Message['quotedMessage'];
   onClearQuote: () => void;
   isEditing: boolean;
@@ -67,7 +67,7 @@ export default function MessageInput({
     useState<AnalyzeCommunicationOutput | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const [isSelfDestructing, setIsSelfDestructing] = useState(false);
+  const [selfDestructDuration, setSelfDestructDuration] = useState<number | undefined>(undefined);
   
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -111,7 +111,8 @@ export default function MessageInput({
       mediaRecorderRef.current.onstop = () => {
         const audioBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
-        onSendMessage(audioUrl, 'audio', recordingTime, isSelfDestructing);
+        onSendMessage(audioUrl, 'audio', recordingTime, selfDestructDuration);
+        setSelfDestructDuration(undefined);
 
         // Stop all media tracks
         stream.getTracks().forEach(track => track.stop());
@@ -204,10 +205,10 @@ export default function MessageInput({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onSendMessage(text.trim(), 'text', undefined, isSelfDestructing);
+      onSendMessage(text.trim(), 'text', undefined, selfDestructDuration);
       setText('');
       setAnalysis(null);
-      setIsSelfDestructing(false);
+      setSelfDestructDuration(undefined);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -256,13 +257,18 @@ export default function MessageInput({
     }, 0);
   };
   
-  const toggleSelfDestruct = () => {
-    const newValue = !isSelfDestructing;
-    setIsSelfDestructing(newValue);
-    toast({
-      title: `Selbstzerstörende Nachrichten ${newValue ? 'aktiviert' : 'deaktiviert'}`,
-      description: newValue ? 'Deine nächste Nachricht wird sich nach dem Lesen selbst zerstören.' : undefined,
-    })
+  const handleSetSelfDestruct = (duration: number | undefined) => {
+    setSelfDestructDuration(duration);
+    if (duration) {
+        toast({
+            title: `Selbstzerstörende Nachrichten aktiviert`,
+            description: `Nachricht wird ${duration/3600}h nach dem Lesen gelöscht.`,
+        })
+    } else {
+        toast({
+            title: `Selbstzerstörende Nachrichten deaktiviert`,
+        })
+    }
   }
 
   const AttachmentButton = ({
@@ -290,6 +296,13 @@ export default function MessageInput({
       </div>
     </Button>
   );
+  
+  const selfDestructOptions = [
+    { label: 'Aus', duration: undefined },
+    { label: 'In 1 Stunde', duration: 3600 },
+    { label: 'In 8 Stunden', duration: 28800 },
+    { label: 'In 24 Stunden', duration: 86400 },
+  ];
 
   return (
     <div className="relative">
@@ -475,26 +488,35 @@ export default function MessageInput({
                 </TooltipProvider>
               )}
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
+              <Popover>
+                <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
                       type="button"
-                      onClick={toggleSelfDestruct}
-                      className={cn("shrink-0", isSelfDestructing && "text-destructive bg-destructive/20")}
+                      className={cn("shrink-0", selfDestructDuration && "text-primary bg-primary/20")}
                       disabled={disabled}
                     >
                       <Clock className="h-5 w-5" />
                       <span className="sr-only">Selbstzerstörende Nachricht</span>
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Selbstzerstörende Nachricht</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2 mb-2">
+                    <div className="grid gap-1">
+                        <p className="font-medium text-sm px-2 py-1.5">Nachricht löschen nach...</p>
+                        {selfDestructOptions.map(option => (
+                           <Button
+                            key={option.label}
+                            variant="ghost"
+                            className={cn("w-full justify-start", selfDestructDuration === option.duration && "bg-accent")}
+                            onClick={() => handleSetSelfDestruct(option.duration)}
+                           >
+                            {option.label}
+                           </Button> 
+                        ))}
+                    </div>
+                </PopoverContent>
+              </Popover>
             </>
           )}
         </div>

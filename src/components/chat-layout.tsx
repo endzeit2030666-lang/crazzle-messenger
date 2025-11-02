@@ -52,7 +52,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.id && blockedUsers.has(p.id));
   
-  const handleSendMessage = (content: string, type: 'text' | 'audio' = 'text', duration?: number, isSelfDestructing?: boolean) => {
+  const handleSendMessage = (content: string, type: 'text' | 'audio' = 'text', duration?: number, selfDestructDuration?: number) => {
     if (!selectedConversationId) return;
 
      if (isContactBlocked) {
@@ -75,7 +75,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
       type: type,
       audioUrl: type === 'audio' ? content : undefined,
       audioDuration: duration,
-      isSelfDestructing: isSelfDestructing,
+      selfDestructDuration: selfDestructDuration,
       readAt: null, // Initial not read
     };
     
@@ -116,7 +116,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
       prev.map(convo => {
         if (convo.id === selectedConversationId || forEveryone) { // Also delete for other user in conversation
           const newMessages = forEveryone 
-            ? convo.messages.map(msg => msg.id === messageId ? { ...msg, content: "Diese Nachricht wurde gelöscht", type: 'text', audioUrl: undefined, isSelfDestructing: false } : msg)
+            ? convo.messages.map(msg => msg.id === messageId ? { ...msg, content: "Diese Nachricht wurde gelöscht", type: 'text', audioUrl: undefined, selfDestructDuration: undefined } : msg)
             : convo.messages.filter(msg => msg.id !== messageId);
           
           return { ...convo, messages: newMessages };
