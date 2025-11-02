@@ -3,21 +3,11 @@ import React from 'react';
 import { useState } from 'react';
 import {
   ArrowLeft,
-  User,
-  Lock,
-  Bell,
-  Palette,
-  HelpCircle,
-  LogOut,
   ChevronRight,
   Shield,
-  KeyRound,
-  Fingerprint,
-  Smartphone,
-  Trash2,
-  PieChart,
-  BellOff,
   CheckCircle,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -34,16 +24,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Label } from '@/components/ui/label';
-
-const SettingsItem = ({ icon, label, onClick }: { icon: React.ElementType; label: string; onClick?: () => void }) => (
-  <button onClick={onClick} className="w-full flex items-center p-4 rounded-lg hover:bg-muted transition-colors">
-    <div className="p-2 bg-muted rounded-full mr-4">
-      {React.createElement(icon, { className: "w-5 h-5 text-primary" })}
-    </div>
-    <span className="flex-1 text-left font-medium">{label}</span>
-    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-  </button>
-);
 
 const SettingsToggleItem = ({ icon, label, checked, onCheckedChange }: { icon: React.ElementType; label: string; checked: boolean; onCheckedChange: (checked: boolean) => void }) => (
     <div className="w-full flex items-center p-4 rounded-lg">
@@ -102,12 +82,6 @@ export default function SettingsPage() {
           </button>
         </div>
         
-        <div className="pt-4">
-            <Button variant="destructive" className="w-full" onClick={() => toast({ title: 'Abgemeldet' })}>
-                <LogOut className="w-5 h-5 mr-2" />
-                Abmelden
-            </Button>
-        </div>
       </main>
 
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
