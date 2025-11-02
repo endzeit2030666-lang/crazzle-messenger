@@ -38,7 +38,7 @@ import {
 type ChatViewProps = {
   conversation: Conversation;
   contact?: User;
-  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number) => void;
+  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, isSelfDestructing?: boolean) => void;
   onEditMessage: (messageId: string, newContent: string) => void;
   onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
   onReact: (messageId: string, emoji: string) => void;
@@ -46,6 +46,7 @@ type ChatViewProps = {
   isBlocked: boolean;
   onBlockContact: (contactId: string) => void;
   onUnblockContact: (contactId: string) => void;
+  onMessageRead: (messageId: string) => void;
 };
 
 export default function ChatView({ 
@@ -59,6 +60,7 @@ export default function ChatView({
     isBlocked,
     onBlockContact,
     onUnblockContact,
+    onMessageRead,
 }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
@@ -117,17 +119,13 @@ export default function ChatView({
     setQuotedMessage(undefined);
   };
   
-  const handleSendMessageSubmit = (content: string, type: 'text' | 'audio' = 'text', duration?: number) => {
+  const handleSendMessageSubmit = (content: string, type: 'text' | 'audio' = 'text', duration?: number, isSelfDestructing?: boolean) => {
     if (editingMessage) {
       onEditMessage(editingMessage.id, content);
       setEditingMessage(null);
     } else {
-      if (type === 'audio') {
-        onSendMessage(content, 'audio', duration);
-      } else {
-        onSendMessage(content, 'text');
-      }
-      setQuotedMessage(undefined);
+        onSendMessage(content, type, duration, isSelfDestructing);
+        setQuotedMessage(undefined);
     }
   };
 
@@ -229,6 +227,7 @@ export default function ChatView({
             onEdit={handleEdit}
             onDelete={onDeleteMessage}
             onReact={onReact}
+            onMessageRead={onMessageRead}
             sender={conversation.participants.find(p => p.id === message.senderId)}
           />
         ))}

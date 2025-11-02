@@ -43,7 +43,7 @@ import { cn } from '@/lib/utils';
 import { EmojiPicker } from './emoji-picker';
 
 type MessageInputProps = {
-  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number) => void;
+  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, isSelfDestructing?: boolean) => void;
   quotedMessage?: Message['quotedMessage'];
   onClearQuote: () => void;
   isEditing: boolean;
@@ -67,6 +67,7 @@ export default function MessageInput({
     useState<AnalyzeCommunicationOutput | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [isSelfDestructing, setIsSelfDestructing] = useState(false);
   
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -110,7 +111,7 @@ export default function MessageInput({
       mediaRecorderRef.current.onstop = () => {
         const audioBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
-        onSendMessage(audioUrl, 'audio', recordingTime);
+        onSendMessage(audioUrl, 'audio', recordingTime, isSelfDestructing);
 
         // Stop all media tracks
         stream.getTracks().forEach(track => track.stop());
@@ -203,9 +204,10 @@ export default function MessageInput({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onSendMessage(text.trim(), 'text');
+      onSendMessage(text.trim(), 'text', undefined, isSelfDestructing);
       setText('');
       setAnalysis(null);
+      setIsSelfDestructing(false);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -253,6 +255,15 @@ export default function MessageInput({
         textareaRef.current?.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
     }, 0);
   };
+  
+  const toggleSelfDestruct = () => {
+    const newValue = !isSelfDestructing;
+    setIsSelfDestructing(newValue);
+    toast({
+      title: `Selbstzerstörende Nachrichten ${newValue ? 'aktiviert' : 'deaktiviert'}`,
+      description: newValue ? 'Deine nächste Nachricht wird sich nach dem Lesen selbst zerstören.' : undefined,
+    })
+  }
 
   const AttachmentButton = ({
     icon: Icon,
@@ -471,10 +482,8 @@ export default function MessageInput({
                       variant="ghost"
                       size="icon"
                       type="button"
-                      onClick={() =>
-                        handleFeatureNotImplemented('Selbstzerstörende Nachrichten')
-                      }
-                      className="shrink-0"
+                      onClick={toggleSelfDestruct}
+                      className={cn("shrink-0", isSelfDestructing && "text-destructive bg-destructive/20")}
                       disabled={disabled}
                     >
                       <Clock className="h-5 w-5" />

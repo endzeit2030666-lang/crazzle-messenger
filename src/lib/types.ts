@@ -30,7 +30,7 @@ export type Message = {
   status: 'sent' | 'delivered' | 'read';
   isSelfDestructing?: boolean;
   selfDestructTimer?: number;
-  readAt?: number; // Timestamp when the message was read
+  readAt: number | null; // Timestamp when the message was read
   linkPreview?: LinkPreviewData;
   reactions: Reaction[];
   quotedMessage?: {

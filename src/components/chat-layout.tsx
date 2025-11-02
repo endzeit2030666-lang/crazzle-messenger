@@ -31,27 +31,28 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   // Effect to re-read sessionStorage when the component might be re-rendered
   // e.g., after navigating back from settings.
   useEffect(() => {
-    const blockedJson = sessionStorage.getItem('blockedUsers');
-    if (blockedJson) {
-      try {
-        const newBlockedSet = new Set<string>(JSON.parse(blockedJson));
-        setBlockedUsers(newBlockedSet);
-      } catch (e) {
-        console.error("Failed to parse blocked users from sessionStorage", e);
-        // Initialize with default if parsing fails
-        sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(new Set(['user2', 'user3']))));
-      }
-    } else {
-        // Initialize sessionStorage if it's not set
-        sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(new Set(['user2', 'user3']))));
+    try {
+        const blockedJson = sessionStorage.getItem('blockedUsers');
+        if (blockedJson) {
+            setBlockedUsers(new Set(JSON.parse(blockedJson)));
+        } else {
+            const initialBlocked = new Set(['user2', 'user3']);
+            sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(initialBlocked)));
+            setBlockedUsers(initialBlocked);
+        }
+    } catch (error) {
+        console.error("Failed to parse blocked users from sessionStorage", error);
+        const initialBlocked = new Set(['user2', 'user3']);
+        sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(initialBlocked)));
+        setBlockedUsers(initialBlocked);
     }
-  }, [setBlockedUsers]);
+}, [setBlockedUsers]);
 
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.id && blockedUsers.has(p.id));
   
-  const handleSendMessage = (content: string, type: 'text' | 'audio' = 'text', duration?: number, quotedMessage?: Message['quotedMessage']) => {
+  const handleSendMessage = (content: string, type: 'text' | 'audio' = 'text', duration?: number, isSelfDestructing?: boolean) => {
     if (!selectedConversationId) return;
 
      if (isContactBlocked) {
@@ -70,10 +71,12 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'sent' as const,
       reactions: [],
-      quotedMessage: quotedMessage,
+      quotedMessage: undefined,
       type: type,
       audioUrl: type === 'audio' ? content : undefined,
       audioDuration: duration,
+      isSelfDestructing: isSelfDestructing,
+      readAt: null, // Initial not read
     };
     
     if (type === 'audio') {
@@ -111,13 +114,12 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   const handleDeleteMessage = (messageId: string, forEveryone: boolean) => {
     setConversations(prev =>
       prev.map(convo => {
-        if (convo.id === selectedConversationId) {
-          return {
-            ...convo,
-            messages: forEveryone 
-              ? convo.messages.map(msg => msg.id === messageId ? { ...msg, content: "Diese Nachricht wurde gelöscht", type: 'text', audioUrl: undefined } : msg)
-              : convo.messages.filter(msg => msg.id !== messageId),
-          };
+        if (convo.id === selectedConversationId || forEveryone) { // Also delete for other user in conversation
+          const newMessages = forEveryone 
+            ? convo.messages.map(msg => msg.id === messageId ? { ...msg, content: "Diese Nachricht wurde gelöscht", type: 'text', audioUrl: undefined, isSelfDestructing: false } : msg)
+            : convo.messages.filter(msg => msg.id !== messageId);
+          
+          return { ...convo, messages: newMessages };
         }
         return convo;
       })
@@ -176,27 +178,21 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   }
 
   const blockContact = (contactId: string) => {
-    setBlockedUsers(prev => {
-      const newBlocked = new Set(prev);
-      newBlocked.add(contactId);
-       // Persist this to sessionStorage for the settings page
-      sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
-      return newBlocked;
-    });
-     toast({
-      title: "Kontakt blockiert",
-      description: "Du wirst keine Nachrichten oder Anrufe mehr von diesem Kontakt erhalten.",
+    const newBlocked = new Set(blockedUsers);
+    newBlocked.add(contactId);
+    setBlockedUsers(newBlocked);
+    sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
+    toast({
+        title: "Kontakt blockiert",
+        description: "Du wirst keine Nachrichten oder Anrufe mehr von diesem Kontakt erhalten.",
     });
   }
 
   const unblockContact = (contactId: string) => {
-    setBlockedUsers(prev => {
-        const newBlocked = new Set(prev);
-        newBlocked.delete(contactId);
-        // Persist this to sessionStorage for the settings page
-        sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
-        return newBlocked;
-    });
+    const newBlocked = new Set(blockedUsers);
+    newBlocked.delete(contactId);
+    setBlockedUsers(newBlocked);
+    sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
     toast({
         title: "Blockierung aufgehoben",
         description: "Du kannst diesem Kontakt wieder Nachrichten senden.",
@@ -214,6 +210,24 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
     router.push('/settings');
   }
 
+  const handleMessageRead = (messageId: string) => {
+    setConversations(prev =>
+      prev.map(convo => {
+        if (convo.id === selectedConversationId) {
+          return {
+            ...convo,
+            messages: convo.messages.map(msg =>
+              msg.id === messageId && !msg.readAt
+                ? { ...msg, readAt: Date.now() }
+                : msg
+            ),
+          };
+        }
+        return convo;
+      })
+    );
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background md:grid md:grid-cols-[384px_1fr]">
       <div
@@ -229,6 +243,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
           onPinToggle={togglePinConversation}
           onMuteToggle={toggleMuteConversation}
           onBlockContact={blockContact}
+          onUnblockContact={unblockContact}
           blockedUsers={blockedUsers}
           onNavigateToSettings={navigateToSettings}
         />
@@ -252,6 +267,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
             isBlocked={isContactBlocked ?? false}
             onBlockContact={blockContact}
             onUnblockContact={unblockContact}
+            onMessageRead={handleMessageRead}
           />
         ) : (
           <div className="flex-1 items-center justify-center text-muted-foreground bg-muted/20 hidden md:flex">

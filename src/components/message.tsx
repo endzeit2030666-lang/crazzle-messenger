@@ -111,6 +111,7 @@ type MessageProps = {
   onEdit: (message: MessageType) => void;
   onDelete: (messageId: string, forEveryone: boolean) => void;
   onReact: (messageId: string, emoji: string) => void;
+  onMessageRead: (messageId: string) => void;
   sender?: User;
 };
 
@@ -139,10 +140,28 @@ const ReactionPicker = ({ onSelect, onPlusClick }: { onSelect: (emoji: string) =
   )
 }
 
-export default function Message({ message, onQuote, onEdit, onDelete, onReact, sender }: MessageProps) {
+export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender }: MessageProps) {
   const isCurrentUser = message.senderId === currentUser.id;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const { toast } = useToast();
+  
+  // Self-destruct logic
+  useEffect(() => {
+    if (message.isSelfDestructing && message.senderId !== currentUser.id && !message.readAt) {
+      onMessageRead(message.id);
+    }
+  }, [message.isSelfDestructing, message.senderId, message.readAt, message.id, onMessageRead]);
+
+  useEffect(() => {
+    if (message.isSelfDestructing && message.readAt) {
+      const timer = setTimeout(() => {
+        onDelete(message.id, true); // Delete for everyone
+      }, 5000); // 5 seconds timer
+
+      return () => clearTimeout(timer);
+    }
+  }, [message.isSelfDestructing, message.readAt, message.id, onDelete]);
+
 
   const handleCopy = () => {
     if (message.content) {
