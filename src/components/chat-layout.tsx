@@ -126,14 +126,13 @@ export default function ChatLayout() {
   };
 
   return (
-    <div className={cn(
-        "flex h-screen w-full overflow-hidden bg-background",
-        selectedConversationId && "md:grid md:grid-cols-[384px_1fr]"
-    )}>
-      <div className={cn(
-          "w-full md:w-96 md:flex-shrink-0 md:flex md:flex-col",
-          selectedConversationId && "hidden md:flex"
-      )}>
+    <div className="flex h-screen w-full overflow-hidden bg-background md:grid md:grid-cols-[384px_1fr]">
+      <div
+        className={cn(
+          "w-full flex-col md:flex",
+          selectedConversationId ? "hidden" : "flex"
+        )}
+      >
         <ConversationList
           conversations={conversations}
           selectedConversationId={selectedConversationId}
@@ -142,7 +141,12 @@ export default function ChatLayout() {
           onMuteToggle={toggleMuteConversation}
         />
       </div>
-      <div className={cn("flex-1 flex-col", selectedConversationId ? "flex" : "hidden md:flex")}>
+      <div
+        className={cn(
+          "flex-1 flex-col",
+          selectedConversationId ? "flex" : "hidden md:flex"
+        )}
+      >
         {selectedConversation ? (
           <ChatView
             key={selectedConversation.id}
