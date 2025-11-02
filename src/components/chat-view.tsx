@@ -127,7 +127,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
            <div className="flex items-center text-sm text-foreground">
-             {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-primary' : 'text-slate-400')} /> {contact.onlineStatus}</>}
+             {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-green-500' : 'text-red-500')} /> {contact.onlineStatus}</>}
              {group && <p>{group.participants.length} members</p>}
           </div>
         </div>
@@ -220,7 +220,10 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
         open={isVerificationDialogOpen}
         onOpenChange={setVerificationDialogOpen}
         contact={contact}
-        />
+        >
+          {/* This is a dummy child to satisfy TypeScript. The dialog is triggered from the dropdown menu. */}
+          <span className='hidden'></span>
+        </ContactVerificationDialog>
       )}
 
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
