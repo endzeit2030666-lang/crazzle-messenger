@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile } from "lucide-react";
 import type { Message as MessageType, User } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+
 
 type MessageProps = {
   message: MessageType;
