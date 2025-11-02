@@ -164,18 +164,18 @@ export default function StatusPage() {
           </SheetTrigger>
           <SheetContent side="bottom" className="rounded-t-lg">
             <SheetHeader>
-              <SheetTitle className="text-center">Status erstellen</SheetTitle>
+              <SheetTitle className="text-center text-primary">Status erstellen</SheetTitle>
             </SheetHeader>
             <div className="grid gap-4 py-4">
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
+              <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
                 <Type className="w-6 h-6 mr-4" />
                 <span className="text-lg">Text-Status</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
+              <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
                 <Camera className="w-6 h-6 mr-4" />
                 <span className="text-lg">Foto oder Video</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start h-14" onClick={handleFileUpload}>
+              <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={handleFileUpload}>
                 <FileImage className="w-6 h-6 mr-4" />
                 <span className="text-lg">Bild oder Video aus Galerie</span>
               </Button>
