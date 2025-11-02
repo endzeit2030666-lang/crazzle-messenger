@@ -316,7 +316,7 @@ export default function MessageInput({
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onStopEditing} className="h-7 w-7">
-            <X className="h-4 w-4" />
+            <X className="h-4 h-4" />
           </Button>
         </div>
       )}
@@ -330,7 +330,7 @@ export default function MessageInput({
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClearQuote} className="h-7 w-7">
-            <X className="h-4 w-4" />
+            <X className="h-4 h-4" />
           </Button>
         </div>
       )}
@@ -503,7 +503,7 @@ export default function MessageInput({
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-2 mb-2">
                     <div className="grid gap-1">
-                        <p className="font-medium text-sm px-2 py-1.5 text-black dark:text-black">Nachricht löschen nach...</p>
+                        <p className="font-medium text-sm px-2 py-1.5 !text-black">Nachricht löschen nach...</p>
                         {selfDestructOptions.map(option => (
                            <Button
                             key={option.label}
