@@ -188,12 +188,12 @@ export default function MessageInput({
   const EmojiPicker = () => {
     const categories = {
         '😊': { name: 'Smileys', emojis: '😀 😃 😄 😁 😆 😅 😂 🤣 ☺️ 😊 😇 🙂 🙃 😉 😌 😍 😘 😗 😙 😚 😋 😜 😝 😛 🤑 🤗 🤓 😎 🤡 🤠 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 😤 😠 😡 😶 😐 😑 😯 😦 😧 😮 😲 😵 😳 😱 😨 😰 😢 😥 🤤 😭 😓 😪 😴 🙄 🤔 🤥 😬 🤐 🤢 🤮 🤧 😷 🤒 🤕 🤨 🤩 🤯 🧐 🤫 🤪 🥺 🤭 🥱 🥳 🥴 🥶 🥲 🥸 🫠 🫤 🫥 🫢 🫣 🫡 🥹 🥵 😈 👿 🤬 👹 👺 💩 👻 💀 ☠️ 👽 👾 🤖 🎃 😺 😸 😹 😻 😼 😽 😿 😾 🙀'.split(' ') },
-        '👋': { name: 'People, Hands & Body Parts', emojis: '👐 🙌 👏 🙏 🤝 👍 👎 👊 ✊ 🤛 🤜 🤞 ✌️ 🤘 👌 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 🤙 💪 🖕 🤟 🤲 ✍️ 🤳 💅 🖖 💋 👄 👅 👂 👃 👣 👁 🧠 🦷 🦴 👀 🗣 👤 👥 👶 👦 👧 👨 👩 👱‍♀️ 👱 👴 👵 🧔 👨‍🦰 🧕 👲 👳‍♀️ 👳 👮‍♀️ 👮 👷‍♀️ 👷 💂‍♀️ 💂 🕵️‍♀️ 🕵️ 👩‍⚕️ 👨‍⚕️ 👩‍🌾 👨‍🌾 👩‍🍳 👨‍🍳 👩‍🎓 👨‍🎓 👩‍🎤 👨‍🎤 👩‍🏫 👨‍🏫 👩‍🏭 👨‍🏭 👩‍💻 👨‍💻 👩‍💼 👨‍💼 👩‍🔧 👨‍🔧 👩‍🔬 👨‍🔬 👩‍🎨 👨‍🎨 👩‍🚒 👨‍🚒 👩‍✈️ 👨‍✈️ 👩‍🚀 👨‍🚀 🧟 🧛 🧛‍♀️ 🧚 🧚‍♂️ 🤶 🎅 👸 🤴 👰 🤵 👼 🤰 🧘 🧘‍♂️ 🙇‍♀️ 🙇 💁 💁‍♂️ 🙅 🙅‍♂️ 🙆 🙆‍♂️ 🙋 🙋‍♂️ 🤦‍♀️ 🤦‍♂️ 🤷‍♀️ 🤷‍♂️ 🙎 🙎‍♂️ 🙍 🙍‍♂️ 💇 💇‍♂️ 💆 💆‍♂️ 🕴 💃 🕺 👯 👯‍♂️ 🚶‍♀️ 🚶 🏃‍♀️ 🏃 👫 👭 👬 💑 👩‍❤️‍👩 👨‍❤️‍👨 💏 👩‍❤️‍💋‍👩 👨‍❤️‍💋‍👨 👪 👨‍👩‍👧 👨‍👩‍👧‍👦 👨‍👩‍👦‍👦 👨‍👩‍👧‍👧 👩‍👩‍👦 👩‍👩‍👧 👩‍👩‍👧‍👦 👩‍👩‍👦‍👦 👩‍👩‍👧‍👧 👨‍👨‍👦 👨‍👨‍👧 👨‍👨‍👧‍👦 👨‍👨‍👦‍👦 👨‍👨‍👧‍👧 👩‍👦 👩‍👧 👩‍👧‍👦 👩‍👦‍👦 👩‍👧‍👧 👨‍👦 👨‍👧 👨‍👧‍👦 👨‍👦‍👦 👨‍👧‍👧'.split(' ') },
+        '👋': { name: 'People, Hands & Body Parts', emojis: '👐 🙌 👏 🙏 🤝 👍 👎 👊 ✊ 🤛 🤜 🤞 ✌️ 🤘 👌 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 🤙 💪 🖕 🤟 🤲 ✍️ 🤳 💅 💋 👄 👅 👂 👃 👣 👁 🧠 🦷 🦴 👀 🗣 👤 👥 👶 👦 👧 👨 👩 👱‍♀️ 👱 👴 👵 🧔 👨‍🦰 🧕 👲 👳‍♀️ 👳 👮‍♀️ 👮 👷‍♀️ 👷 💂‍♀️ 💂 🕵️‍♀️ 🕵️ 👩‍⚕️ 👨‍⚕️ 👩‍🌾 👨‍🌾 👩‍🍳 👨‍🍳 👩‍🎓 👨‍🎓 👩‍🎤 👨‍🎤 👩‍🏫 👨‍🏫 👩‍🏭 👨‍🏭 👩‍💻 👨‍💻 👩‍💼 👨‍💼 👩‍🔧 👨‍🔧 👩‍🔬 👨‍🔬 👩‍🎨 👨‍🎨 👩‍🚒 👨‍🚒 👩‍✈️ 👨‍✈️ 👩‍🚀 👨‍🚀 🧟 🧛 🧛‍♀️ 🧚 🧚‍♂️ 🤶 🎅 👸 🤴 👰 🤵 👼 🤰 🧘 🧘‍♂️ 🙇‍♀️ 🙇 💁 💁‍♂️ 🙅 🙅‍♂️ 🙆 🙆‍♂️ 🙋 🙋‍♂️ 🤦‍♀️ 🤦‍♂️ 🤷‍♀️ 🤷‍♂️ 🙎 🙎‍♂️ 🙍 🙍‍♂️ 💇 💇‍♂️ 💆 💆‍♂️ 🕴 💃 🕺 👯 👯‍♂️ 🚶‍♀️ 🚶 🏃‍♀️ 🏃 👫 👭 👬 💑 👩‍❤️‍👩 👨‍❤️‍👨 💏 👩‍❤️‍💋‍👩 👨‍❤️‍💋‍👨 👪 👨‍👩‍👧 👨‍👩‍👧‍👦 👨‍👩‍👦‍👦 👨‍👩‍👧‍👧 👩‍👩‍👦 👩‍👩‍👧 👩‍👩‍👧‍👦 👩‍👩‍👦‍👦 👩‍👩‍👧‍👧 👨‍👨‍👦 👨‍👨‍👧 👨‍👨‍👧‍👦 👨‍👨‍👦‍👦 👨‍👨‍👧‍👧 👩‍👦 👩‍👧 👩‍👧‍👦 👩‍👦‍👦 👩‍👧‍👧 👨‍👦 👨‍👧 👨‍👧‍👦 👨‍👦‍👦 👨‍👧‍👧'.split(' ') },
         '🐻': { name: 'Nature, Plants & Animals', emojis: '🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐽 🐸 🐵 🙈 🙉 🙊 🐒 🐔 🦜 🐧 🐦 🐤 🐣 🐥 🦆 🦢 🦅 🦚 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🐛 🦋 🐌 🐚 🐞 🐜 🦟 🕷️ 🕸️ 🐢 🐍 🪱 🦎 🦂 🦀 🦑 🐙 🦐 🦞 🐠 🐟 🐡 🐬 🦈 🐳 🐋 🐊 🐆 🐅 🦛 🐃 🐂 🐄 🦌 🐪 🐫 🦘 🐘 🦏 🦍 🐎 🦙 🐖 🐐 🐏 🐑 🐕 🐩 🐈 🐓 🦃 🕊️ 🪶 🐇 🐁 🐀 🐿️ 🐾 🐉 🐲 🦖 🦕 🦒 🦔 🦓 🦗 🦧 🦮 🦥 🦦 🦡 🦨 🦩 🌵 🎄 🌲 🌳 🌴 🌱 🌿 ☘️ 🍀 🎍 🎋 🍃 🍂 🍁 🍄 🌾 💐 🌷 🌹 🥀 🌻 🌼 🌸 🌺 🌎 🌍 🌏 🌕 🌖 🌗 🌘 🌑 🌒 🌓 🌔 🌚 🌝 🌞 🌛 🌜 🌙 💫 ⭐️ 🌟 ✨ ⚡️ 🔥 💥 ☄️ 🛸 ☀️ 🌤️ ⛅️ 🌥️ 🌦️ 🌈 ☁️ 🌧️ ⛈️ 🌩️ 🌨️ ☃️ ⛄️ ❄️ 🌬️ 💨 🌪️ 🌫️ 🌊 💧 💦 ☔️'.split(' ') },
         '🍔': { name: 'Food & Drink', emojis: '🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🍈 🍒 🍑 🍍 🥝 🥭 🥑 🍅 🍆 🥒 🥕 🥬 🌽 🌶️ 🥔 🍠 🌰 🥜 🍯 🥐 🍞 🥖 🥨 🥯 🧀 🥚 🍳 🥓 🧄 🧅 🥞 🧇 🍤 🍗 🍖 🍕 🌭 🍔 🍟 🥙 🌮 🌯 🥗 🥘 🍝 🍜 🦪 🍲 🍥 🍣 🍱 🍛 🍚 🧆 🍙 🍘 🍢 🍡 🍧 🍨 🍦 🍰 🎂 🍮 🍭 🍬 🍫 🍿 🍩 🍪 🥮 🧁 🥛 🧈 🍼 ☕️ 🍵 🍶 🍺 🍻 🥂 🍷 🥃 🍸 🍹 🍾 🧉 🧃 🧊 🧂 🥄 🍴 🍽️'.split(' ') },
         '⚽': { name: 'Activities, Sports & Music', emojis: '⚽️ 🏀 🏈 ⚾️ 🎾 🏐 🏉 🎱 🏓 🏸 🥏 🥅 🏒 🏑 🏏 ⛳️ 🏹 🎣 🥊 🥋 🛹 ⛸️ 🎿 ⛷️ 🏂 🏋️‍♀️ 🏋️ 🤺 🤼‍♀️ 🤼‍♂️ 🤸‍♀️ 🤸‍♂️ ⛹️‍♀️ ⛹️ 🤾‍♀️ 🤾‍♂️ 🏌️‍♀️ 🏌️ 🏄‍♀️ 🏄 🏊‍♀️ 🏊 🤽‍♀️ 🤽‍♂️ 🚣‍♀️ 🚣 🤿 🏇 🚴‍♀️ 🚴 🚵‍♀️ 🚵 🎽 🏅 🎖 🥇 🥈 🥉 🏆 🌺 🎗️ 🎫 🎟 🎪 🤹‍♀️ 🤹‍♂️ 🎭 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🎷 🎺 🎸 🎻 🪕 🎲 🎯 🎳 🪀 🪁 🎮 🎰'.split(' ') },
         '🚗': { name: 'Travel, Transport & Places', emojis: '🚗 🚕 🚙 🚌 🚎 🏎️ 🚓 🚑 🚒 🚐 🚚 🚛 🚜 🛴 🚲 🛵 🏍️ 🛺 🚨 🚔 🚍 🚘 🚖 🚡 🚠 🚟 🚃 🚋 🚞 🚝 🚄 🚅 🚈 🚂 🚆 🚇 🚊 🚉 🚁 🛩️ ✈️ 🛫 🛬 🪂 🚀 🛰️ 🛸 💺 🛶 ⛵️ 🛥️ 🚤 🛳️ ⛴️ 🚢 ⚓️ 🚧 ⛽️ 🚏 🚦 🚥 🗺️ 🗿 🗽 ⛲️ 🗼 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛱️ 🏖️ 🏝️ ⛰️ 🏔️ 🗻 🌋 🏜️ 🏕️ ⛺️ 🛤️ 🛣️ 🏗️ 🏭 🏠 🏡 🏘️ 🏚️ 🏢 🏬 🏣 🏤 🏥 🏦 🏨 🏪 🏫 🏩 💒 🏛️ ⛪️ 🕌 🕍 🛕 🕋 ⛩️ 🗾 🎑 🏞️ 🌅 🌄 🌠 🎇 🎆 🌇 🌆 🏙 🌃 🌌 🪐 🌉 🌁'.split(' ') },
-        '💡': { name: 'Objects', emojis: '⌚️ 📱 📲 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🖲️ 🕹️ 🗜️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ ⚖️ ️📟 📠 📺 📻 🎙️ 🎚️ 🎛️ ⏱️ ⏲ ⏰ 🕰️ ⌛️ ⏳ 🧭 📡 🔋 🔌 💡 🔦 🕯️ 🗑️ 🛢️ 💸 💵 💴 💶 💷 💰 💳 💎 🧿 ⚖️ 🔧 🔨 ⚒️ 🛠️ ⛏️ 🪓 🧯 🧹 🧽 🧼 🧺 🔩 ⚙️ ⛓️ 🔫 🪁 💣 🧨 🪒 🔪 🗡️ ⚔️ 🛡️ 🎖️ 🚬 ⚰️ ⚱️ 🏺 🪦 🪔 🔮 📿 💈 ⚗️ 🔭 🔬 🕳️ 🦯 🩺 💊 💉 🩸 🩹 🦠 🧴 🧫 🧬 🌡️ 🚽 🧻 🚰 🚿 🛁 🛀 🛎️ 🔑 🗝️ 🚪 🛋️ 🛏️🛏 🛌 🪑 🖼️ 🛍️ 🛒 🎁 🎈 🎏 🎀 🎊 🎉 🎎 🏮 🎐 ✉️ 📩 📨 📧 💌 📥 📤 📦 🏷️ 📪 📫 📬 📭 📮 📯 📜 📃 📄 📑 📊 📈 📉 🗒️ 🗓 📆 📅 📇 🗃️ 🗳️ 🗄️ 📋 📁 📂 🗂️ 🗞️ 📰 📓 📔 📒 📕 📗 📘 📙 📚 📖 🧧 🔖 🔗 📎 🖇️ 🧲 📐 📏 📌 📍 🎌 🏳️ 🏴 🏁 🏳️‍🌈 ✂️ 🎨 ✏️ 🖊️ 🖋️ ✒️ 🖌️ 🖍️ 📝 🔍 🔎 🔏 🔐 🔒 🔓 💄 👚 👕 👖 👔 👗 👙 👘 👠 👡 👢 👞 👟 👒 🎩 🎓 👑 ⛑ 🎒 🧳 👝 👛 👜 💼 👓 🕶️ 🌂 ☂️ 🪶 🧷'.split(' ') },
+        '💡': { name: 'Objects', emojis: '⌚️ 📱 📲 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🖲️ 🕹️ 🗜️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ ⚖️ ️📟 📠 📺 📻 🎙️ 🎚️ 🎛️ ⏱️ ⏲ ⏰ 🕰️ ⌛️ ⏳ 🧭 📡 🔋 🔌 💡 🔦 🕯️ 🗑️ 🛢️ 💸 💵 💴 💶 💷 💰 💳 💎 🧿 ⚖️ 🔧 🔨 ⚒️ 🛠️ ⛏️ 🪓 🧯 🧹 🧽 🧼 🧺 🔩 ⚙️ ⛓️ 🔫 🪁 💣 🧨 🪒 🔪 🗡️ ⚔️ 🛡️ 🎖️ 🚬 ⚰️ ⚱️ 🏺 🪦 🪔 🔮 📿 💈 ⚗️ 🔭 🔬 🕳️ 🦯 🩺 💊 💉 🩸 🩹 🦠 🧴 🧫 🧬 🌡️ 🚽 🧻 🚰 🚿 🛁 🛀 🛎️ 🔑 🗝️ 🚪 🛋️ 🛏️ 🛌 🪑 🖼️ 🛍️ 🛒 🎁 🎈 🎏 🎀 🎊 🎉 🎎 🏮 🎐 ✉️ 📩 📨 📧 💌 📥 📤 📦 🏷️ 📪 📫 📬 📭 📮 📯 📜 📃 📄 📑 📊 📈 📉 🗒️ 🗓 📆 📅 📇 🗃️ 🗳️ 🗄️ 📋 📁 📂 🗂️ 🗞️ 📰 📓 📔 📒 📕 📗 📘 📙 📚 📖 🧧 🔖 🔗 📎 🖇️ 🧲 📐 📏 📌 📍 🎌 🏳️ 🏴 🏁 🏳️‍🌈 ✂️ 🎨 ✏️ 🖊️ 🖋️ ✒️ 🖌️ 🖍️ 📝 🔍 🔎 🔏 🔐 🔒 🔓 💄 👚 👕 👖 👔 👗 👙 👘 👠 👡 👢 👞 👟 👒 🎩 🎓 👑 ⛑ 🎒 🧳 👝 👛 👜 💼 👓 🕶️ 🌂 ☂️ 🪶 🧷'.split(' ') },
         '❤️': { name: 'Symbols', emojis: '❤️ 💛 💚 💙 💜 🖤 🤎 🤍 🧡 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ♾️  ♐️ ♑️ ♒️ ♓️ 🆔 ⚛️ 🈳 🉑 ☢️ ☣️🅾️ 🆘 🚼 ❌ ⭕️ 🛑 ⛔️ 📛 🚫 💯 💮 💢 ♨️ 🚷 🚯 🚳 🚱 🔞 📵 🚭 ❗️ ❕ ❓ ❔ ‼️ ⁉️ 🔅 🔆 〽️ ⚠️ 🚸 🔱 ⚜️ 🔰 ♻️ ✅ 🈯️ 💹 ❇️ ✳️ ❎ 🌐 💠 Ⓜ️ 🌀 💤 🏧 🚾 ♿️ 🅿️ 🈂️ 🛂 🛃 🛄 🛅 🚹 🚺 🚻 🚮 ➿ 🎦 📶 🈁 🔣 ℹ️ 🔤 🔡 🔠 🆖 🆗 🆙 🆒 🆕 🆓 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 #️⃣ *️⃣ ▶️ ⏸ ⏯ ⏹ ⏺ ⏭ ⏮ ⏩ ⏪ ⏫ ⏬ ◀️ 🔼 🔽 ➡️ ⬅️ ⬆️ ⬇️ ↗️ ↘️ ↙️ ↖️ ↪️ ↩️ ⤴️ ⤵️ 🔀 🔁 🔂 🔄 🔃 🔚 🕖 🕗 🕘 🕙 🕚 🕛 🕜 🕝 🕞 🕟 🕠 🕡 🕢 🕣 🕤 🕥 🕦 🕧'.split(' ') },
         '🏁': { name: 'Flags', emojis: '🏳️ 🏴 🏁 🚩 🎌 🇺🇳 🇪🇺 🇺🇸 🇩🇪 🇫🇷 🇬🇧 🇮🇹 🇪🇸 🇯🇵'.split(' ') },
     };
@@ -228,8 +228,8 @@ export default function MessageInput({
                 <input type="text" placeholder="Emoji suchen..." className="w-full bg-background/50 border border-border rounded-md px-3 py-1.5 text-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <div className="flex-1 overflow-y-auto p-2 grid grid-cols-8 gap-2">
-                {(categories[activeCategory as keyof typeof categories]?.emojis || []).filter(e => e.includes(search)).map(emoji => (
-                    <button key={emoji} onClick={() => {
+                {(categories[activeCategory as keyof typeof categories]?.emojis || []).filter(e => e.includes(search)).map((emoji, index) => (
+                    <button key={`${emoji}-${index}`} onClick={() => {
                         handleEmojiSelect(emoji);
                         const newRecent = [emoji, ...recentlyUsed.filter(r => r !== emoji)];
                         setRecentlyUsed(Array.from(new Set(newRecent)).slice(0, 8));
@@ -241,8 +241,8 @@ export default function MessageInput({
              <div className="p-2 border-t border-border">
                 <p className="text-xs text-muted-foreground mb-1">Zuletzt verwendet</p>
                 <div className="flex gap-2">
-                     {recentlyUsed.map(emoji => (
-                        <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="text-2xl hover:bg-black/20 rounded-md transition-colors p-1">
+                     {recentlyUsed.map((emoji, index) => (
+                        <button key={`recent-${emoji}-${index}`} onClick={() => handleEmojiSelect(emoji)} className="text-2xl hover:bg-black/20 rounded-md transition-colors p-1">
                             {emoji}
                         </button>
                     ))}
@@ -427,7 +427,11 @@ export default function MessageInput({
           </TooltipProvider>
         </div>
       </form>
-      {isEmojiPickerOpen && <EmojiPicker />}
+      {isEmojiPickerOpen && 
+          <div className="absolute bottom-full w-full">
+            <EmojiPicker />
+          </div>
+      }
     </div>
   );
 }
