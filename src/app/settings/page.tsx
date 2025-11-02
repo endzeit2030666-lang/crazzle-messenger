@@ -76,7 +76,7 @@ export default function SettingsPage() {
               </div>
               <span className="flex-1 text-left font-medium">Blockierte Kontakte</span>
               <div className="flex items-center">
-                  <span className="text-muted-foreground mr-2">3</span>
+                  <span className="text-white mr-2">3</span>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
           </button>
