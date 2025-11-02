@@ -167,13 +167,13 @@ export default function StatusPage() {
               <SheetTitle className="text-center text-primary">Status erstellen</SheetTitle>
             </SheetHeader>
             <div className="grid gap-4 py-4">
-              <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
-                <Type className="w-6 h-6 mr-4" />
-                <span className="text-lg">Text-Status</span>
-              </Button>
               <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
                 <Camera className="w-6 h-6 mr-4" />
                 <span className="text-lg">Foto oder Video</span>
+              </Button>
+              <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
+                <Type className="w-6 h-6 mr-4" />
+                <span className="text-lg">Text-Status</span>
               </Button>
               <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={handleFileUpload}>
                 <FileImage className="w-6 h-6 mr-4" />
@@ -218,7 +218,7 @@ export default function StatusPage() {
                         if (!user) return null;
                         return (
                             <div key={status.userId} className="flex items-center gap-4 p-2 rounded-lg cursor-pointer hover:bg-muted" onClick={() => handleViewStatus(status)}>
-                                <div className="relative p-0.5 border-2 border-muted-foreground rounded-full">
+                                <div className="relative p-0.5 border-2 border-border rounded-full">
                                      <Avatar className="w-12 h-12">
                                         <AvatarImage src={user.avatar} alt={user.name} />
                                         <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
