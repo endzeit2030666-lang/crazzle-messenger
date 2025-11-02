@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { EMOJI_CATEGORIES } from '@/data/emojis';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -15,49 +15,47 @@ interface EmojiPickerProps {
 }
 
 export function EmojiPicker({ onEmojiSelect, onClose, className }: EmojiPickerProps) {
-  const [search, setSearch] = useState('');
   const [recentlyUsed, setRecentlyUsed] = useState<string[]>([]);
-  
+  const [activeCategory, setActiveCategory] = useState('smileys');
+
+  useEffect(() => {
+    const storedRecent = localStorage.getItem('recentlyUsedEmojis');
+    if (storedRecent) {
+      const parsedRecent = JSON.parse(storedRecent);
+      setRecentlyUsed(parsedRecent);
+      if (parsedRecent.length > 0) {
+        setActiveCategory('recent');
+      }
+    }
+  }, []);
+
   const allCategories = [
-    { id: 'recent', name: 'Zuletzt verwendet', icon: <Clock className="w-5 h-5" />, emojis: recentlyUsed },
+    ...(recentlyUsed.length > 0 ? [{ id: 'recent', name: 'Zuletzt verwendet', icon: <Clock className="w-5 h-5" />, emojis: recentlyUsed }] : []),
     ...EMOJI_CATEGORIES
   ];
 
-  const [activeCategory, setActiveCategory] = useState(allCategories[0].id);
-
   const handleSelect = (emoji: string) => {
     onEmojiSelect(emoji);
-    // Add to recently used, ensuring no duplicates and maintaining order
-    const newRecent = [emoji, ...recentlyUsed.filter((r) => r !== emoji)].slice(0, 24);
+    const newRecent = [emoji, ...recentlyUsed.filter((r) => r !== emoji)].slice(0, 48);
     setRecentlyUsed(newRecent);
+    localStorage.setItem('recentlyUsedEmojis', JSON.stringify(newRecent));
   };
   
   const activeEmojis = allCategories.find((c) => c.id === activeCategory)?.emojis || [];
-  const filteredEmojis = search 
-    ? EMOJI_CATEGORIES.flatMap(c => c.emojis).filter(e => e.toLowerCase().includes(search.toLowerCase())) 
-    : activeEmojis;
-
 
   return (
     <div className={cn("h-[45vh] bg-muted/80 backdrop-blur-sm border-t border-border rounded-t-lg flex flex-col", className)}>
       <div className="flex items-center justify-between p-2 border-b border-border">
         <div className="flex items-center gap-2 overflow-x-auto">
-          {allCategories.map((category) => {
-            if (category.id === 'recent' && recentlyUsed.length === 0) {
-              return null;
-            }
-            return (
+          {allCategories.map((category) => (
               <TooltipProvider key={category.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant={activeCategory === category.id && !search ? 'secondary' : 'ghost'}
+                      variant={activeCategory === category.id ? 'secondary' : 'ghost'}
                       size="icon"
                       className="h-8 w-8 flex-shrink-0"
-                      onClick={() => {
-                          setSearch('');
-                          setActiveCategory(category.id);
-                      }}
+                      onClick={() => setActiveCategory(category.id)}
                     >
                       {category.icon}
                     </Button>
@@ -68,23 +66,14 @@ export function EmojiPicker({ onEmojiSelect, onClose, className }: EmojiPickerPr
                 </Tooltip>
               </TooltipProvider>
             )
-          })}
+          )}
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={onClose}>
           <X className="h-5 w-5" />
         </Button>
       </div>
-      <div className="p-2">
-        <input
-          type="text"
-          placeholder="Emoji suchen..."
-          className="w-full bg-background/50 border border-border rounded-md px-3 py-1.5 text-sm"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
       <div className="flex-1 overflow-y-auto p-2 grid grid-cols-8 gap-1">
-        {filteredEmojis.map((emoji, index) => (
+        {activeEmojis.map((emoji, index) => (
           <button
             key={`${emoji}-${index}`}
             onClick={() => handleSelect(emoji)}
