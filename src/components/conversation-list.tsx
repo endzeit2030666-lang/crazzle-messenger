@@ -92,11 +92,11 @@ export default function ConversationList({
               <AvatarImage asChild>
                 <Image src={avatar} alt={name} width={40} height={40} data-ai-hint="person portrait" />
               </AvatarImage>
-              <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className={cn(selectedConversationId === convo.id ? "text-primary-foreground" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold truncate">{name}</h3>
+                <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{name}</h3>
                 <div className="flex items-center gap-2">
                     {convo.isPinned && <Pin className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
                     {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}

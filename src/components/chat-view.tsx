@@ -128,10 +128,10 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
           <AvatarImage asChild>
              <Image src={headerDetails.avatar} alt={headerDetails.name} width={40} height={40} data-ai-hint="person portrait" />
           </AvatarImage>
-          <AvatarFallback>{headerDetails.name.charAt(0)}</AvatarFallback>
+          <AvatarFallback className="text-primary">{headerDetails.name.charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <h2 className="font-headline text-lg font-semibold">{headerDetails.name}</h2>
+          <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
            <div className="flex items-center text-sm text-muted-foreground">
              {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-primary' : onlineStatusColors[contact.onlineStatus])} /> {contact.onlineStatus}</>}
              {group && <p>{group.participants.length} members</p>}
