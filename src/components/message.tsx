@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from 'react';
+import { cn } from "@/lib/utils";
 import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile } from "lucide-react";
 import type { Message as MessageType, User } from "@/lib/types";
 import { currentUser } from "@/lib/data";
-import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,

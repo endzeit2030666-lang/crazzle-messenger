@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, PlusCircle, Pin, BellOff, Trash2, Archive, PinOff, CameraIcon, Bell } from "lucide-react";
+import { Search, PlusCircle, Pin, BellOff, Trash2, Archive, PinOff, CameraIcon, Bell, MoreVertical } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import { Input } from "@/components/ui/input";
@@ -77,28 +77,21 @@ export default function ConversationList({
     const lastMessageSender = convo.type === 'group' && lastMessage ? convo.participants.find(p => p.id === lastMessage.senderId)?.name.split(' ')[0] : (lastMessage?.senderId === currentUser.id ? 'You' : undefined);
 
     return (
-      <DropdownMenu>
+      <div className="relative">
         <div
           onClick={() => onConversationSelect(convo.id)}
           className={cn(
-            "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer relative",
+            "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer",
             selectedConversationId === convo.id
               ? "bg-primary text-primary-foreground"
               : "hover:bg-muted"
           )}
         >
-          <DropdownMenuTrigger
-            asChild
-            onClick={(e) => e.stopPropagation()} // Prevent chat selection when opening menu
-            onContextMenu={(e) => e.preventDefault()}
-          >
-            <div className="absolute inset-0 z-0" />
-          </DropdownMenuTrigger>
           <Avatar className="w-10 h-10 mr-3">
             <AvatarImage asChild>
               <Image src={avatar} alt={name} width={40} height={40} data-ai-hint="person portrait" />
             </AvatarImage>
-            <AvatarFallback className={cn(selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
+            <AvatarFallback className={cn("text-primary", selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
             <div className="flex items-center justify-between">
@@ -115,25 +108,32 @@ export default function ConversationList({
             </p>
           </div>
         </div>
-        <DropdownMenuContent className="w-64" side="top" align="start">
-          <DropdownMenuItem onClick={() => onPinToggle(convo.id)}>
-            {convo.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-            <span>{convo.isPinned ? 'Unpin' : 'Pin'} Chat</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onMuteToggle(convo.id)}>
-             {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-            <span>{convo.isMuted ? 'Unmute' : 'Mute'}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Archive className="mr-2 h-4 w-4" />
-            <span>Archive</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-destructive focus:text-destructive">
-            <Trash2 className="mr-2 h-4 w-4" />
-            <span>Delete</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 z-10">
+                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-64">
+              <DropdownMenuItem onClick={() => onPinToggle(convo.id)}>
+                {convo.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                <span>{convo.isPinned ? 'Unpin' : 'Pin'} Chat</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onMuteToggle(convo.id)}>
+                 {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                <span>{convo.isMuted ? 'Unmute' : 'Mute'}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Archive className="mr-2 h-4 w-4" />
+                <span>Archive</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive focus:text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Delete</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     );
   };
 

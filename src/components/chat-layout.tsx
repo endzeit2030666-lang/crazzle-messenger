@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Conversation, User, Message, Group } from "@/lib/types";
 import { conversations as initialConversations, currentUser } from "@/lib/data";
 import ConversationList from "@/components/conversation-list";
@@ -130,7 +130,7 @@ export default function ChatLayout() {
       <div
         className={cn(
           "w-full flex-col md:flex",
-          selectedConversationId ? "hidden" : "flex"
+          selectedConversationId && "hidden"
         )}
       >
         <ConversationList
@@ -144,7 +144,7 @@ export default function ChatLayout() {
       <div
         className={cn(
           "flex-1 flex-col",
-          selectedConversationId ? "flex" : "hidden md:flex"
+          !selectedConversationId ? "hidden md:flex" : "flex"
         )}
       >
         {selectedConversation ? (
