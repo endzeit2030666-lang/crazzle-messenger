@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Lock, Camera } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { currentUser } from "@/lib/data";
@@ -23,6 +24,7 @@ export default function ConversationList({
   onConversationSelect,
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
 
   const filteredConversations = useMemo(() => {
     return conversations.filter(convo => {
@@ -40,21 +42,12 @@ export default function ConversationList({
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/status')}>
                             <Camera className="w-5 h-5 text-accent" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <div className="p-2 max-w-xs">
-                            <h3 className="font-bold mb-1">Status Updates</h3>
-                            <p className="text-sm text-muted-foreground mb-2">Share photos, videos, text, and links that disappear after 24 hours.</p>
-                            <h4 className="font-semibold text-xs mb-1">Privacy Settings:</h4>
-                            <ul className="list-disc list-inside text-xs text-muted-foreground">
-                                <li>My Contacts</li>
-                                <li>My Contacts except...</li>
-                                <li>Only share with...</li>
-                            </ul>
-                        </div>
+                        <p>Status Updates</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useTransition, useRef } from "react";
-import { Send, Clock, AlertTriangle, Mic, Plus, FileText, ImageIcon, Video, Music, FileArchive, FileCode, FileQuestion } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Send, Clock, AlertTriangle, Mic, Plus, FileText, ImageIcon, Video, Music, FileArchive, FileCode, Camera as CameraIcon, Video as VideoIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,6 +24,8 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const router = useRouter();
+
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -81,13 +84,13 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     });
   };
   
-  const AttachmentButton = ({ icon: Icon, label, formats }: { icon: React.ElementType, label: string, formats: string }) => (
-    <Button variant="ghost" className="w-full justify-start h-auto py-3" onClick={() => handleFeatureNotImplemented(label)}>
+  const AttachmentButton = ({ icon: Icon, label, formats, action }: { icon: React.ElementType, label: string, formats?: string, action?: () => void }) => (
+    <Button variant="ghost" className="w-full justify-start h-auto py-3" onClick={action ? action : () => handleFeatureNotImplemented(label)}>
       <div className="flex items-center gap-4">
         <Icon className="h-6 w-6 text-primary" />
         <div className="text-left">
           <p className="font-semibold">{label}</p>
-          <p className="text-xs text-muted-foreground">{formats}</p>
+          {formats && <p className="text-xs text-muted-foreground">{formats}</p>}
         </div>
       </div>
     </Button>
@@ -112,6 +115,9 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
           </PopoverTrigger>
           <PopoverContent className="w-80 p-2">
             <div className="grid grid-cols-1 gap-1">
+                <AttachmentButton icon={CameraIcon} label="Camera" action={() => router.push('/status/camera')} />
+                <AttachmentButton icon={VideoIcon} label="Video" action={() => router.push('/status/camera')} />
+                <hr className="my-2 border-border"/>
                <AttachmentButton icon={FileText} label="Document" formats=".pdf, .doc, .xls, .ppt, .txt..." />
                <AttachmentButton icon={ImageIcon} label="Image" formats=".jpg, .png, .gif, .webp" />
                <AttachmentButton icon={Video} label="Video" formats=".mp4, .mkv, .avi, .mov..." />
