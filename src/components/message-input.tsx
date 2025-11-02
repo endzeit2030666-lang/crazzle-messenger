@@ -312,7 +312,7 @@ export default function MessageInput({
             <Button
               type="submit"
               size="icon"
-              disabled={!text.trim() || isPending}
+              disabled={!text.trim()}
               className="shrink-0"
             >
               <Send className="h-5 w-5" />
@@ -371,3 +371,5 @@ export default function MessageInput({
     </div>
   );
 }
+
+    
