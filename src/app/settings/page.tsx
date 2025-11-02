@@ -1,12 +1,14 @@
 
 'use client';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ChevronRight,
   Shield,
   Bell,
   BellOff,
+  UserX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -22,7 +24,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
-import { useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
 
 
@@ -39,8 +40,6 @@ const SettingsToggleItem = ({ icon, label, checked, onCheckedChange }: { icon: R
 
 export default function SettingsPage() {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [readReceipts, setReadReceipts] = useState(true);
@@ -48,36 +47,40 @@ export default function SettingsPage() {
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   
   const [blockedContacts, setBlockedContacts] = useState<User[]>([]);
-  const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
 
-
+  // This effect is not ideal, but for now we pass state via search params
   useEffect(() => {
-    const userParam = searchParams.get('users');
-    const blockedParam = searchParams.get('blocked');
-
-    if (userParam) {
-      setAllUsers(JSON.parse(userParam));
+    // A real app would use a proper state management solution (Context, Zustand, etc.)
+    const params = new URLSearchParams(window.location.search);
+    const usersParam = params.get('allUsers');
+    const blockedParam = params.get('blockedUsers');
+    if (usersParam) {
+      setAllUsers(JSON.parse(usersParam));
     }
     if (blockedParam) {
-      const blockedIds = JSON.parse(blockedParam);
-      setBlockedUserIds(blockedIds);
+      setBlockedUsers(new Set(JSON.parse(blockedParam)));
     }
-  }, [searchParams]);
+  }, []);
 
-   useEffect(() => {
-    const blocked = allUsers.filter(user => blockedUserIds.includes(user.id));
+  useEffect(() => {
+    const blocked = allUsers.filter(user => blockedUsers.has(user.id));
     setBlockedContacts(blocked);
-  }, [blockedUserIds, allUsers]);
+  }, [blockedUsers, allUsers]);
 
   const unblockContact = (contactId: string) => {
-    const newBlockedIds = blockedUserIds.filter(id => id !== contactId);
-
-    const newParams = new URLSearchParams(searchParams.toString());
-    newParams.set('blocked', JSON.stringify(newBlockedIds));
+    const newBlocked = new Set(blockedUsers);
+    newBlocked.delete(contactId);
+    setBlockedUsers(newBlocked);
     
-    // Using router.replace to avoid adding to history
-    router.replace(`${pathname}?${newParams.toString()}`);
+    // This is a workaround to "sync" state back to the main page.
+    // Again, a proper state management solution would be better.
+    const newParams = new URLSearchParams();
+    newParams.set('allUsers', JSON.stringify(allUsers));
+    newParams.set('blockedUsers', JSON.stringify(Array.from(newBlocked)));
+    
+    router.replace(`/?${newParams.toString()}`, );
     
     const contact = allUsers.find(u => u.id === contactId);
     if(contact) {
@@ -107,16 +110,9 @@ export default function SettingsPage() {
             onCheckedChange={setReadReceipts}
           />
           <div className="border-t border-border mx-4"></div>
-           <SettingsToggleItem 
-            icon={notificationsMuted ? BellOff : Bell} 
-            label="Benachrichtigungen stummschalten"
-            checked={notificationsMuted}
-            onCheckedChange={setNotificationsMuted}
-          />
-           <div className="border-t border-border mx-4"></div>
            <button onClick={() => setShowBlockDialog(true)} className="w-full flex items-center p-4 rounded-lg hover:bg-muted transition-colors">
               <div className="p-2 bg-muted rounded-full mr-4">
-                <Shield className="w-5 h-5 text-primary" />
+                <UserX className="w-5 h-5 text-primary" />
               </div>
               <span className="flex-1 text-left font-medium">Blockierte Kontakte</span>
               <div className="flex items-center">
@@ -124,6 +120,13 @@ export default function SettingsPage() {
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
           </button>
+          <div className="border-t border-border mx-4"></div>
+           <SettingsToggleItem 
+            icon={notificationsMuted ? BellOff : Bell} 
+            label="Benachrichtigungen stummschalten"
+            checked={notificationsMuted}
+            onCheckedChange={setNotificationsMuted}
+          />
         </div>
         
       </main>
@@ -150,6 +153,9 @@ export default function SettingsPage() {
                         </Button>
                     </div>
                 ))}
+                {blockedContacts.length === 0 && (
+                    <p className="text-center text-muted-foreground">Keine Kontakte blockiert.</p>
+                )}
             </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Schließen</AlertDialogCancel>
