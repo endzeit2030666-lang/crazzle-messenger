@@ -49,8 +49,6 @@ export default function SettingsPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
 
-  // In a real app, this state would be managed globally (e.g., via Context or Zustand)
-  // For this demo, we'll use sessionStorage to persist state across page navigation
   useEffect(() => {
     try {
       const usersJson = sessionStorage.getItem('allUsers');
@@ -58,24 +56,30 @@ export default function SettingsPage() {
 
       if (usersJson) {
         setAllUsers(JSON.parse(usersJson));
+      } else {
+        // Handle case where users are not in session storage, maybe redirect or show error
+        toast({variant: "destructive", title: "Fehler", description: "Benutzerdaten nicht gefunden."});
+        router.push('/');
+        return;
       }
       if (blockedJson) {
         setBlockedUserIds(new Set(JSON.parse(blockedJson)));
       }
     } catch (error) {
         console.error("Failed to parse data from sessionStorage", error);
-        // Handle cases where sessionStorage is not available or data is corrupted
+        toast({variant: "destructive", title: "Fehler beim Laden der Daten"});
         router.push('/');
     }
-  }, [router]);
+  }, [router, toast]);
 
   const blockedContacts = allUsers.filter(user => blockedUserIds.has(user.id));
 
   const unblockContact = (contactId: string) => {
     const newBlockedIds = new Set(blockedUserIds);
     newBlockedIds.delete(contactId);
-    setBlockedUserIds(newBlockedIds);
+    setBlockedUserIds(newBlockedIds); // Update local state immediately for UI responsiveness
     
+    // Persist the change
     sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlockedIds)));
     
     const contact = allUsers.find(u => u.id === contactId);
@@ -87,11 +91,15 @@ export default function SettingsPage() {
     }
   }
 
+  const handleGoBack = () => {
+    // Force a reload on the previous page to reflect state changes
+    window.location.assign('/');
+  }
 
   return (
     <div className="w-full h-screen bg-background text-foreground flex flex-col">
        <header className="flex items-center p-4 border-b border-border shadow-sm z-10 sticky top-0 bg-background">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+        <Button variant="ghost" size="icon" onClick={handleGoBack}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="font-headline text-xl font-bold ml-4">Einstellungen</h1>

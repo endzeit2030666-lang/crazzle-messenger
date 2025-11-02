@@ -148,6 +148,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
     setBlockedUsers(prev => {
       const newBlocked = new Set(prev);
       newBlocked.add(contactId);
+      sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
       return newBlocked;
     });
      toast({
@@ -160,6 +161,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
     setBlockedUsers(prev => {
         const newBlocked = new Set(prev);
         newBlocked.delete(contactId);
+        sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
         return newBlocked;
     });
     toast({
@@ -173,8 +175,6 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   };
   
   const navigateToSettings = () => {
-    // A real app would use a global state manager (Context, Redux, Zustand)
-    // to share state between pages. For this demo, we'll pass state via sessionStorage.
     sessionStorage.setItem('allUsers', JSON.stringify(allUsers));
     sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(blockedUsers)));
     router.push('/settings');
