@@ -494,7 +494,9 @@ export default function MessageInput({
                       variant="ghost"
                       size="icon"
                       type="button"
-                      className={cn("shrink-0", selfDestructDuration && "text-primary bg-primary/20")}
+                      className={cn("shrink-0", 
+                        selfDestructDuration ? "text-destructive bg-destructive/20" : "text-primary"
+                      )}
                       disabled={disabled}
                     >
                       <Clock className="h-5 w-5" />
