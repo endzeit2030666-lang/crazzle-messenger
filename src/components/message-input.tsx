@@ -315,7 +315,7 @@ export default function MessageInput({
               <p className="text-muted-foreground truncate max-w-xs">{editingMessage.content}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onStopEditing} className="h-7 w-7">
+          <Button variant="ghost" size="icon" onClick={onStopEditing} className="h-7 w-7 opacity-100">
             <X className="h-4 h-4" />
           </Button>
         </div>
@@ -329,7 +329,7 @@ export default function MessageInput({
               <p className="text-muted-foreground truncate max-w-xs">{quotedMessage.content}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClearQuote} className="h-7 w-7">
+          <Button variant="ghost" size="icon" onClick={onClearQuote} className="h-7 w-7 opacity-100">
             <X className="h-4 h-4" />
           </Button>
         </div>
@@ -495,7 +495,7 @@ export default function MessageInput({
                       size="icon"
                       type="button"
                       className={cn("shrink-0", 
-                        selfDestructDuration ? "text-destructive bg-destructive/20" : "text-primary"
+                        selfDestructDuration ? "text-destructive" : "text-primary"
                       )}
                       disabled={disabled}
                     >
@@ -505,7 +505,7 @@ export default function MessageInput({
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-2 mb-2 bg-background text-foreground">
                     <div className="grid gap-1">
-                        <p className="font-medium text-sm px-2 py-1.5">Nachricht löschen nach...</p>
+                        <p className="font-medium text-sm px-2 py-1.5 text-black dark:text-white">Nachricht löschen nach...</p>
                         {selfDestructOptions.map(option => (
                            <Button
                             key={option.label}
