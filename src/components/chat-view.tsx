@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X } from "lucide-react";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle } from "lucide-react";
 import type { Conversation, User, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -43,9 +43,23 @@ type ChatViewProps = {
   onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
   onReact: (messageId: string, emoji: string) => void;
   onBack: () => void;
+  isBlocked: boolean;
+  onBlockContact: (contactId: string) => void;
+  onUnblockContact: (contactId: string) => void;
 };
 
-export default function ChatView({ conversation, contact, onSendMessage, onEditMessage, onDeleteMessage, onReact, onBack }: ChatViewProps) {
+export default function ChatView({ 
+    conversation, 
+    contact, 
+    onSendMessage, 
+    onEditMessage, 
+    onDeleteMessage, 
+    onReact, 
+    onBack,
+    isBlocked,
+    onBlockContact,
+    onUnblockContact,
+}: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
@@ -61,6 +75,14 @@ export default function ChatView({ conversation, contact, onSendMessage, onEditM
   }, [conversation.messages]);
   
   const handleCall = (type: 'audio' | 'video') => {
+    if (isBlocked) {
+        toast({
+            variant: "destructive",
+            title: "Kontakt blockiert",
+            description: "Du kannst einen blockierten Kontakt nicht anrufen.",
+        });
+        return;
+    }
     toast({
         title: `${type === 'audio' ? 'Sprachanruf' : 'Videoanruf'} wird gestartet...`,
         description: "Diese Funktion dient zu Demonstrationszwecken."
@@ -68,11 +90,16 @@ export default function ChatView({ conversation, contact, onSendMessage, onEditM
   }
 
   const handleBlockContact = () => {
+    if (contact) {
+      onBlockContact(contact.id);
+    }
     setShowBlockDialog(false);
-    toast({
-      title: `${contact?.name || 'Kontakt'} wurde blockiert.`,
-      description: `Du wirst keine Nachrichten oder Anrufe mehr von diesem Kontakt erhalten.`
-    })
+  }
+
+  const handleUnblockContact = () => {
+    if (contact) {
+      onUnblockContact(contact.id);
+    }
   }
   
   const handleQuote = (message: MessageType) => {
@@ -174,13 +201,20 @@ export default function ChatView({ conversation, contact, onSendMessage, onEditM
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowBlockDialog(true)}>
-                    <X className="mr-2 h-4 w-4" />
+                    <XCircle className="mr-2 h-4 w-4" />
                     <span>Kontakt blockieren</span>
                   </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
         </div>
       </header>
+
+      {isBlocked && (
+         <div className="p-4 bg-destructive/10 text-center text-sm text-destructive-foreground">
+            <p>Dieser Kontakt ist blockiert.</p>
+            <Button variant="link" className="text-destructive-foreground h-auto p-0" onClick={handleUnblockContact}>Blockierung aufheben</Button>
+        </div>
+      )}
 
       <div ref={scrollAreaRef} className="flex-1 p-6 overflow-y-auto space-y-6">
         {conversation.messages.map((message) => (
@@ -204,6 +238,7 @@ export default function ChatView({ conversation, contact, onSendMessage, onEditM
           isEditing={!!editingMessage}
           editingMessage={editingMessage}
           onStopEditing={() => setEditingMessage(null)}
+          disabled={isBlocked}
         />
       </footer>
 

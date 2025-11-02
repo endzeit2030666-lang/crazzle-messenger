@@ -37,9 +37,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { currentUser } from '@/lib/data';
 import type { Message } from '@/lib/types';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { EmojiPicker } from './emoji-picker';
 
@@ -50,6 +48,7 @@ type MessageInputProps = {
   isEditing: boolean;
   editingMessage: Message | null;
   onStopEditing: () => void;
+  disabled?: boolean;
 };
 
 export default function MessageInput({
@@ -59,6 +58,7 @@ export default function MessageInput({
   isEditing,
   editingMessage,
   onStopEditing,
+  disabled = false,
 }: MessageInputProps) {
   const [text, setText] = useState('');
   const [debouncedText, setDebouncedText] = useState('');
@@ -238,6 +238,7 @@ export default function MessageInput({
             type="button"
             onClick={() => router.push('/status/camera')}
             className="shrink-0"
+            disabled={disabled}
           >
             <CameraIcon className="h-5 w-5" />
             <span className="sr-only">Kamera öffnen</span>
@@ -249,6 +250,7 @@ export default function MessageInput({
                 size="icon"
                 type="button"
                 className="shrink-0"
+                disabled={disabled}
               >
                 <Plus className="h-5 w-5" />
                 <span className="sr-only">Datei anhängen</span>
@@ -295,6 +297,7 @@ export default function MessageInput({
             type="button"
             onClick={() => setEmojiPickerOpen(!isEmojiPickerOpen)}
             className="shrink-0"
+            disabled={disabled}
           >
             <Smile className="h-5 w-5" />
             <span className="sr-only">Emoji-Picker öffnen</span>
@@ -305,9 +308,10 @@ export default function MessageInput({
             value={text}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="Verschlüsselte Nachricht tippen..."
+            placeholder={disabled ? "Kontakt blockiert" : "Verschlüsselte Nachricht tippen..."}
             className="flex-1 resize-none bg-muted border-0 focus-visible:ring-0 max-h-40 overflow-y-auto"
             rows={1}
+            disabled={disabled}
           />
           
 
@@ -315,7 +319,7 @@ export default function MessageInput({
             <Button
               type="submit"
               size="icon"
-              disabled={!text.trim()}
+              disabled={!text.trim() || disabled}
               className="shrink-0"
             >
               <Send className="h-5 w-5" />
@@ -331,6 +335,7 @@ export default function MessageInput({
                     type="button"
                     onClick={() => handleFeatureNotImplemented('Sprachnachrichten')}
                     className="shrink-0"
+                    disabled={disabled}
                   >
                     <Mic className="h-5 w-5 text-primary" />
                     <span className="sr-only">Sprachnachricht aufnehmen</span>
@@ -354,6 +359,7 @@ export default function MessageInput({
                     handleFeatureNotImplemented('Selbstzerstörende Nachrichten')
                   }
                   className="shrink-0"
+                  disabled={disabled}
                 >
                   <Clock className="h-5 w-5" />
                   <span className="sr-only">Selbstzerstörende Nachricht</span>

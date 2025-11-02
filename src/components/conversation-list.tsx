@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Pin, BellOff, Trash2, Archive, PinOff, CameraIcon, Bell, MoreVertical } from "lucide-react";
+import { Search, Pin, BellOff, Trash2, Archive, PinOff, CameraIcon, Bell, MoreVertical, XCircle } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 type ConversationListProps = {
@@ -26,6 +27,8 @@ type ConversationListProps = {
   onConversationSelect: (id: string) => void;
   onPinToggle: (id: string) => void;
   onMuteToggle: (id: string) => void;
+  onBlockContact: (contactId: string) => void;
+  blockedUsers: Set<string>;
 };
 
 export default function ConversationList({
@@ -34,6 +37,8 @@ export default function ConversationList({
   onConversationSelect,
   onPinToggle,
   onMuteToggle,
+  onBlockContact,
+  blockedUsers
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
@@ -55,6 +60,7 @@ export default function ConversationList({
 
     if (!contact) return null;
     
+    const isBlocked = blockedUsers.has(contact.id);
     const lastMessage = convo.messages[convo.messages.length - 1];
     const lastMessageSender = (lastMessage?.senderId === currentUser.id ? 'Du' : undefined);
 
@@ -66,7 +72,8 @@ export default function ConversationList({
             "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer",
             selectedConversationId === convo.id
               ? "bg-primary text-primary-foreground"
-              : "hover:bg-muted"
+              : "hover:bg-muted",
+             isBlocked && "opacity-50 pointer-events-none"
           )}
         >
           <Avatar className="w-10 h-10 mr-3">
@@ -109,6 +116,11 @@ export default function ConversationList({
                 <DropdownMenuItem onClick={() => toast({ title: 'Archivieren noch nicht implementiert' })}>
                   <Archive className="mr-2 h-4 w-4" />
                   <span>Archivieren</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onBlockContact(contact.id)}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  <span>Kontakt blockieren</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast({ title: 'Löschen noch nicht implementiert' })}>
                   <Trash2 className="mr-2 h-4 w-4" />

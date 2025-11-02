@@ -6,15 +6,28 @@ import { conversations as initialConversations, currentUser } from "@/lib/data";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ChatLayout() {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set(['user2', 'user3']));
+  const { toast } = useToast();
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+  const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.id && blockedUsers.has(p.id));
   
   const handleSendMessage = (content: string, quotedMessage?: Message['quotedMessage']) => {
     if (!selectedConversationId) return;
+
+     if (isContactBlocked) {
+      toast({
+        variant: "destructive",
+        title: "Kontakt blockiert",
+        description: "Du kannst keine Nachrichten an einen blockierten Kontakt senden.",
+      });
+      return;
+    }
 
     const newMessage: Message = {
       id: `msg${Date.now()}`,
@@ -29,7 +42,7 @@ export default function ChatLayout() {
     setConversations(prev =>
       prev.map(convo =>
         convo.id === selectedConversationId
-          ? { ...convo, messages: [...convo.messages, newMessage], type: 'private' }
+          ? { ...convo, messages: [...convo.messages, newMessage] }
           : convo
       )
     );
@@ -120,6 +133,30 @@ export default function ChatLayout() {
     );
   }
 
+  const blockContact = (contactId: string) => {
+    setBlockedUsers(prev => {
+      const newBlocked = new Set(prev);
+      newBlocked.add(contactId);
+      return newBlocked;
+    });
+     toast({
+      title: "Kontakt blockiert",
+      description: "Du wirst keine Nachrichten oder Anrufe mehr von diesem Kontakt erhalten.",
+    });
+  }
+
+  const unblockContact = (contactId: string) => {
+    setBlockedUsers(prev => {
+        const newBlocked = new Set(prev);
+        newBlocked.delete(contactId);
+        return newBlocked;
+    });
+    toast({
+        title: "Blockierung aufgehoben",
+        description: "Du kannst diesem Kontakt wieder Nachrichten senden.",
+    });
+  }
+
   const handleBack = () => {
     setSelectedConversationId(null);
   };
@@ -138,6 +175,8 @@ export default function ChatLayout() {
           onConversationSelect={setSelectedConversationId}
           onPinToggle={togglePinConversation}
           onMuteToggle={toggleMuteConversation}
+          onBlockContact={blockContact}
+          blockedUsers={blockedUsers}
         />
       </div>
       <div
@@ -156,6 +195,9 @@ export default function ChatLayout() {
             onDeleteMessage={handleDeleteMessage}
             onReact={handleReaction}
             onBack={handleBack}
+            isBlocked={isContactBlocked ?? false}
+            onBlockContact={blockContact}
+            onUnblockContact={unblockContact}
           />
         ) : (
           <div className="flex-1 items-center justify-center text-muted-foreground bg-muted/20 hidden md:flex">
