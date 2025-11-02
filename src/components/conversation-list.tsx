@@ -178,7 +178,7 @@ export default function ConversationList({
           <Input
             type="search"
             placeholder="Search contacts or groups..."
-            className="pl-9 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary"
+            className="pl-9 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary placeholder:text-foreground"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
