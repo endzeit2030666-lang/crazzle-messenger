@@ -133,7 +133,7 @@ export default function ChatView({ conversation, contact, group, onSendMessage, 
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold">{headerDetails.name}</h2>
            <div className="flex items-center text-sm text-muted-foreground">
-             {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", onlineStatusColors[contact.onlineStatus] === 'text-green-400' ? 'text-primary' : onlineStatusColors[contact.onlineStatus])} /> {contact.onlineStatus}</>}
+             {contact && <><Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-primary' : onlineStatusColors[contact.onlineStatus])} /> {contact.onlineStatus}</>}
              {group && <p>{group.participants.length} members</p>}
           </div>
         </div>
