@@ -91,10 +91,9 @@ export default function StatusPage() {
 
   const handleFileUpload = () => {
     setIsSheetOpen(false);
-    toast({
-        title: "Nicht implementiert",
-        description: "Das Hochladen aus der Galerie ist für Demozwecke nicht implementiert."
-    });
+    // Simulate picking a file by going to the camera page.
+    // In a real app, this would open a file picker.
+    router.push('/status/camera?from=gallery');
   }
 
 

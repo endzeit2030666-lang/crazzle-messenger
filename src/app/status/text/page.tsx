@@ -2,12 +2,15 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Send, Palette, Smile } from 'lucide-react';
+import { X, Send, Palette, Smile, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { EmojiPicker } from '@/components/emoji-picker';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const backgroundColors = [
   'bg-gradient-to-br from-purple-500 to-blue-500',
@@ -25,6 +28,9 @@ export default function TextStatusPage() {
   const [bgColor, setBgColor] = useState(backgroundColors[0]);
   const [isEmojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const [showDurationDialog, setShowDurationDialog] = useState(false);
+  const [statusDuration, setStatusDuration] = useState('48h');
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -35,9 +41,9 @@ export default function TextStatusPage() {
     const nextIndex = (currentIndex + 1) % backgroundColors.length;
     setBgColor(backgroundColors[nextIndex]);
   };
-
-  const handlePostStatus = () => {
-    if (!text.trim()) {
+  
+  const handleOpenDialog = () => {
+      if (!text.trim()) {
         toast({
             variant: "destructive",
             title: "Leerer Status",
@@ -45,9 +51,14 @@ export default function TextStatusPage() {
         });
         return;
     }
+    setShowDurationDialog(true);
+  }
+
+  const handlePostStatus = () => {
+    setShowDurationDialog(false);
     toast({
       title: 'Status gepostet!',
-      description: 'Dein Text-Status ist jetzt sichtbar.',
+      description: `Dein Text-Status ist jetzt für ${statusDuration === '48h' ? '48 Stunden' : 'immer'} sichtbar.`,
     });
     router.push('/status');
   };
@@ -103,7 +114,7 @@ export default function TextStatusPage() {
 
       <footer className="p-8">
         <Button
-          onClick={handlePostStatus}
+          onClick={handleOpenDialog}
           size="lg"
           className="w-full bg-black/30 hover:bg-black/50 backdrop-blur-sm"
         >
@@ -111,6 +122,28 @@ export default function TextStatusPage() {
           Posten
         </Button>
       </footer>
+      
+      <Dialog open={showDurationDialog} onOpenChange={setShowDurationDialog}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Status-Dauer</DialogTitle>
+                  <DialogDescription>Wähle, wie lange dein Status sichtbar sein soll.</DialogDescription>
+              </DialogHeader>
+              <RadioGroup defaultValue="48h" className="my-4 space-y-2" onValueChange={setStatusDuration}>
+                  <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="48h" id="r1" />
+                  <Label htmlFor="r1">⏰ Nach 48 Stunden automatisch löschen</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="forever" id="r2" />
+                  <Label htmlFor="r2">♾️ Für immer behalten (in deinem Profilarchiv)</Label>
+                  </div>
+              </RadioGroup>
+              <DialogFooter>
+                  <Button onClick={handlePostStatus} className="w-full bg-primary hover:bg-primary/90">Status posten</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }
