@@ -88,22 +88,16 @@ export default function LoginPage() {
     setIsSigningIn(true);
     
     try {
-      // Step 1: Check if a user with this phone number already exists
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
       if (!userSnapshot.empty) {
-        // User exists. "Log them in" by signing in anonymously to get a session, then route to main page.
-        // The useUser hook will pick up the auth state and existing user data.
-        await signInAnonymously(auth); // Create a session
+        await signInAnonymously(auth);
         router.push('/');
-
       } else {
-        // New user. Sign in anonymously to get a new UID.
         const cred = await signInAnonymously(auth);
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         
-        // Create their profile document in Firestore
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
         
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
@@ -119,22 +113,23 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
 
-        const newUserCreationData = {
-          ...newUser
-        };
-        
-        // Use setDoc to create the new user document.
-        await setDoc(newUserRef, newUserCreationData);
+        // This is a create operation, so we don't use merge: true
+        await setDoc(newUserRef, newUser);
         // The onAuthStateChanged listener in the provider will handle the redirect.
       }
-    } catch (error: any) {
-      console.error('Sign-in failed', error);
-      toast({
-          variant: "destructive",
-          title: "Anmeldung fehlgeschlagen",
-          description: "Es konnte kein Account erstellt oder gefunden werden. Bitte versuche es erneut.",
-      });
-      setIsSigningIn(false);
+    } catch (serverError: any) {
+        // Create the rich, contextual error for Firestore permission issues.
+        const permissionError = new FirestorePermissionError({
+          path: `users/${auth.currentUser?.uid || 'unknown_uid'}`, // Approximate path
+          operation: 'create',
+          requestResourceData: { phoneNumber: trimmedPhoneNumber }, // Include relevant data
+        });
+
+        // Emit the error with the global error emitter.
+        // DO NOT show a toast or console.error here for permission errors.
+        errorEmitter.emit('permission-error', permissionError);
+
+        setIsSigningIn(false);
     } 
   };
 
