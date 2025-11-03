@@ -240,9 +240,27 @@ export default function MessageInput({
     }
   };
 
-  const handleAttachmentClick = (type: 'image' | 'video') => {
+  const handleAttachmentClick = (type: 'image' | 'video' | 'audio' | 'document' | 'archive' | 'other') => {
     if (fileInputRef.current) {
-      fileInputRef.current.accept = `${type}/*`;
+        switch(type) {
+            case 'image':
+                fileInputRef.current.accept = `image/*`;
+                break;
+            case 'video':
+                fileInputRef.current.accept = `video/*`;
+                break;
+            case 'audio':
+                 fileInputRef.current.accept = `audio/*`;
+                 break;
+            case 'document':
+                fileInputRef.current.accept = `.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt`;
+                break;
+            case 'archive':
+                fileInputRef.current.accept = `.zip,.rar,.7z`;
+                break;
+            default:
+                fileInputRef.current.accept = `*/*`;
+        }
       fileInputRef.current.click();
     }
   };
@@ -582,5 +600,3 @@ export default function MessageInput({
     </div>
   );
 }
-
-    
