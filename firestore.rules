@@ -33,10 +33,10 @@ service cloud.firestore {
     // Users can only read/write conversations they are a part of
     match /conversations/{conversationId} {
       allow read: if isSignedIn() && request.auth.uid in resource.data.participantIds;
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
       // Allow updates only if user is a participant. For member changes, only admins can change participantIds
       allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds &&
-                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'typing', 'isMuted', 'archivedBy']) ||
+                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'typing', 'isMuted']) ||
                         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantIds']) && request.auth.uid in resource.data.admins));
       
       // MESSAGES subcollection

@@ -128,7 +128,7 @@ export default function ConversationList({
             {isGroup ? <Users className="w-5 h-5"/> : displayName?.charAt(0) || '?'}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 overflow-hidden pr-5">
+        <div className="flex-1 overflow-hidden">
           <div className="flex items-center justify-between">
             <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{displayName}</h3>
             <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
