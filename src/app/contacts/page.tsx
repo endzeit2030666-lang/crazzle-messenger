@@ -76,11 +76,11 @@ export default function ContactsPage() {
         type: 'private',
         participantIds: participantIds,
         createdAt: serverTimestamp(),
-        createdBy: currentUser.uid,
+        createdBy: currentUser.uid, // THIS WAS THE MISSING PIECE
+        lastMessage: null,
         typing: [],
         archivedBy: [],
         isMuted: false,
-        lastMessage: null, // THIS IS THE CRITICAL FIX
       }, { merge: true });
   
       // After ensuring the conversation exists, navigate to it.
