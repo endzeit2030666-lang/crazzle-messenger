@@ -253,9 +253,11 @@ export default function StatusPage() {
                     <Avatar className="w-14 h-14">
                         {myLastStory && (myLastStory.type === 'image' || myLastStory.type === 'video') ? (
                             <AvatarImage src={myLastStory.content} alt="Mein Status" className="object-cover" />
-                        ) : null}
+                        ) : (
+                            <AvatarImage src={currentUserData?.avatar} alt="Mein Status" className="object-cover" />
+                        )}
                         <AvatarFallback className={cn("text-primary", myLastStory && myLastStory.type === 'text' ? myLastStory.bgColor : 'bg-muted/20')}>
-                           {!myLastStory && <Plus className="w-6 h-6" />}
+                           {!myLastStory && (currentUserData?.name ? currentUserData.name.charAt(0) : <Plus className="w-6 h-6" />)}
                         </AvatarFallback>
                     </Avatar>
                 </div>

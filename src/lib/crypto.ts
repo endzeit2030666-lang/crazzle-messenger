@@ -141,5 +141,3 @@ export async function decryptMessage(
     return "🔓 Entschlüsselung fehlgeschlagen";
   }
 }
-
-    
