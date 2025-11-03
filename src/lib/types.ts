@@ -61,7 +61,6 @@ export type Conversation = {
   lastMessage?: Message;
   unreadCount?: number; // Added for unread messages badge
   isMuted?: boolean;
-  archivedBy?: string[];
   createdAt: Timestamp;
   typing?: string[];
   // Group-specific fields

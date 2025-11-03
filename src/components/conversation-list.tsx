@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Search, MoreVertical, Users, CameraIcon, BookUser, BellOff, FileArchive, FolderArchive, LogOut, Settings } from "lucide-react";
+import { Search, MoreVertical, Users, CameraIcon, BookUser, BellOff, LogOut, Settings } from "lucide-react";
 import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,7 +31,6 @@ type ConversationListProps = {
   onLogout: () => void;
   currentUser: User;
   allUsers: UserType[];
-  onArchive: (conversationId: string, archive: boolean) => void;
 };
 
 export default function ConversationList({
@@ -45,32 +44,24 @@ export default function ConversationList({
   onLogout,
   currentUser,
   allUsers,
-  onArchive,
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
 
   const conversations = useMemo(() => {
-    return initialConversations.map(convo => {
-      const unreadCount = convo.lastMessage?.senderId !== currentUser.uid && convo.lastMessage?.status !== 'read' ? 1 : 0;
-      return { ...convo, unreadCount: unreadCount > 0 ? (convo.unreadCount || 0) + 1 : convo.unreadCount };
-    });
-  }, [initialConversations, currentUser.uid]);
-
-
-  const { activeConversations, archivedConversations } = useMemo(() => {
-    const sorted = conversations
+    return initialConversations
+      .map(convo => {
+        const unreadCount = convo.lastMessage?.senderId !== currentUser.uid && convo.lastMessage?.status !== 'read' ? 1 : 0;
+        return { ...convo, unreadCount };
+      })
       .filter(convo => {
         if (!searchTerm) return true;
         const lowerCaseSearch = searchTerm.toLowerCase();
         
-        // For private chats, we check the participant's name
         if (convo.type === 'private') {
           const contact = convo.participants.find(p => p.id !== currentUser.uid);
           return contact?.name?.toLowerCase().includes(lowerCaseSearch);
         }
         
-        // For group chats, we check the conversation name
         return convo.name?.toLowerCase().includes(lowerCaseSearch);
       })
       .sort((a, b) => {
@@ -78,16 +69,7 @@ export default function ConversationList({
         const timeB = b.lastMessage?.date as any;
         return (timeB?.toMillis() || 0) - (timeA?.toMillis() || 0);
       });
-      
-    const active = sorted.filter(c => !c.archivedBy?.includes(currentUser.uid));
-    const archived = sorted.filter(c => c.archivedBy?.includes(currentUser.uid));
-      
-    return { activeConversations: active, archivedConversations: archived };
-  }, [conversations, searchTerm, currentUser.uid]);
-  
-  const handleConversationSelected = useCallback((conversationId: string) => {
-      onConversationSelect(conversationId);
-  }, [onConversationSelect]);
+  }, [initialConversations, currentUser.uid, searchTerm]);
 
 
   const ConversationItem = ({ convo }: { convo: Conversation }) => {
@@ -100,10 +82,6 @@ export default function ConversationList({
     const lastMessageSenderName = lastMessage?.senderId === currentUser.uid 
       ? 'Du' 
       : convo.participants.find(p => p.id === lastMessage?.senderId)?.name?.split(' ')[0];
-
-    const handleSelect = () => {
-      handleConversationSelected(convo.id);
-    }
     
     const displayName = isGroup ? convo.name : contact?.name;
     const displayAvatar = isGroup ? convo.avatar || `https://picsum.photos/seed/${convo.id}/100` : contact?.avatar;
@@ -133,57 +111,45 @@ export default function ConversationList({
 
 
     return (
-      <div className="relative group/item">
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <div
-                onClick={handleSelect}
-                className={cn(
-                    "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer",
-                    selectedConversationId === convo.id
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )}
-                >
-                <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage asChild>
-                    <Image src={displayAvatar!} alt={displayName!} width={40} height={40} data-ai-hint="person portrait" />
-                    </AvatarImage>
-                    <AvatarFallback className={cn("text-primary", selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>
-                    {isGroup ? <Users className="w-5 h-5"/> : displayName?.charAt(0) || '?'}
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 overflow-hidden pr-5">
-                    <div className="flex items-center justify-between">
-                    <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{displayName}</h3>
-                    <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
-                            <>
-                            {lastMessage && lastMessageSenderName && `${lastMessageSenderName}: `}
-                            {lastMessageDisplay}
-                            </>
-                        </p>
-                        <div className="flex items-center gap-2">
-                            {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
-                            {convo.unreadCount && convo.unreadCount > 0 && (
-                                <span className={cn("flex items-center justify-center text-xs font-bold rounded-full h-5 min-w-[1.25rem] px-1", selectedConversationId === convo.id ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground")}>
-                                    {convo.unreadCount}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => onArchive(convo.id, !convo.archivedBy?.includes(currentUser.uid))}>
-                   <FolderArchive className="mr-2 h-4 w-4" />
-                   <span>{convo.archivedBy?.includes(currentUser.uid) ? 'Archivierung aufheben' : 'Archivieren'}</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+      <div
+        onClick={() => onConversationSelect(convo.id)}
+        className={cn(
+          "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer",
+          selectedConversationId === convo.id
+          ? "bg-primary text-primary-foreground"
+          : "hover:bg-muted"
+        )}
+      >
+        <Avatar className="w-10 h-10 mr-3">
+          <AvatarImage asChild>
+            <Image src={displayAvatar!} alt={displayName!} width={40} height={40} data-ai-hint="person portrait" />
+          </AvatarImage>
+          <AvatarFallback className={cn("text-primary", selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>
+            {isGroup ? <Users className="w-5 h-5"/> : displayName?.charAt(0) || '?'}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 overflow-hidden pr-5">
+          <div className="flex items-center justify-between">
+            <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{displayName}</h3>
+            <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
+          </div>
+          <div className="flex items-center justify-between">
+              <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
+                  <>
+                  {lastMessage && lastMessageSenderName && `${lastMessageSenderName}: `}
+                  {lastMessageDisplay}
+                  </>
+              </p>
+              <div className="flex items-center gap-2">
+                  {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
+                  {convo.unreadCount && convo.unreadCount > 0 && (
+                      <span className={cn("flex items-center justify-center text-xs font-bold rounded-full h-5 min-w-[1.25rem] px-1", selectedConversationId === convo.id ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground")}>
+                          {convo.unreadCount}
+                      </span>
+                  )}
+              </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -258,26 +224,12 @@ export default function ConversationList({
       </div>
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2 space-y-1">
-            {archivedConversations.length > 0 && (
-                <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => setShowArchived(!showArchived)}>
-                    <FileArchive className="w-5 h-5 text-muted-foreground" />
-                    <span className="font-semibold text-primary">Archiviert</span>
-                    <span className="ml-auto text-xs font-bold bg-primary text-primary-foreground h-5 min-w-[1.25rem] px-1 rounded-full flex items-center justify-center">
-                        {archivedConversations.filter(c => (c.unreadCount || 0) > 0).length}
-                    </span>
-                </Button>
-            )}
-            
-            {showArchived ? (
-                 archivedConversations.map(convo => <ConversationItem key={convo.id} convo={convo} />)
+            {conversations.length > 0 ? (
+              conversations.map(convo => <ConversationItem key={convo.id} convo={convo} />)
             ) : (
-                activeConversations.length > 0 ? (
-                activeConversations.map(convo => <ConversationItem key={convo.id} convo={convo} />)
-              ) : (
-                 <div className="text-center text-muted-foreground p-8">
-                    <p>Keine aktiven Chats gefunden.</p>
-                </div>
-              )
+                <div className="text-center text-muted-foreground p-8">
+                  <p>Keine Chats gefunden.</p>
+              </div>
             )}
         </nav>
       </div>
