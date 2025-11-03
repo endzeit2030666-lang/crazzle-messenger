@@ -154,7 +154,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   }, [message.selfDestructDuration, message.senderId, message.readAt, message.id, onMessageRead]);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: NodeJS.Timeout | null = null;
     if (message.selfDestructDuration && message.readAt) {
       const destructTime = message.readAt + (message.selfDestructDuration * 1000);
       const remainingTime = destructTime - Date.now();
@@ -167,7 +167,9 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
         onDelete(message.id, false);
       }
     }
-    return () => clearTimeout(timer);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [message.selfDestructDuration, message.readAt, message.id, onDelete]);
 
 
@@ -215,7 +217,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
        <div className={cn("relative", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 transition-opacity opacity-0 group-hover:opacity-100">
+                <Button variant="ghost" size="icon" className="h-6 w-6">
                     <MoreHorizontal className="w-4 h-4" />
                 </Button>
             </DropdownMenuTrigger>

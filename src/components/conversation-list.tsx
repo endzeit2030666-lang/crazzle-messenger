@@ -110,7 +110,7 @@ export default function ConversationList({
             </p>
           </div>
         </div>
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity">
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 transition-opacity">
           <DropdownMenu>
               <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 z-10">
