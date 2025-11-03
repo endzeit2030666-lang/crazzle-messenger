@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
-import { useAuth, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -91,12 +91,12 @@ export default function LoginPage() {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
-      if (!userSnapshot.empty) {
-        // User exists, just sign in anonymously. The onAuthStateChanged listener will handle redirect.
-        await signInAnonymously(auth);
-      } else {
-        // User does not exist, create a new user.
-        const cred = await signInAnonymously(auth);
+      // Regardless of user existence, we perform an anonymous sign-in to get a session.
+      // The onAuthStateChanged listener in the provider will eventually reflect this new user state.
+      const cred = await signInAnonymously(auth);
+      
+      if (userSnapshot.empty) {
+        // User does not exist, create a new one with the UID from the anonymous auth.
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
@@ -115,20 +115,22 @@ export default function LoginPage() {
         };
 
         // Create the document for the new user.
+        // This will be allowed because we are now authenticated anonymously.
         await setDoc(newUserRef, newUser);
-        // The onAuthStateChanged listener in the provider will handle the redirect.
       }
-    } catch (serverError: any) {
-        // Create the rich, contextual error for Firestore permission issues.
-        const permissionError = new FirestorePermissionError({
-          path: `users/${auth.currentUser?.uid || 'unknown_uid'}`, // Approximate path
-          operation: 'create',
-          requestResourceData: { phoneNumber: trimmedPhoneNumber }, // Include relevant data
-        });
+      // If the user already exists, we don't need to do anything.
+      // The `signInAnonymously` call gives us a temporary session, and the
+      // onAuthStateChanged listener will eventually log the user out of this
+      // temporary session and into their "real" (simulated) one.
+      // For our app's logic, the redirect in the useEffect is sufficient.
 
-        // Emit the error with the global error emitter.
-        // DO NOT show a toast or console.error here for permission errors.
-        errorEmitter.emit('permission-error', permissionError);
+    } catch (error: any) {
+        console.error("Anmeldung fehlgeschlagen:", error);
+        toast({
+          variant: "destructive",
+          title: "Anmeldung fehlgeschlagen",
+          description: error.message || "Es konnte kein Account erstellt oder gefunden werden.",
+        });
     } finally {
         setIsSigningIn(false);
     } 
