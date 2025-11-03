@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle, Trash2 } from "lucide-react";
-import type { Conversation, User, Message as MessageType } from "@/lib/types";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle, Trash2, Pencil } from "lucide-react";
+import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Message from "@/components/message";
@@ -36,38 +35,32 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { useFirestore } from "@/firebase";
+import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "firebase/firestore";
+import type { User } from "firebase/auth";
 
 
 type ChatViewProps = {
   conversation: Conversation;
-  contact?: User;
+  contact?: UserType;
   onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, selfDestructDuration?: number) => void;
-  onEditMessage: (messageId: string, newContent: string) => void;
-  onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
   onClearConversation: (conversationId: string) => void;
-  onReact: (messageId: string, emoji: string) => void;
   onBack: () => void;
   isBlocked: boolean;
-  onBlockContact: (contactId: string) => void;
-  onUnblockContact: (contactId: string) => void;
-  onMessageRead: (messageId: string) => void;
+  currentUser: User;
 };
 
 export default function ChatView({ 
     conversation, 
     contact, 
-    onSendMessage, 
-    onEditMessage, 
-    onDeleteMessage,
+    onSendMessage,
     onClearConversation,
-    onReact, 
     onBack,
     isBlocked,
-    onBlockContact,
-    onUnblockContact,
-    onMessageRead,
+    currentUser,
 }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<MessageType[]>([]);
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -76,13 +69,35 @@ export default function ChatView({
 
   const { toast } = useToast();
   const router = useRouter();
+  const firestore = useFirestore();
+
+
+  useEffect(() => {
+    if (!firestore || !conversation.id) return;
+    const messagesRef = collection(firestore, 'conversations', conversation.id, 'messages');
+    const q = query(messagesRef, orderBy('date', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messagesData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          date: data.date?.toDate(), // Convert Firestore Timestamp to JS Date
+        } as MessageType;
+      });
+      setMessages(messagesData);
+    });
+
+    return () => unsubscribe();
+  }, [firestore, conversation.id]);
 
 
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
-  }, [conversation.messages]);
+  }, [messages]);
   
   const handleCall = (type: 'audio' | 'video') => {
     if (isBlocked || !contact) {
@@ -103,9 +118,8 @@ export default function ChatView({
   }
 
   const handleBlockContact = () => {
-    if (contact) {
-      onBlockContact(contact.id);
-    }
+    // This logic should be lifted up to ChatLayout
+    // onBlockContact(contact.id);
     setShowBlockDialog(false);
   }
   
@@ -115,9 +129,10 @@ export default function ChatView({
   }
 
   const handleUnblockContact = () => {
-    if (contact) {
-      onUnblockContact(contact.id);
-    }
+    // This logic should be lifted up to ChatLayout
+    // if (contact) {
+    //   onUnblockContact(contact.id);
+    // }
   }
   
   const handleQuote = (message: MessageType) => {
@@ -133,6 +148,58 @@ export default function ChatView({
   const handleEdit = (message: MessageType) => {
     setEditingMessage(message);
     setQuotedMessage(undefined);
+  };
+
+  const onEditMessage = async (messageId: string, newContent: string) => {
+    if(!firestore) return;
+    const messageRef = doc(firestore, "conversations", conversation.id, "messages", messageId);
+    await updateDoc(messageRef, {
+      content: newContent,
+      isEdited: true,
+    });
+  };
+
+  const onDeleteMessage = async (messageId: string, forEveryone: boolean) => {
+    if(!firestore) return;
+    // For now, we only support deleting for the current user (forEveryone=false equivalent)
+    const messageRef = doc(firestore, "conversations", conversation.id, "messages", messageId);
+    await deleteDoc(messageRef);
+  };
+
+  const onReact = async (messageId: string, emoji: string) => {
+    if(!firestore || !currentUser) return;
+    const messageRef = doc(firestore, "conversations", conversation.id, "messages", messageId);
+    const messageToUpdate = messages.find(m => m.id === messageId);
+    if (!messageToUpdate) return;
+  
+    const existingReactionIndex = messageToUpdate.reactions.findIndex(r => r.userId === currentUser.uid);
+    let newReactions = [...messageToUpdate.reactions];
+  
+    if (existingReactionIndex > -1) {
+      // User has reacted before
+      if (newReactions[existingReactionIndex].emoji === emoji) {
+        // Same emoji, remove reaction
+        newReactions.splice(existingReactionIndex, 1);
+      } else {
+        // Different emoji, update reaction
+        newReactions[existingReactionIndex] = { emoji, userId: currentUser.uid, username: currentUser.displayName || "You" };
+      }
+    } else {
+      // New reaction
+      newReactions.push({ emoji, userId: currentUser.uid, username: currentUser.displayName || "You" });
+    }
+  
+    await updateDoc(messageRef, { reactions: newReactions });
+  };
+  
+  const onMessageRead = async (messageId: string) => {
+      if(!firestore || !currentUser) return;
+      const messageRef = doc(firestore, "conversations", conversation.id, "messages", messageId);
+      const messageToUpdate = messages.find(m => m.id === messageId);
+      // Only mark as read if it's not from the current user and not already read
+      if (messageToUpdate && messageToUpdate.senderId !== currentUser.uid && !messageToUpdate.readAt) {
+          await updateDoc(messageRef, { readAt: serverTimestamp() });
+      }
   };
   
   const handleSendMessageSubmit = (content: string, type: 'text' | 'audio' = 'text', duration?: number, selfDestructDuration?: number) => {
@@ -239,7 +306,7 @@ export default function ChatView({
       )}
 
       <div ref={scrollAreaRef} className="flex-1 p-6 overflow-y-auto space-y-6">
-        {conversation.messages.map((message) => (
+        {messages.map((message) => (
           <Message 
             key={message.id} 
             message={message}
@@ -249,6 +316,7 @@ export default function ChatView({
             onReact={onReact}
             onMessageRead={onMessageRead}
             sender={conversation.participants.find(p => p.id === message.senderId)}
+            currentUser={currentUser}
           />
         ))}
       </div>
@@ -270,7 +338,6 @@ export default function ChatView({
         onOpenChange={setVerificationDialogOpen}
         contact={contact}
         >
-          {/* This is a dummy child to satisfy TypeScript. The dialog is triggered from the dropdown menu. */}
           <span className='hidden'></span>
       </ContactVerificationDialog>
 

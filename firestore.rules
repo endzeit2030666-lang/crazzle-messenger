@@ -1,174 +1,40 @@
-/**
- * @fileoverview Firestore Security Rules for CipherCom.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for private data and a role-based model for group chats, leveraging denormalization for authorization independence. User data is secured under /users/{userId}, with subcollections for contacts and messages. Group chats use a "members" map for access control.
- *
- * Data Structure:
- * - /users/{userId}: User profiles, accessible only to the owning user.
- * - /users/{userId}/contacts/{contactId}: User's contacts, accessible only to the owning user.
- * - /users/{userId}/messages/{messageId}: User's messages, accessible only to the owning user and the recipient.
- * - /group_chats/{groupChatId}: Group chat metadata, with a "members" map for access control.
- * - /group_chats/{groupChatId}/messages/{messageId}: Group chat messages, access controlled by the parent group chat's "members" map.
- * - /group_chat_memberships/{groupChatMembershipId}: Group chat membership information. This collection is not directly secured, as membership is denormalized to the GroupChat.
- *
- * Key Security Decisions:
- * - User listing is disallowed.
- * - Group chat access is determined by the "members" map on the GroupChat document.
- * - The GroupChatMembership collection is purely informational and not used for authorization.
- *
- * Denormalization for Authorization:
- * - Group Chat Membership: Instead of querying a separate `GroupChatMembership` collection, the `GroupChat` document contains a `members` map that directly lists the users and their roles. This enables simpler and more efficient security rules for group chats and their messages.
- *
- * Structural Segregation:
- * - User-specific data (contacts, messages) is stored in subcollections under `/users/{userId}`, while group chat data is stored in a top-level collection (`/group_chats`). This segregation simplifies access control and optimizes listing operations.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Controls access to user profile data.
-     * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their profile.
-     *   - auth.uid: 'user123'
-     *   - request.resource.data.id: 'user123'
-     * @allow (get, update, delete) User with ID 'user123' can read/update/delete their profile.
-     *   - auth.uid: 'user123'
-     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
-     *   - auth.uid: 'user456'
-     *   - request.resource.data.id: 'user123'
-     * @deny (get, update, delete) User with ID 'user456' cannot read/update/delete the profile of user 'user123'.
-     *   - auth.uid: 'user456'
-     * @principle Enforces document ownership for user profiles.
-     */
-    match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Controls access to a user's contacts.
-     * @path /users/{userId}/contacts/{contactId}
-     * @allow (create) User with ID 'user123' can create a contact.
-     *   - auth.uid: 'user123'
-     *   - request.resource.data.userId: 'user123'
-     * @allow (get, update, delete) User with ID 'user123' can read/update/delete their own contacts.
-     *   - auth.uid: 'user123'
-     *   - resource.data.userId: 'user123'
-     * @allow (list) User with ID 'user123' can list their own contacts.
-     *   - auth.uid: 'user123'
-     * @deny (create) User with ID 'user456' cannot create a contact for user 'user123'.
-     *   - auth.uid: 'user456'
-     *   - request.resource.data.userId: 'user123'
-     * @deny (get, update, delete) User with ID 'user456' cannot read/update/delete the contacts of user 'user123'.
-     *   - auth.uid: 'user456'
-     *   - resource.data.userId: 'user123'
-     * @principle Restricts contact access to the owning user.
-     */
-    match /users/{userId}/contacts/{contactId} {
-      allow get: if isOwner(userId) && resource.data.userId == userId;
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
-    }
-
-    /**
-     * @description Controls access to a user's messages.
-     * @path /users/{userId}/messages/{messageId}
-     * @allow (create) User with ID 'user123' can create a message.
-     *   - auth.uid: 'user123'
-     *   - request.resource.data.senderId: 'user123'
-     * @allow (get, update, delete) User with ID 'user123' can read/update/delete their own messages.
-     *   - auth.uid: 'user123'
-     *   - resource.data.senderId: 'user123'
-     * @allow (list) User with ID 'user123' can list their own messages.
-     *   - auth.uid: 'user123'
-     * @deny (create) User with ID 'user456' cannot create a message for user 'user123'.
-     *   - auth.uid: 'user456'
-     *   - request.resource.data.senderId: 'user123'
-     * @deny (get, update, delete) User with ID 'user456' cannot read/update/delete the messages of user 'user123'.
-     *   - auth.uid: 'user456'
-     *   - resource.data.senderId: 'user123'
-     * @principle Restricts message access to the owning user and recipients.
-     */
-    match /users/{userId}/messages/{messageId} {
-      allow get: if isOwner(userId) && (resource.data.senderId == userId || resource.data.receiverId == userId);
-      allow list: if isOwner(userId);
-      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-      allow update: if isExistingOwner(userId) && (resource.data.senderId == userId || resource.data.receiverId == userId);
-      allow delete: if isExistingOwner(userId) && resource.data.senderId == userId;
-    }
-
-    /**
-     * @description Controls access to group chat metadata.  Uses a "members" map on the document for authorization.
-     * @path /group_chats/{groupChatId}
-     * @allow (create) Any authenticated user can create a group chat.  Creation does not automatically grant membership.
-     *   - auth.uid: 'user123'
-     * @allow (get, list) Any user can read group chat metadata.  Filtering should be done on the client.
-     *   - auth.uid: 'user123'
-     * @allow (update, delete) Only a member can update metadata.
-     *   - auth.uid: 'user123'
-     *   - resource.data.members['user123']: exists
-     * @principle Enforces membership-based access control for group chats.
-     */
-    match /group_chats/{groupChatId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource.data.members[request.auth.uid] != null;
-      allow delete: if isSignedIn() && resource.data.members[request.auth.uid] != null;
-    }
-
-    /**
-     * @description Controls access to messages within a group chat.  Access is determined by the parent group chat's "members" map.
-     * @path /group_chats/{groupChatId}/messages/{messageId}
-     * @allow (create) Only members of the group chat can create messages.
-     *   - auth.uid: 'user123'
-     *   - get(/databases/$(database)/documents/group_chats/$(groupChatId)).data.members['user123']: exists
-     * @allow (get, list) Any user can read messages if the group chat is visible.
-     *   - auth.uid: 'user123'
-     *   - get(/databases/$(database)/documents/group_chats/$(groupChatId)).data.members['user123']: exists
-     * @allow (update, delete) Only the sender of the message, if they are still a member of the group, can update or delete it.
-     *   - auth.uid: 'user123'
-     *   - get(/databases/$(database)/documents/group_chats/$(groupChatId)).data.members['user123']: exists
-     *   - resource.data.senderId: 'user123'
-     * @principle Enforces membership-based access control for group chat messages, relying on the parent document's data.
-     */
-    match /group_chats/{groupChatId}/messages/{messageId} {
-      allow get, list: if get(/databases/$(database)/documents/group_chats/$(groupChatId)).data.members[request.auth.uid] != null;
-      allow create: if isSignedIn() && get(/databases/$(database)/documents/group_chats/$(groupChatId)).data.members[request.auth.uid] != null;
-      allow update: if isSignedIn()
-                   && get(/databases/$(database)/documents/group_chats/$(groupChatId)).data.members[request.auth.uid] != null
-                   && resource.data.senderId == request.auth.uid;
-      allow delete: if isSignedIn()
-                   && get(/databases/$(database)/documents/group_chats/$(groupChatId)).data.members[request.auth.uid] != null
-                   && resource.data.senderId == request.auth.uid;
-    }
-
-    /**
-     * @description Controls access to group chat membership information.  This collection is not directly secured, as membership is denormalized to the GroupChat.
-     * @path /group_chat_memberships/{groupChatMembershipId}
-     * @allow (get, list, create, update, delete) No direct access is allowed.
-     * @principle This collection is informational only; security is enforced through the GroupChat document.
-     */
-    match /group_chat_memberships/{groupChatMembershipId} {
-      allow get, list, create, update, delete: if false;
-    }
-
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
+    function isUser(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    // USERS
+    // Users can read any profile (for contact lists)
+    // Users can only create and update their own profile
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isUser(userId);
+      allow update: if isUser(userId);
+      allow delete: if false; // Users should not be able to delete their accounts this way
     }
+    
+    // CONVERSATIONS
+    // Users can only read/write conversations they are a part of
+    match /conversations/{conversationId} {
+      allow read, create: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+      
+      // MESSAGES subcollection
+      // Users can only read/write messages in conversations they are a part of
+      match /messages/{messageId} {
+        allow read, create: if isSignedIn() && get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.hasAny([request.auth.uid]);
+        allow update, delete: if isSignedIn() && (request.auth.uid == resource.data.senderId);
+      }
+    }
+
   }
 }

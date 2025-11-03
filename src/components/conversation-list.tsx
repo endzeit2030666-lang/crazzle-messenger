@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon } from "lucide-react";
-import type { Conversation, Message } from "@/lib/types";
-import { currentUser } from "@/lib/data";
+import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon, UserPlus } from "lucide-react";
+import type { Conversation, Message, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -21,92 +19,77 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
+import type { User } from "firebase/auth";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "./ui/scroll-area";
 
 
 type ConversationListProps = {
   conversations: Conversation[];
   selectedConversationId: string | null;
   onConversationSelect: (id: string) => void;
-  onMuteToggle: (id: string) => void;
-  onBlockContact: (contactId: string) => void;
-  onUnblockContact: (contactId: string) => void;
-  blockedUsers: Set<string>;
   onNavigateToSettings: () => void;
+  allUsers: UserType[];
+  onContactSelect: (contact: UserType) => void;
+  currentUser: User;
 };
 
 export default function ConversationList({
   conversations,
   selectedConversationId,
   onConversationSelect,
-  onMuteToggle,
-  onBlockContact,
-  onUnblockContact,
-  blockedUsers,
-  onNavigateToSettings
+  onNavigateToSettings,
+  allUsers,
+  onContactSelect,
+  currentUser
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAddContactOpen, setAddContactOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
 
   const filteredConversations = useMemo(() => {
-    const getMostRecentMessage = (convo: Conversation): Message | undefined => {
-      if (!convo.messages || convo.messages.length === 0) return undefined;
-      // Sort messages by date to find the most recent one
-      return [...convo.messages].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
-    };
-    
     return conversations
-      .map(convo => ({
-        ...convo,
-        lastMessageDate: getMostRecentMessage(convo)?.date,
-      }))
       .filter(convo => {
-        const contact = convo.participants.find(p => p.id !== currentUser.id);
-        return contact?.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const contact = convo.participants.find(p => p.id !== currentUser.uid);
+        return contact?.name?.toLowerCase().includes(searchTerm.toLowerCase());
       })
       .sort((a, b) => {
-        const dateA = a.lastMessageDate ? a.lastMessageDate.getTime() : 0;
-        const dateB = b.lastMessageDate ? b.lastMessageDate.getTime() : 0;
-        return dateB - dateA;
+        const timeA = a.lastMessage?.date?.toMillis() || a.createdAt?.toMillis() || 0;
+        const timeB = b.lastMessage?.date?.toMillis() || b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
       });
-  }, [conversations, searchTerm]);
+  }, [conversations, searchTerm, currentUser.uid]);
 
   const ConversationItem = ({ convo }: { convo: Conversation }) => {
-    const contact = convo.participants.find(p => p.id !== currentUser.id);
+    const contact = convo.participants.find(p => p.id !== currentUser.uid);
 
     if (!contact) return null;
     
-    const isBlocked = blockedUsers.has(contact.id);
-    const lastMessage = convo.messages[convo.messages.length - 1];
-    const lastMessageSender = (lastMessage?.senderId === currentUser.id ? 'Du' : undefined);
+    const lastMessage = convo.lastMessage;
+    const lastMessageSender = (lastMessage?.senderId === currentUser.uid ? 'Du' : undefined);
 
-    const handleBlockToggle = () => {
-      if (isBlocked) {
-        onUnblockContact(contact.id);
-      } else {
-        onBlockContact(contact.id);
-      }
+    const handleSelect = () => {
+      onConversationSelect(convo.id);
     }
 
     return (
       <div className="relative group/item">
         <div
-          onClick={() => onConversationSelect(convo.id)}
+          onClick={handleSelect}
           className={cn(
             "w-full flex items-start p-3 rounded-lg text-left transition-colors cursor-pointer",
             selectedConversationId === convo.id
               ? "bg-primary text-primary-foreground"
-              : "hover:bg-muted",
-             isBlocked && !selectedConversationId ? "opacity-50" : "",
-             isBlocked && selectedConversationId === convo.id ? "opacity-100 bg-destructive/20" : "",
+              : "hover:bg-muted"
           )}
         >
           <Avatar className="w-10 h-10 mr-3">
             <AvatarImage asChild>
               <Image src={contact.avatar} alt={contact.name} width={40} height={40} data-ai-hint="person portrait" />
             </AvatarImage>
-            <AvatarFallback className={cn("text-primary", selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{contact.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback className={cn("text-primary", selectedConversationId === convo.id ? "text-primary-foreground bg-primary/80" : "text-primary")}>{contact.name?.charAt(0) || '?'}</AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden pr-5">
             <div className="flex items-center justify-between">
@@ -117,12 +100,10 @@ export default function ConversationList({
               </div>
             </div>
             <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
-              { isBlocked ? "Dieser Kontakt ist blockiert" : (
                 <>
                   {lastMessageSender && `${lastMessageSender}: `}
-                  {lastMessage?.content}
+                  {lastMessage?.content || (lastMessage?.type === 'audio' ? 'Audio Nachricht' : 'No messages yet')}
                 </>
-              )}
             </p>
           </div>
         </div>
@@ -134,19 +115,15 @@ export default function ConversationList({
                   </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-64">
-                <DropdownMenuItem onClick={() => onMuteToggle(convo.id)}>
-                  {convo.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <Bell className="mr-2 h-4 w-4" />}
-                  <span>{convo.isMuted ? 'Stummschaltung aufheben' : 'Stummschalten'}</span>
+                <DropdownMenuItem onClick={() => toast({ title: 'Stummschalten noch nicht implementiert' })}>
+                  <Bell className="mr-2 h-4 w-4" />
+                  <span>Stummschalten</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => toast({ title: 'Archivieren noch nicht implementiert' })}>
                   <Archive className="mr-2 h-4 w-4" />
                   <span>Archivieren</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleBlockToggle} className={cn(isBlocked && "text-green-500 focus:text-green-500")}>
-                  <XCircle className="mr-2 h-4 w-4" />
-                  <span>{isBlocked ? 'Blockierung aufheben' : 'Kontakt blockieren'}</span>
-                </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast({ title: 'Löschen noch nicht implementiert' })}>
                   <XCircle className="mr-2 h-4 w-4" />
                   <span>Löschen</span>
@@ -180,6 +157,43 @@ export default function ConversationList({
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
+
+            <Dialog open={isAddContactOpen} onOpenChange={setAddContactOpen}>
+              <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <UserPlus className="w-5 h-5 text-white" />
+                        </Button>
+                      </DialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Neuer Chat</p>
+                    </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Neuen Chat starten</DialogTitle>
+                  <DialogDescription>Wähle einen Kontakt aus, um eine neue Konversation zu beginnen.</DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="max-h-96">
+                  <div className="p-2">
+                  {allUsers.map(user => (
+                    <div key={user.id} onClick={() => {onContactSelect(user); setAddContactOpen(false);}} className="flex items-center gap-4 p-2 rounded-lg cursor-pointer hover:bg-muted">
+                       <Avatar className="w-10 h-10">
+                         <AvatarImage src={user.avatar} alt={user.name} />
+                         <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
+                       </Avatar>
+                       <p className="font-semibold text-primary">{user.name}</p>
+                    </div>
+                  ))}
+                  </div>
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
+
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>

@@ -1,11 +1,9 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile, Play, Pause } from "lucide-react";
-import type { Message as MessageType, User } from "@/lib/types";
-import { currentUser } from "@/lib/data";
+import type { Message as MessageType, User as UserType } from "@/lib/types";
 import {
   Tooltip,
   TooltipContent,
@@ -22,9 +20,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Slider } from './ui/slider';
+import type { User } from 'firebase/auth';
 
 
-const AudioMessage = ({ message }: { message: MessageType }) => {
+const AudioMessage = ({ message, currentUser }: { message: MessageType, currentUser: User }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -80,7 +79,7 @@ const AudioMessage = ({ message }: { message: MessageType }) => {
     }
   };
 
-  const isCurrentUser = message.senderId === currentUser.id;
+  const isCurrentUser = message.senderId === currentUser.uid;
 
   return (
     <div className="flex items-center gap-3 w-64">
@@ -113,7 +112,8 @@ type MessageProps = {
   onDelete: (messageId: string, forEveryone: boolean) => void;
   onReact: (messageId: string, emoji: string) => void;
   onMessageRead: (messageId: string) => void;
-  sender?: User;
+  sender?: UserType;
+  currentUser: User;
 };
 
 
@@ -141,22 +141,22 @@ const ReactionPicker = ({ onSelect, onPlusClick }: { onSelect: (emoji: string) =
   )
 }
 
-export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender }: MessageProps) {
-  const isCurrentUser = message.senderId === currentUser.id;
+export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender, currentUser }: MessageProps) {
+  const isCurrentUser = message.senderId === currentUser.uid;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const { toast } = useToast();
   
-  // Self-destruct logic
   useEffect(() => {
-    if (message.selfDestructDuration && message.senderId !== currentUser.id && !message.readAt) {
+    if (message.selfDestructDuration && message.senderId !== currentUser.uid && !message.readAt) {
       onMessageRead(message.id);
     }
-  }, [message.selfDestructDuration, message.senderId, message.readAt, message.id, onMessageRead]);
+  }, [message, currentUser.uid, onMessageRead]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (message.selfDestructDuration && message.readAt) {
-      const destructTime = message.readAt + (message.selfDestructDuration * 1000);
+      const readAtTime = (message.readAt as any).toMillis ? (message.readAt as any).toMillis() : message.readAt;
+      const destructTime = readAtTime + (message.selfDestructDuration * 1000);
       const remainingTime = destructTime - Date.now();
 
       if (remainingTime > 0) {
@@ -170,7 +170,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [message.selfDestructDuration, message.readAt, message.id, onDelete]);
+  }, [message, onDelete]);
 
 
   const handleCopy = () => {
@@ -197,8 +197,6 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
     onReact(message.id, emoji);
     setShowReactionPicker(false);
   }
-
-  const userReaction = message.reactions.find(r => r.userId === currentUser.id);
   
   const handleSwipe = (e: React.TouchEvent) => {
     // A very basic swipe detection
@@ -217,7 +215,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
        <div className={cn("relative", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-100">
                     <MoreHorizontal className="w-4 h-4" />
                 </Button>
             </DropdownMenuTrigger>
@@ -269,7 +267,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
         )}
         
         {message.type === 'audio' ? (
-          <AudioMessage message={message} />
+          <AudioMessage message={message} currentUser={currentUser} />
         ) : (
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         )}

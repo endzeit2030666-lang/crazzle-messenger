@@ -1,59 +1,93 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Conversation, User, Message } from "@/lib/types";
-import { conversations as initialConversations, currentUser } from "@/lib/data";
+import type { Conversation, User as UserType, Message } from "@/lib/types";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch } from "firebase/firestore";
+import { useFirestore, useUser } from "@/firebase";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
-
+import type { User } from 'firebase/auth';
 
 interface ChatLayoutProps {
-  blockedUsers: Set<string>;
-  setBlockedUsers: React.Dispatch<React.SetStateAction<Set<string>>>;
-  blockedContacts: User[];
-  allUsers: User[];
+  currentUser: User;
 }
 
-
-export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedContacts, allUsers }: ChatLayoutProps) {
-  const [conversations, setConversations] = useState<Conversation[]>(initialConversations.map(c => ({
-      ...c,
-      messages: c.messages.map(m => ({ ...m, type: m.type || 'text' }))
-  })));
+export default function ChatLayout({ currentUser }: ChatLayoutProps) {
+  const firestore = useFirestore();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const router = useRouter();
 
-  // Effect to re-read sessionStorage when the component might be re-rendered
-  // e.g., after navigating back from settings.
   useEffect(() => {
-    try {
-        const blockedJson = sessionStorage.getItem('blockedUsers');
-        if (blockedJson) {
-            setBlockedUsers(new Set(JSON.parse(blockedJson)));
-        } else {
-            const initialBlocked = new Set(['user2', 'user3']);
-            sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(initialBlocked)));
-            setBlockedUsers(initialBlocked);
-        }
-    } catch (error) {
-        console.error("Failed to parse blocked users from sessionStorage", error);
-        const initialBlocked = new Set(['user2', 'user3']);
-        sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(initialBlocked)));
-        setBlockedUsers(initialBlocked);
-    }
-}, [setBlockedUsers]);
+    if (!firestore || !currentUser) return;
 
+    // Fetch all users to act as a contact list
+    const usersRef = collection(firestore, "users");
+    const unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
+        const usersData = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as UserType))
+          .filter(u => u.id !== currentUser.uid);
+        setAllUsers(usersData);
+    });
+
+    // Fetch conversations for the current user
+    const convosRef = collection(firestore, "conversations");
+    const userConvosQuery = query(convosRef, where("participantIds", "array-contains", currentUser.uid));
+    
+    const unsubscribeConversations = onSnapshot(userConvosQuery, async (snapshot) => {
+        const convosData: Conversation[] = await Promise.all(snapshot.docs.map(async (doc) => {
+            const convoData = doc.data();
+            const otherParticipantId = convoData.participantIds.find((pId: string) => pId !== currentUser.uid);
+            
+            let otherParticipant: UserType | undefined = allUsers.find(u => u.id === otherParticipantId);
+            if (!otherParticipant) {
+              const userDoc = await getDocs(query(usersRef, where("id", "==", otherParticipantId)));
+              if (!userDoc.empty){
+                otherParticipant = { id: userDoc.docs[0].id, ...userDoc.docs[0].data() } as UserType;
+              }
+            }
+
+            const participants: UserType[] = [
+                { id: currentUser.uid, name: currentUser.displayName || "You", avatar: currentUser.photoURL || '', onlineStatus: 'online' },
+            ];
+            if(otherParticipant) participants.push(otherParticipant);
+
+            return {
+                id: doc.id,
+                ...convoData,
+                participants,
+            } as Conversation;
+        }));
+        
+        // Sort conversations by the most recent message
+        convosData.sort((a, b) => {
+            const lastMessageA = a.messages?.[a.messages.length - 1];
+            const lastMessageB = b.messages?.[b.messages.length - 1];
+            const timeA = lastMessageA?.date?.toMillis() || a.createdAt?.toMillis() || 0;
+            const timeB = lastMessageB?.date?.toMillis() || b.createdAt?.toMillis() || 0;
+            return timeB - timeA;
+        });
+
+        setConversations(convosData);
+    });
+
+    return () => {
+        unsubscribeUsers();
+        unsubscribeConversations();
+    };
+}, [firestore, currentUser, allUsers]);
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
-  const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.id && blockedUsers.has(p.id));
-  
-  const handleSendMessage = (content: string, type: 'text' | 'audio' = 'text', duration?: number, selfDestructDuration?: number) => {
-    if (!selectedConversationId) return;
+  const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.uid && blockedUsers.has(p.id));
+
+  const handleSendMessage = async (content: string, type: 'text' | 'audio' = 'text', duration?: number, selfDestructDuration?: number) => {
+    if (!selectedConversationId || !firestore) return;
 
      if (isContactBlocked) {
       toast({
@@ -63,176 +97,93 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
       });
       return;
     }
-
-    const newMessage: Message = {
-      id: `msg${Date.now()}`,
-      senderId: currentUser.id,
+    
+    const messagesRef = collection(firestore, "conversations", selectedConversationId, "messages");
+    
+    const newMessage: Omit<Message, 'id'> = {
+      senderId: currentUser.uid,
       content: content,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date(),
-      status: 'sent' as const,
+      date: serverTimestamp() as any, // Firestore will handle this
+      status: 'sent',
       reactions: [],
-      quotedMessage: undefined,
       type: type,
-      audioUrl: type === 'audio' ? content : undefined,
-      audioDuration: duration,
-      selfDestructDuration: selfDestructDuration,
-      readAt: null, // Initial not read
+      readAt: null,
     };
-    
     if (type === 'audio') {
-      newMessage.content = ''; // No text content for audio messages
+      newMessage.audioUrl = content;
+      newMessage.audioDuration = duration;
+      newMessage.content = '';
+    }
+    if (selfDestructDuration) {
+      newMessage.selfDestructDuration = selfDestructDuration;
     }
 
-
-    setConversations(prev =>
-      prev.map(convo =>
-        convo.id === selectedConversationId
-          ? { ...convo, messages: [...convo.messages, newMessage] }
-          : convo
-      )
-    );
-  };
-  
-  const handleEditMessage = (messageId: string, newContent: string) => {
-    setConversations(prev =>
-      prev.map(convo => {
-        if (convo.id === selectedConversationId) {
-          return {
-            ...convo,
-            messages: convo.messages.map(msg => 
-              msg.id === messageId 
-                ? { ...msg, content: newContent, isEdited: true } 
-                : msg
-            ),
-          };
-        }
-        return convo;
-      })
-    );
+    try {
+        await addDoc(messagesRef, newMessage);
+    } catch(e) {
+        console.error("Error sending message: ", e);
+        toast({
+            variant: "destructive",
+            title: "Fehler beim Senden",
+            description: "Nachricht konnte nicht gesendet werden."
+        })
+    }
   };
 
-  const handleDeleteMessage = (messageId: string, forEveryone: boolean) => {
-    setConversations(prev =>
-      prev.map(convo => {
-        const newMessages = convo.messages.filter(msg => msg.id !== messageId);
-        if (convo.id === selectedConversationId) {
-            return { ...convo, messages: newMessages };
-        }
-        // Also remove from other convos if forEveryone, though not strictly needed in 1-on-1
-        if(forEveryone) {
-            return { ...convo, messages: newMessages };
-        }
-        return convo;
-      })
-    );
-  };
-  
-  const handleClearConversation = (conversationId: string) => {
-    setConversations(prev =>
-      prev.map(convo =>
-        convo.id === conversationId
-          ? { ...convo, messages: [] }
-          : convo
-      )
-    );
+  const handleClearConversation = async (conversationId: string) => {
+    if (!firestore) return;
+    const messagesRef = collection(firestore, "conversations", conversationId, "messages");
+    const messagesSnapshot = await getDocs(messagesRef);
+    const batch = writeBatch(firestore);
+    messagesSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
     toast({
         title: "Chat geleert",
         description: "Alle Nachrichten in diesem Chat wurden gelöscht.",
     });
   };
-
-  const handleReaction = (messageId: string, emoji: string) => {
-    setConversations(prev =>
-      prev.map(convo => {
-        if (convo.id === selectedConversationId) {
-          return {
-            ...convo,
-            messages: convo.messages.map(msg => {
-              if (msg.id === messageId) {
-                const existingReaction = msg.reactions.find(r => r.userId === currentUser.id);
-                if (existingReaction) {
-                  // If it's the same emoji, remove reaction. Otherwise, update it.
-                  if (existingReaction.emoji === emoji) {
-                    return { ...msg, reactions: msg.reactions.filter(r => r.userId !== currentUser.id) };
-                  } else {
-                    return { ...msg, reactions: msg.reactions.map(r => r.userId === currentUser.id ? { ...r, emoji: emoji } : r) };
-                  }
-                } else {
-                  // Add new reaction
-                  return { ...msg, reactions: [...msg.reactions, { emoji, userId: currentUser.id, username: currentUser.name }] };
-                }
-              }
-              return msg;
-            }),
-          };
-        }
-        return convo;
-      })
-    );
-  };
-
   
-  const toggleMuteConversation = (conversationId: string) => {
-    setConversations(prev =>
-      prev.map(convo =>
-        convo.id === conversationId
-          ? { ...convo, isMuted: !convo.isMuted }
-          : convo
-      )
-    );
-  }
-
-  const blockContact = (contactId: string) => {
-    const newBlocked = new Set(blockedUsers);
-    newBlocked.add(contactId);
-    setBlockedUsers(newBlocked);
-    sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
-    toast({
-        title: "Kontakt blockiert",
-        description: "Du wirst keine Nachrichten oder Anrufe mehr von diesem Kontakt erhalten.",
-    });
-  }
-
-  const unblockContact = (contactId: string) => {
-    const newBlocked = new Set(blockedUsers);
-    newBlocked.delete(contactId);
-    setBlockedUsers(newBlocked);
-    sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlocked)));
-    toast({
-        title: "Blockierung aufgehoben",
-        description: "Du kannst diesem Kontakt wieder Nachrichten senden.",
-    });
-  }
-
   const handleBack = () => {
     setSelectedConversationId(null);
   };
   
   const navigateToSettings = () => {
-    // Ensure the latest data is in sessionStorage before navigating
-    sessionStorage.setItem('allUsers', JSON.stringify(allUsers));
-    sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(blockedUsers)));
+    // sessionStorage.setItem('allUsers', JSON.stringify(allUsers));
+    // sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(blockedUsers)));
     router.push('/settings');
   }
 
-  const handleMessageRead = (messageId: string) => {
-    setConversations(prev =>
-      prev.map(convo => {
-        if (convo.id === selectedConversationId) {
-          return {
-            ...convo,
-            messages: convo.messages.map(msg =>
-              msg.id === messageId && !msg.readAt
-                ? { ...msg, readAt: Date.now() }
-                : msg
-            ),
-          };
-        }
-        return convo;
-      })
+  const handleConversationSelect = async (contact: UserType) => {
+    if (!firestore || !currentUser) return;
+    const conversationsRef = collection(firestore, "conversations");
+    const q = query(
+      conversationsRef,
+      where("participantIds", "array-contains", currentUser.uid)
     );
+    const querySnapshot = await getDocs(q);
+    let existingConvo = null;
+    querySnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.participantIds.includes(contact.id)) {
+        existingConvo = { id: doc.id, ...data };
+      }
+    });
+
+    if (existingConvo) {
+      setSelectedConversationId(existingConvo.id);
+    } else {
+      // Create a new conversation
+      const newConvo = await addDoc(conversationsRef, {
+        participantIds: [currentUser.uid, contact.id],
+        createdAt: serverTimestamp()
+      });
+      setSelectedConversationId(newConvo.id);
+    }
   };
+
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background md:grid md:grid-cols-[384px_1fr]">
@@ -246,11 +197,10 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
           conversations={conversations}
           selectedConversationId={selectedConversationId}
           onConversationSelect={setSelectedConversationId}
-          onMuteToggle={toggleMuteConversation}
-          onBlockContact={blockContact}
-          onUnblockContact={unblockContact}
-          blockedUsers={blockedUsers}
           onNavigateToSettings={navigateToSettings}
+          allUsers={allUsers}
+          onContactSelect={handleConversationSelect}
+          currentUser={currentUser}
         />
       </div>
       <div
@@ -263,17 +213,12 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
           <ChatView
             key={selectedConversation.id}
             conversation={selectedConversation}
-            contact={selectedConversation.participants.find(p => p.id !== currentUser.id)}
+            contact={selectedConversation.participants.find(p => p.id !== currentUser.uid)}
             onSendMessage={handleSendMessage}
-            onEditMessage={handleEditMessage}
-            onDeleteMessage={handleDeleteMessage}
             onClearConversation={handleClearConversation}
-            onReact={handleReaction}
             onBack={handleBack}
             isBlocked={isContactBlocked ?? false}
-            onBlockContact={blockContact}
-            onUnblockContact={unblockContact}
-            onMessageRead={handleMessageRead}
+            currentUser={currentUser}
           />
         ) : (
           <div className="flex-1 items-center justify-center text-muted-foreground bg-muted/20 hidden md:flex">

@@ -1,9 +1,11 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type User = {
   id: string;
   name: string;
   avatar: string;
   onlineStatus: 'online' | 'offline' | 'away';
-  publicKey: string;
+  publicKey?: string;
   bio?: string;
   readReceiptsEnabled?: boolean;
   blockedUsers?: string[];
@@ -26,11 +28,11 @@ export type Message = {
   id: string;
   senderId: string;
   content: string;
-  timestamp: string;
-  date: Date;
+  timestamp: string; // Keep for display
+  date: Timestamp | Date; // For sorting
   status: 'sent' | 'delivered' | 'read';
   selfDestructDuration?: number; // Duration in seconds
-  readAt: number | null; // Timestamp when the message was read
+  readAt: Timestamp | number | null; // Timestamp when the message was read
   linkPreview?: LinkPreviewData;
   reactions: Reaction[];
   quotedMessage?: {
@@ -45,9 +47,12 @@ export type Message = {
 };
 
 export type Conversation = {
-  id:string;
+  id: string;
   type: 'private';
-  participants: User[];
-  messages: Message[];
+  participantIds: string[];
+  participants: User[]; // This will be populated client-side
+  messages: Message[]; // This will be a subcollection
+  lastMessage?: Message;
   isMuted?: boolean;
+  createdAt?: Timestamp;
 };
