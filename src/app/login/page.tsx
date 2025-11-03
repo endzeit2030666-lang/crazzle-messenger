@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
@@ -27,7 +27,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
 }
 
 // Helper to generate and export keys
-async function generateAndStoreKeys() {
+async function generateAndStoreKeys(uid: string) {
   const keyPair = await window.crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
@@ -38,9 +38,9 @@ async function generateAndStoreKeys() {
   const publicKeySpki = await window.crypto.subtle.exportKey('spki', keyPair.publicKey);
   const publicKeyB64 = arrayBufferToBase64(publicKeySpki);
 
-  // Export and store private key
+  // Export and store private key, now namespaced by UID
   const privateKeyJwk = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
-  localStorage.setItem('privateKey', JSON.stringify(privateKeyJwk));
+  localStorage.setItem(`privateKey_${uid}`, JSON.stringify(privateKeyJwk));
   
   return { publicKeyB64 };
 }
@@ -62,11 +62,6 @@ export default function LoginPage() {
     }
   }, [user, router]);
   
-  // A simple but deterministic way to create a "uid" from a phone number for this demo
-  const createUidFromPhoneNumber = (phone: string) => {
-    return `user_${phone.replace(/\+/g, '')}`;
-  }
-
   const handleSignIn = async () => {
     if (!auth || !firestore) return;
     if (!phoneNumber.trim()) {
@@ -79,24 +74,22 @@ export default function LoginPage() {
     }
     setIsSigningIn(true);
     
+    let cred;
     try {
-      // This is not a real UID, but a deterministic ID based on the phone number for this demo app.
-      const pseudoUid = createUidFromPhoneNumber(phoneNumber.trim());
-      
-      const userRef = doc(firestore, 'users', pseudoUid);
+      // Sign in anonymously to get a stable UID from Firebase Auth
+      cred = await signInAnonymously(auth);
+      const userRef = doc(firestore, 'users', cred.user.uid);
       const userDoc = await getDoc(userRef);
 
-      const cred = await signInAnonymously(auth);
-
       if (!userDoc.exists()) {
-        // New user, create them
-        const { publicKeyB64 } = await generateAndStoreKeys();
+        // New user, create their profile document in Firestore
+        const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
         
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
         const newUser: UserType = {
-          id: cred.user.uid, // We use the real auth UID here now
+          id: cred.user.uid,
           name: randomName,
           avatar: randomAvatar,
           onlineStatus: 'online',
@@ -105,24 +98,36 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
 
-        // Important: Create the user doc with the REAL auth UID
-        await setDoc(doc(firestore, 'users', cred.user.uid), newUser);
+        // Use a non-blocking write and catch permission errors specifically
+        setDoc(userRef, newUser)
+          .catch((serverError) => {
+            console.error("setDoc failed:", serverError)
+            // Create the rich, contextual error and emit it globally.
+            const permissionError = new FirestorePermissionError({
+              path: userRef.path,
+              operation: 'create',
+              requestResourceData: newUser,
+            });
+            // Emit the error to be caught by the FirebaseErrorListener
+            errorEmitter.emit('permission-error', permissionError);
+            setIsSigningIn(false);
+          });
+      }
+      // If userDoc exists, the onAuthStateChanged listener will handle the redirect.
+      // We don't need to do anything else here.
 
-      } 
-      // If userDoc exists, we just sign in anonymously. 
-      // The useUser hook will pick up the auth state and redirect.
-      // A more robust solution would link the phone number to the auth user.
-
-    } catch (error) {
+    } catch (error: any) {
+      // This will catch errors from signInAnonymously or getDoc
       console.error('Sign-in failed', error);
       toast({
           variant: "destructive",
           title: "Anmeldung fehlgeschlagen",
           description: "Es konnte kein Account erstellt oder gefunden werden. Bitte versuche es erneut.",
       });
-    } finally {
-        setIsSigningIn(false);
-    }
+      setIsSigningIn(false);
+    } 
+    // Do not set isSigningIn to false here for the success path,
+    // as the redirect will happen via the useEffect hook watching the `user` state.
   };
 
   if (isUserLoading || user) {
