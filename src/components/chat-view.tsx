@@ -2,7 +2,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle } from "lucide-react";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle, Trash2 } from "lucide-react";
 import type { Conversation, User, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ type ChatViewProps = {
   onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, selfDestructDuration?: number) => void;
   onEditMessage: (messageId: string, newContent: string) => void;
   onDeleteMessage: (messageId: string, forEveryone: boolean) => void;
+  onClearConversation: (conversationId: string) => void;
   onReact: (messageId: string, emoji: string) => void;
   onBack: () => void;
   isBlocked: boolean;
@@ -57,7 +58,8 @@ export default function ChatView({
     contact, 
     onSendMessage, 
     onEditMessage, 
-    onDeleteMessage, 
+    onDeleteMessage,
+    onClearConversation,
     onReact, 
     onBack,
     isBlocked,
@@ -68,6 +70,7 @@ export default function ChatView({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<MessageType['quotedMessage'] | undefined>(undefined);
   const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
 
@@ -104,6 +107,11 @@ export default function ChatView({
       onBlockContact(contact.id);
     }
     setShowBlockDialog(false);
+  }
+  
+  const handleClearChat = () => {
+    onClearConversation(conversation.id);
+    setShowClearDialog(false);
   }
 
   const handleUnblockContact = () => {
@@ -210,6 +218,10 @@ export default function ChatView({
                   <span>Benachrichtigungen stummschalten</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowClearDialog(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Chat leeren</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowBlockDialog(true)}>
                     <XCircle className="mr-2 h-4 w-4" />
                     <span>Kontakt blockieren</span>
@@ -273,6 +285,21 @@ export default function ChatView({
           <AlertDialogFooter>
             <AlertDialogCancel>Abbrechen</AlertDialogCancel>
             <AlertDialogAction onClick={handleBlockContact} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Blockieren</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Chatverlauf leeren?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dadurch werden alle Nachrichten in diesem Chat endgültig von diesem Gerät gelöscht.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Leeren</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

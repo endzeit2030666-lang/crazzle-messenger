@@ -122,6 +122,20 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
       })
     );
   };
+  
+  const handleClearConversation = (conversationId: string) => {
+    setConversations(prev =>
+      prev.map(convo =>
+        convo.id === conversationId
+          ? { ...convo, messages: [] }
+          : convo
+      )
+    );
+    toast({
+        title: "Chat geleert",
+        description: "Alle Nachrichten in diesem Chat wurden gelöscht.",
+    });
+  };
 
   const handleReaction = (messageId: string, emoji: string) => {
     setConversations(prev =>
@@ -248,6 +262,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
             onSendMessage={handleSendMessage}
             onEditMessage={handleEditMessage}
             onDeleteMessage={handleDeleteMessage}
+            onClearConversation={handleClearConversation}
             onReact={handleReaction}
             onBack={handleBack}
             isBlocked={isContactBlocked ?? false}
