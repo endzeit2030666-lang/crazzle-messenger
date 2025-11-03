@@ -93,8 +93,7 @@ export default function LoginPage() {
     }
 
     setIsSigningIn(true);
-    let newUserRef; // Declare here to be accessible in catch block
-
+    
     try {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
@@ -103,13 +102,15 @@ export default function LoginPage() {
         // --- NEW USER CREATION FLOW ---
         // 1. Sign in anonymously and WAIT for the credential
         const cred = await signInAnonymously(auth);
+        const uid = cred.user.uid;
         
         // 2. Now that we are authenticated, generate keys and user data
-        const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
+        const { publicKeyB64 } = await generateAndStoreKeys(uid);
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
-        const newUser: Omit<UserType, 'id'> = {
+        const newUser: UserType = {
+          id: uid,
           name: randomName,
           avatar: randomAvatar,
           onlineStatus: 'online',
@@ -119,28 +120,32 @@ export default function LoginPage() {
         };
         
         // 3. Create the document reference with the NEW, VALID UID
-        newUserRef = doc(firestore, 'users', cred.user.uid);
+        const newUserRef = doc(firestore, 'users', uid);
         
         // 4. Set the document. The request is now authenticated.
-        await setDoc(newUserRef, { ...newUser, id: cred.user.uid });
+        await setDoc(newUserRef, newUser);
 
       } else {
         // --- EXISTING USER SIGN-IN FLOW ---
-        // Just sign in, the user document already exists.
+        // Just sign in, the user document already exists. We don't need to do anything else,
+        // the onAuthStateChanged listener will handle the redirect.
         await signInAnonymously(auth);
       }
       
+      // If we reach here, either the doc was created or sign-in was initiated.
+      // The onAuthStateChanged listener in the provider will handle redirecting to '/'
       toast({
           title: "Anmeldung erfolgreich",
           description: "Willkommen!",
       });
-      // The onAuthStateChanged listener will handle the redirect automatically.
 
     } catch (error: any) {
+        console.error("Sign-in or user creation error:", error);
+        
         // This is the correct error handling architecture.
         // It creates a rich, contextual error and emits it globally.
         const permissionError = new FirestorePermissionError({
-          path: newUserRef?.path || `users/unknown_uid`,
+          path: `users/unknown_uid`, // Use a placeholder path as UID might not be available
           operation: 'create',
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
