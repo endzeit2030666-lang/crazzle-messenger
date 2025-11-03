@@ -48,10 +48,10 @@ export const conversations: Conversation[] = [
     type: 'private',
     participants: [currentUser, users[0]],
     messages: [
-      { id: 'msg1', senderId: 'user1', content: 'Hey, wie geht\'s?', timestamp: '10:30', status: 'read', reactions: [] },
-      { id: 'msg2', senderId: 'user0', content: 'Ganz gut! Arbeite am neuen sicheren Messenger. Und du?', timestamp: '10:31', status: 'read', reactions: [{ emoji: '👍', userId: 'user1', username: 'Alice' }] },
-      { id: 'msg3', senderId: 'user1', content: 'Super! Ich teste ihn gerade. Die E2E-Verschlüsselung fühlt sich solide an. Wie verifiziere ich deinen Schlüssel?', timestamp: '10:32', status: 'read', reactions: [] },
-      { id: 'msg4', senderId: 'user0', content: 'Klicke oben im Chat auf meinen Namen. Dort siehst du eine Option, um meine Identität zu verifizieren.', timestamp: '10:33', status: 'delivered', reactions: [] },
+      { id: 'msg1', senderId: 'user1', content: 'Hey, wie geht\'s?', timestamp: '10:30', date: new Date(new Date().setDate(new Date().getDate() - 1)), status: 'read', reactions: [], readAt: null },
+      { id: 'msg2', senderId: 'user0', content: 'Ganz gut! Arbeite am neuen sicheren Messenger. Und du?', timestamp: '10:31', date: new Date(new Date().setDate(new Date().getDate() - 1)), status: 'read', reactions: [{ emoji: '👍', userId: 'user1', username: 'Alice' }], readAt: null },
+      { id: 'msg3', senderId: 'user1', content: 'Super! Ich teste ihn gerade. Die E2E-Verschlüsselung fühlt sich solide an. Wie verifiziere ich deinen Schlüssel?', timestamp: '10:32', date: new Date(), status: 'read', reactions: [], readAt: null },
+      { id: 'msg4', senderId: 'user0', content: 'Klicke oben im Chat auf meinen Namen. Dort siehst du eine Option, um meine Identität zu verifizieren.', timestamp: '10:33', date: new Date(), status: 'delivered', reactions: [], readAt: null },
     ],
   },
   {
@@ -59,13 +59,14 @@ export const conversations: Conversation[] = [
     type: 'private',
     participants: [currentUser, users[1]],
     messages: [
-      { id: 'msg5', senderId: 'user2', content: 'Kannst du mir die Projektdateien schicken?', timestamp: 'Gestern', status: 'read', reactions: [] },
-      { id: 'msg6', senderId: 'user0', content: 'Klar, sende sie jetzt. Sie sind natürlich verschlüsselt.', timestamp: 'Gestern', status: 'read', reactions: [] },
+      { id: 'msg5', senderId: 'user2', content: 'Kannst du mir die Projektdateien schicken?', timestamp: 'Gestern', date: new Date(new Date().setDate(new Date().getDate() - 2)), status: 'read', reactions: [], readAt: null },
+      { id: 'msg6', senderId: 'user0', content: 'Klar, sende sie jetzt. Sie sind natürlich verschlüsselt.', timestamp: 'Gestern', date: new Date(new Date().setDate(new Date().getDate() - 2)), status: 'read', reactions: [], readAt: null },
       { 
         id: 'msg_yt', 
         senderId: 'user2', 
         content: 'Schau dir diesen neuen Song an: https://www.youtube.com/watch?v=dQw4w9WgXcQ', 
-        timestamp: '11:00', 
+        timestamp: '11:00',
+        date: new Date(new Date().setDate(new Date().getDate() - 1)), 
         status: 'read',
         linkPreview: {
           url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
@@ -74,6 +75,7 @@ export const conversations: Conversation[] = [
           description: 'youtube.com'
         },
         reactions: [],
+        readAt: null,
       },
     ],
   },
@@ -82,8 +84,8 @@ export const conversations: Conversation[] = [
     type: 'private',
     participants: [currentUser, users[2]],
     messages: [
-      { id: 'msg7', senderId: 'user2', content: 'Lass uns die selbstzerstörende Nachrichtenfunktion ausprobieren.', timestamp: 'Gestern', status: 'read', isSelfDestructing: true, reactions: [] },
-      { id: 'msg8', senderId: 'user0', content: 'Okay, diese Nachricht wird sich in 5 Minuten selbst zerstören.', timestamp: 'Gestern', status: 'read', isSelfDestructing: true, reactions: [] },
+      { id: 'msg7', senderId: 'user2', content: 'Lass uns die selbstzerstörende Nachrichtenfunktion ausprobieren.', timestamp: 'Gestern', date: new Date(new Date().setDate(new Date().getDate() - 3)), selfDestructDuration: 300, status: 'read', reactions: [], readAt: Date.now() },
+      { id: 'msg8', senderId: 'user0', content: 'Okay, diese Nachricht wird sich in 5 Minuten selbst zerstören.', timestamp: 'Gestern', date: new Date(new Date().setDate(new Date().getDate() - 3)), selfDestructDuration: 300, status: 'read', reactions: [], readAt: Date.now() },
     ],
     isMuted: true,
   },
@@ -92,7 +94,7 @@ export const conversations: Conversation[] = [
     type: 'private',
     participants: [currentUser, users[3]],
     messages: [
-        { id: 'msg9', senderId: 'user4', content: 'Bist du für einen kurzen Anruf verfügbar?', timestamp: 'Vorgestern', status: 'read', reactions: [] },
+        { id: 'msg9', senderId: 'user4', content: 'Bist du für einen kurzen Anruf verfügbar?', timestamp: 'Vorgestern', date: new Date(new Date().setDate(new Date().getDate() - 4)), status: 'read', reactions: [], readAt: null },
     ],
   },
 ];

@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon } from "lucide-react";
-import type { Conversation } from "@/lib/types";
+import type { Conversation, Message } from "@/lib/types";
 import { currentUser } from "@/lib/data";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,10 +50,26 @@ export default function ConversationList({
 
 
   const filteredConversations = useMemo(() => {
-    return conversations.filter(convo => {
-      const contact = convo.participants.find(p => p.id !== currentUser.id);
-      return contact?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    }).sort((a, b) => (a.id > b.id ? -1 : 1));
+    const getMostRecentMessage = (convo: Conversation): Message | undefined => {
+      if (!convo.messages || convo.messages.length === 0) return undefined;
+      // Sort messages by date to find the most recent one
+      return [...convo.messages].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+    };
+    
+    return conversations
+      .map(convo => ({
+        ...convo,
+        lastMessageDate: getMostRecentMessage(convo)?.date,
+      }))
+      .filter(convo => {
+        const contact = convo.participants.find(p => p.id !== currentUser.id);
+        return contact?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      })
+      .sort((a, b) => {
+        const dateA = a.lastMessageDate ? a.lastMessageDate.getTime() : 0;
+        const dateB = b.lastMessageDate ? b.lastMessageDate.getTime() : 0;
+        return dateB - dateA;
+      });
   }, [conversations, searchTerm]);
 
   const ConversationItem = ({ convo }: { convo: Conversation }) => {
@@ -95,9 +111,9 @@ export default function ConversationList({
           <div className="flex-1 overflow-hidden pr-5">
             <div className="flex items-center justify-between">
               <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{contact.name}</h3>
-              <div className="flex items-center gap-2 pr-5">
+              <div className="flex items-center gap-2">
                   {convo.isMuted && <Bell className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")} />}
-                  <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white")}>{lastMessage?.timestamp}</p>
+                  <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
               </div>
             </div>
             <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
@@ -110,10 +126,10 @@ export default function ConversationList({
             </p>
           </div>
         </div>
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 transition-opacity">
+        <div className="absolute right-1 top-1/2 -translate-y-1/2">
           <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 z-10">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 z-10 opacity-100">
                       <MoreVertical className="w-4 h-4" />
                   </Button>
               </DropdownMenuTrigger>

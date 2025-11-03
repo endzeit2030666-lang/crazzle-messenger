@@ -27,6 +27,7 @@ export type Message = {
   senderId: string;
   content: string;
   timestamp: string;
+  date: Date;
   status: 'sent' | 'delivered' | 'read';
   selfDestructDuration?: number; // Duration in seconds
   readAt: number | null; // Timestamp when the message was read

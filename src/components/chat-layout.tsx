@@ -69,6 +69,7 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
       senderId: currentUser.id,
       content: content,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: new Date(),
       status: 'sent' as const,
       reactions: [],
       quotedMessage: undefined,
@@ -114,9 +115,13 @@ export default function ChatLayout({ blockedUsers, setBlockedUsers, blockedConta
   const handleDeleteMessage = (messageId: string, forEveryone: boolean) => {
     setConversations(prev =>
       prev.map(convo => {
-        if (convo.id === selectedConversationId || forEveryone) {
-          const newMessages = convo.messages.filter(msg => msg.id !== messageId);
-          return { ...convo, messages: newMessages };
+        const newMessages = convo.messages.filter(msg => msg.id !== messageId);
+        if (convo.id === selectedConversationId) {
+            return { ...convo, messages: newMessages };
+        }
+        // Also remove from other convos if forEveryone, though not strictly needed in 1-on-1
+        if(forEveryone) {
+            return { ...convo, messages: newMessages };
         }
         return convo;
       })
