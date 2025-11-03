@@ -2,14 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Phone, Video, Search, BookUser, Users } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Phone, Video, Search, BookUser } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, getDocs } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import type { User as UserType } from '@/lib/types';
+
 
 type Contact = {
   id: string;
@@ -36,13 +38,13 @@ export default function ContactsPage() {
     const unsubscribe = onSnapshot(contactsQuery, async (snapshot) => {
       setIsLoadingContacts(true);
       const contactsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const userDocs = await getDocs(collection(firestore, 'users'));
+      const allUsers = userDocs.docs.map(doc => ({id: doc.id, ...doc.data()}) as UserType);
 
-      const enrichedContacts = await Promise.all(
-        contactsData.map(async (contact) => {
-          const userQuery = query(collection(firestore, 'users'), where('__name__', '==', contact.id));
-          const userSnapshot = await getDocs(userQuery);
-          if (!userSnapshot.empty) {
-            const userData = userSnapshot.docs[0].data();
+      const enrichedContacts = contactsData.map(contact => {
+          const userData = allUsers.find(u => u.id === contact.id);
+          if (userData) {
             return {
               ...contact,
               id: contact.id,
@@ -54,10 +56,12 @@ export default function ContactsPage() {
           }
           return null;
         })
-      );
       
       setContacts(enrichedContacts.filter(Boolean) as Contact[]);
       setIsLoadingContacts(false);
+    }, (error) => {
+        console.error("Fehler beim Laden der Kontakte:", error);
+        setIsLoadingContacts(false);
     });
 
     return () => unsubscribe();

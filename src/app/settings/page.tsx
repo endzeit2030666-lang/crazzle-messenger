@@ -52,10 +52,12 @@ export default function SettingsPage() {
   
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!currentUser || !firestore) return;
     
+    setIsLoading(true);
     const fetchUserData = async () => {
         let allUsersParsed: User[] = [];
         try {
@@ -64,8 +66,8 @@ export default function SettingsPage() {
                 allUsersParsed = JSON.parse(usersJson);
                 setAllUsers(allUsersParsed);
             } else {
-                 toast({variant: "destructive", title: "Fehler", description: "Benutzerdaten nicht gefunden."});
-                 router.push('/');
+                 toast({variant: "destructive", title: "Fehler", description: "Benutzerdaten nicht gefunden. Bitte zur Chat-Ansicht zurückkehren."});
+                 setIsLoading(false);
                  return;
             }
 
@@ -84,12 +86,13 @@ export default function SettingsPage() {
         } catch (error) {
             console.error("Failed to parse data from sessionStorage or fetch user data", error);
             toast({variant: "destructive", title: "Fehler beim Laden der Daten"});
-            router.push('/');
+        } finally {
+            setIsLoading(false);
         }
     };
     
     fetchUserData();
-  }, [currentUser, firestore, router, toast]);
+  }, [currentUser, firestore, toast]);
 
   const unblockContact = async (contactId: string) => {
     if (!currentUser || !firestore) return;
@@ -118,6 +121,14 @@ export default function SettingsPage() {
   
   const handleGoBack = () => {
     router.push('/');
+  }
+
+  if (isLoading) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+    );
   }
 
 
@@ -168,8 +179,8 @@ export default function SettingsPage() {
               Sie erhalten keine Nachrichten oder Anrufe von diesen Kontakten.
             </AlertDialogDescription>
           </AlertDialogHeader>
-            <div className="space-y-2 py-4">
-                {blockedUsers.map(contact => (
+            <div className="space-y-2 py-4 max-h-60 overflow-y-auto">
+                {blockedUsers.length > 0 ? blockedUsers.map(contact => (
                     <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
                         <span className="text-red-500 font-medium">{contact.name}</span>
                         <Button 
@@ -181,8 +192,7 @@ export default function SettingsPage() {
                             Entsperren
                         </Button>
                     </div>
-                ))}
-                {blockedUsers.length === 0 && (
+                )) : (
                     <p className="text-center text-muted-foreground">Keine Kontakte blockiert.</p>
                 )}
             </div>

@@ -15,7 +15,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser } from '@/firebase';
 import type { User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
@@ -31,27 +31,28 @@ type Status = {
   viewed: boolean;
 };
 
-// Mock data, will be replaced with Firestore data later
-const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): Status[] => [
+const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): Status[] => {
+    const otherUsers = allUsers.filter(u => u.id !== currentUserId);
+    return [
   {
     userId: currentUserId,
     stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
     viewed: true,
   },
-  ...(allUsers.length > 0 ? [{
-    userId: allUsers[0].id,
+  ...(otherUsers.length > 0 ? [{
+    userId: otherUsers[0].id,
     stories: [
         { imageUrl: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
         { imageUrl: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
     ],
     viewed: false,
   }] : []),
-  ...(allUsers.length > 2 ? [{
-    userId: allUsers[2].id,
+  ...(otherUsers.length > 2 ? [{
+    userId: otherUsers[2].id,
     stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
     viewed: true,
   }] : []),
-];
+]};
 
 
 export default function StatusPage() {
@@ -75,6 +76,7 @@ export default function StatusPage() {
         return;
     }
 
+    setIsLoading(true);
     try {
         const usersJson = sessionStorage.getItem('allUsers');
         if (usersJson) {
@@ -84,9 +86,7 @@ export default function StatusPage() {
             setCurrentUserData(self || null);
             setStatuses(generateInitialStatusUpdates(currentUser.uid, parsedUsers));
         } else {
-            // Fallback if sessionStorage is empty, though less likely in normal flow
-            toast({ title: "Lade Benutzerdaten...", description: "Bitte warte einen Moment." });
-            // In a real app, you might fetch from Firestore here as a fallback
+            toast({ variant: 'destructive', title: "Benutzerdaten nicht gefunden", description: "Bitte kehre zur Chat-Ansicht zurück, um die Daten zu laden." });
         }
     } catch (error) {
         console.error("Fehler beim Laden der Benutzerdaten aus dem Session Storage", error);
