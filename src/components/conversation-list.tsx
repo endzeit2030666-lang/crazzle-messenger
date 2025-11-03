@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon, UserPlus, Users, BookUser, Info } from "lucide-react";
+import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon, BookUser } from "lucide-react";
 import type { Conversation, Message, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +27,7 @@ import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { Users, Info } from 'lucide-react';
 
 
 type ConversationListProps = {
