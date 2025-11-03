@@ -57,10 +57,12 @@ export default function SettingsPage() {
     if (!currentUser || !firestore) return;
     
     const fetchUserData = async () => {
+        let allUsersParsed: User[] = [];
         try {
             const usersJson = sessionStorage.getItem('allUsers');
             if (usersJson) {
-                setAllUsers(JSON.parse(usersJson));
+                allUsersParsed = JSON.parse(usersJson);
+                setAllUsers(allUsersParsed);
             } else {
                  toast({variant: "destructive", title: "Fehler", description: "Benutzerdaten nicht gefunden."});
                  router.push('/');
@@ -73,8 +75,7 @@ export default function SettingsPage() {
                 const userData = userDoc.data() as User;
                 const blockedIds = userData.blockedUsers || [];
                 
-                if (usersJson) {
-                    const allUsersParsed = JSON.parse(usersJson) as User[];
+                if (allUsersParsed.length > 0) {
                     const blocked = allUsersParsed.filter(u => blockedIds.includes(u.id));
                     setBlockedUsers(blocked);
                 }
