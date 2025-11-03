@@ -67,28 +67,33 @@ export default function ContactsPage() {
     // Generate a consistent, unique ID for the private chat
     const participantIds = [currentUser.uid, contact.id].sort();
     const conversationId = participantIds.join('-');
-
+  
     try {
       const conversationRef = doc(firestore, 'conversations', conversationId);
-
-      // Use setDoc with merge:true. This will create the doc if it doesn't exist,
-      // or do nothing if it already exists (since we're not changing any fields here).
+  
+      // Create conversation with ALL required fields
       await setDoc(conversationRef, {
         type: 'private',
         participantIds: participantIds,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
-        lastMessage: null, // This field is crucial for consistency
+        typing: [],
+        archivedBy: [],
+        isMuted: false,
       }, { merge: true });
-
+  
       // After ensuring the conversation exists, navigate to it.
       router.push(`/?chatId=${conversationId}`);
-
+  
     } catch (e) {
       console.error("Fehler beim Erstellen oder Abrufen des Chats:", e);
-      toast({ variant: 'destructive', title: "Fehler", description: "Der Chat konnte nicht erstellt werden." });
+      toast({ 
+        variant: 'destructive', 
+        title: "Fehler", 
+        description: "Der Chat konnte nicht erstellt werden." 
+      });
     }
-}
+  }
   
   const handleSaveContact = async () => {
     if (!newContactName.trim() || !newContactPhone.trim()) {
