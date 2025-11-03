@@ -237,7 +237,11 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   
   const navigateToSettings = () => {
     router.push('/settings');
-  }
+  };
+  
+  const navigateToContacts = () => {
+    router.push('/contacts');
+  };
 
   const handleConversationSelect = async (contact: UserType) => {
     if (!firestore || !currentUser) return;
@@ -300,6 +304,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
           selectedConversationId={selectedConversationId}
           onConversationSelect={handleSelect}
           onNavigateToSettings={navigateToSettings}
+          onNavigateToContacts={navigateToContacts}
           allUsers={allUsers.filter(u => u.id !== currentUser.uid)}
           onContactSelect={handleConversationSelect}
           currentUser={currentUser}

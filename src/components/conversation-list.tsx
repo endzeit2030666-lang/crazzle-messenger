@@ -34,6 +34,7 @@ type ConversationListProps = {
   selectedConversationId: string | null;
   onConversationSelect: (id: string, type: 'private' | 'group') => void;
   onNavigateToSettings: () => void;
+  onNavigateToContacts: () => void;
   allUsers: UserType[];
   onContactSelect: (contact: UserType) => void;
   currentUser: User;
@@ -44,6 +45,7 @@ export default function ConversationList({
   selectedConversationId,
   onConversationSelect,
   onNavigateToSettings,
+  onNavigateToContacts,
   allUsers,
   onContactSelect,
   currentUser
@@ -248,7 +250,7 @@ export default function ConversationList({
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/contacts')}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNavigateToContacts}>
                             <BookUser className="w-5 h-5 text-white" />
                         </Button>
                     </TooltipTrigger>
