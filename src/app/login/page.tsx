@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser } from '@/firebase';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
@@ -27,7 +27,7 @@ export default function LoginPage() {
     if (!auth || !firestore) return;
     try {
       // We are not awaiting the sign-in itself, but we need to handle the user document creation
-      const cred = await auth.signInAnonymously();
+      const cred = await signInAnonymously(auth);
       const userRef = doc(firestore, 'users', cred.user.uid);
       
       const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
