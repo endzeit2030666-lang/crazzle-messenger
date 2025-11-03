@@ -133,6 +133,8 @@ export default function StatusPage() {
   }, [currentUser, isUserLoading, router, toast, firestore]);
 
   const myStatus = statuses.find(s => s.userId === currentUser?.uid);
+  const myLastStory = myStatus && myStatus.stories.length > 0 ? myStatus.stories[myStatus.stories.length - 1] : null;
+
   const recentUpdates = statuses.filter(s => s.userId !== currentUser?.uid && !s.viewed);
   const viewedUpdates = statuses.filter(s => s.userId !== currentUser?.uid && s.viewed);
 
@@ -247,10 +249,17 @@ export default function StatusPage() {
             onClick={() => handleViewStatus(myStatus || { userId: currentUser!.uid, stories: [], viewed: true })}
             >
             <div className="relative">
-                <Avatar className="w-14 h-14">
-                {currentUserData && <AvatarImage src={currentUserData.avatar} alt={currentUserData.name} />}
-                {currentUserData && <AvatarFallback>{currentUserData.name.charAt(0)}</AvatarFallback>}
-                </Avatar>
+                 <div className={cn("relative p-0.5 rounded-full", myLastStory ? "border-2 border-primary" : "")}>
+                    <Avatar className="w-14 h-14">
+                        {myLastStory && (myLastStory.type === 'image' || myLastStory.type === 'video') ? (
+                            <AvatarImage src={myLastStory.content} alt="Mein Status" className="object-cover" />
+                        ) : null}
+                        <AvatarFallback className={cn("text-primary", myLastStory && myLastStory.type === 'text' ? myLastStory.bgColor : 'bg-muted/20')}>
+                           {!myLastStory && <Plus className="w-6 h-6" />}
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
+
                 {(!myStatus || myStatus.stories.length === 0) && (
                     <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
                         <Plus className="w-4 h-4 text-primary-foreground" />
