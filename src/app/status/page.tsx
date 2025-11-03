@@ -141,6 +141,10 @@ export default function StatusPage() {
   };
   
   const handleViewStatus = (status: Status) => {
+    if (status.stories.length === 0) {
+      setIsSheetOpen(true);
+      return;
+    }
     setViewingStatus(status);
     setCurrentStoryIndex(0);
     if (status.userId !== currentUser?.uid) {
@@ -194,7 +198,7 @@ export default function StatusPage() {
     }
 
     return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col" onClick={handleCloseViewer}>
+      <div className="fixed inset-0 bg-black z-50 flex flex-col" onClick={(e) => { e.stopPropagation(); handleCloseViewer();}}>
         <div className="w-full flex gap-1 p-2 absolute top-0 left-0 z-10">
             {viewingStatus.stories.map((_, index) => (
                  <Progress key={index} value={index < currentStoryIndex ? 100 : (index === currentStoryIndex ? 50 : 0)} className="w-full h-1 bg-white/20 [&>div]:bg-white" />
@@ -240,14 +244,14 @@ export default function StatusPage() {
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <div
             className="flex items-center gap-4 cursor-pointer"
-            onClick={() => myStatus ? handleViewStatus(myStatus) : setIsSheetOpen(true)}
+            onClick={() => handleViewStatus(myStatus || { userId: currentUser!.uid, stories: [], viewed: true })}
             >
             <div className="relative">
                 <Avatar className="w-14 h-14">
                 {currentUserData && <AvatarImage src={currentUserData.avatar} alt={currentUserData.name} />}
                 {currentUserData && <AvatarFallback>{currentUserData.name.charAt(0)}</AvatarFallback>}
                 </Avatar>
-                {(!myStatus) && (
+                {(!myStatus || myStatus.stories.length === 0) && (
                     <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
                         <Plus className="w-4 h-4 text-primary-foreground" />
                     </div>
@@ -255,7 +259,7 @@ export default function StatusPage() {
             </div>
             <div>
                 <h2 className="font-semibold text-lg text-primary">Mein Status</h2>
-                <p className="text-sm text-white">{myStatus ? "Meinen Status ansehen" : "Tippen, um Status hinzuzufügen"}</p>
+                <p className="text-sm text-white">{myStatus && myStatus.stories.length > 0 ? "Meinen Status ansehen" : "Tippen, um Status hinzuzufügen"}</p>
             </div>
             </div>
             <SheetTrigger asChild>
@@ -263,19 +267,19 @@ export default function StatusPage() {
             </SheetTrigger>
             <SheetContent side="bottom" className="rounded-t-lg">
               <SheetHeader>
-                <SheetTitle className="text-center text-primary">Status erstellen</SheetTitle>
+                <SheetTitle className="text-center">Status erstellen</SheetTitle>
               </SheetHeader>
               <div className="grid gap-4 py-4">
                 <Button variant="outline" className="w-full justify-start h-14 text-white" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
-                  <Camera className="w-6 h-6 mr-4" />
+                  <Camera className="w-6 h-6 mr-4 text-primary" />
                   <span className="text-lg">Foto oder Video</span>
                 </Button>
                 <Button variant="outline" className="w-full justify-start h-14 text-white" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
-                  <Type className="w-6 h-6 mr-4" />
+                  <Type className="w-6 h-6 mr-4 text-primary" />
                   <span className="text-lg">Text-Status</span>
                 </Button>
                 <Button variant="outline" className="w-full justify-start h-14 text-white" onClick={handleFileUpload}>
-                  <FileImage className="w-6 h-6 mr-4" />
+                  <FileImage className="w-6 h-6 mr-4 text-primary" />
                   <span className="text-lg">Bild oder Video aus Galerie</span>
                 </Button>
               </div>
