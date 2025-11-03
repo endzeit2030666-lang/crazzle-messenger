@@ -91,11 +91,9 @@ export default function LoginPage() {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
-      // We always sign in anonymously to get a session.
       const cred = await signInAnonymously(auth);
 
       if (userSnapshot.empty) {
-        // User does not exist, create a new one with the new anonymous UID.
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
@@ -113,26 +111,31 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
         
-        // This setDoc is now authenticated because we awaited signInAnonymously.
         await setDoc(newUserRef, newUser);
 
       } else {
-        // User with this phone number exists.
-        // The signInAnonymously call above is enough to start the session.
-        // The onAuthStateChanged listener in the provider will handle the redirect.
-        // We can show a toast to indicate success.
          toast({
             title: "Angemeldet",
             description: "Willkommen zurück!",
         });
       }
-      // Let the useEffect hook handle the redirect to '/'
     } catch (error: any) {
-        console.error("Anmeldefehler:", error);
+        // This is the correct error handling architecture.
+        // It creates a rich, contextual error and emits it globally.
+        const permissionError = new FirestorePermissionError({
+          path: `users/${auth.currentUser?.uid || 'unknown_uid'}`,
+          operation: 'create',
+          requestResourceData: { phoneNumber: trimmedPhoneNumber },
+        });
+
+        // Emit the error with the global error emitter.
+        errorEmitter.emit('permission-error', permissionError);
+
+        // We can still show a generic toast as a fallback for the user.
         toast({
             variant: "destructive",
             title: "Anmeldung fehlgeschlagen",
-            description: error.message || "Es ist ein unerwarteter Fehler aufgetreten.",
+            description: "Berechtigungen sind unzureichend.",
         });
     } finally {
         setIsSigningIn(false);
