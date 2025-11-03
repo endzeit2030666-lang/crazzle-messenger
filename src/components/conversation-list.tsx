@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus, BellOff, FileArchive, FolderArchive, LogOut, Settings } from "lucide-react";
+import { Search, MoreVertical, Users, CameraIcon, BookUser, BellOff, FileArchive, FolderArchive, LogOut, Settings } from "lucide-react";
 import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +11,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/logo";
 import type { User } from "firebase/auth";
-import NewChatDialog from "./new-chat-dialog";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import {
@@ -51,7 +50,6 @@ export default function ConversationList({
   onArchive,
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
   const [conversations, setConversations] = useState(initialConversations);
   const [showArchived, setShowArchived] = useState(false);
   const firestore = useFirestore();
@@ -110,7 +108,6 @@ export default function ConversationList({
   
   const handleConversationSelected = useCallback((conversationId: string) => {
       onConversationSelect(conversationId);
-      setIsNewChatDialogOpen(false);
   }, [onConversationSelect]);
 
 
@@ -238,19 +235,6 @@ export default function ConversationList({
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsNewChatDialogOpen(true)}>
-                            <MessageSquarePlus className="w-5 h-5 text-white" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Neuer Chat</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNavigateToContacts}>
                             <BookUser className="w-5 h-5 text-white" />
                         </Button>
@@ -313,23 +297,13 @@ export default function ConversationList({
               ) : (
                  <div className="text-center text-muted-foreground p-8">
                     <p>Keine aktiven Chats gefunden.</p>
-                    <Button variant="link" className="mt-2" onClick={() => setIsNewChatDialogOpen(true)}>
-                        Neuen Chat starten
-                    </Button>
                 </div>
               )
             )}
         </nav>
       </div>
-
-       <NewChatDialog
-        open={isNewChatDialogOpen}
-        onOpenChange={setIsNewChatDialogOpen}
-        currentUser={currentUser}
-        allUsers={allUsers}
-        existingConversations={conversations}
-        onConversationSelected={handleConversationSelected}
-      />
     </aside>
   );
 }
+
+    
