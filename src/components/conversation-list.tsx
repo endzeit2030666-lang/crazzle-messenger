@@ -63,14 +63,15 @@ export default function ConversationList({
 
     const unsubscribes = initialConversations.map(convo => {
         const messagesRef = collection(firestore, 'conversations', convo.id, 'messages');
-        const q = query(messagesRef, where('senderId', '!=', currentUser.uid), where('status', '!=', 'read'));
+        const q = query(messagesRef, where('senderId', '!=', currentUser.uid));
 
         return onSnapshot(q, (snapshot) => {
-            unreadCountsMap.set(convo.id, snapshot.size);
+            const unreadCount = snapshot.docs.filter(doc => doc.data().status !== 'read').length;
+            unreadCountsMap.set(convo.id, unreadCount);
             
             setConversations(prevConvos => 
                 prevConvos.map(p => 
-                    p.id === convo.id ? { ...p, unreadCount: snapshot.size } : p
+                    p.id === convo.id ? { ...p, unreadCount } : p
                 )
             );
         });
