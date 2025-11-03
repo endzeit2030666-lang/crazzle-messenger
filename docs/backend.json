@@ -27,6 +27,13 @@
           "type": "string",
           "description": "URL of the user's profile picture.",
           "format": "uri"
+        },
+        "blockedUsers": {
+          "type": "array",
+          "description": "A list of user IDs that this user has blocked.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [

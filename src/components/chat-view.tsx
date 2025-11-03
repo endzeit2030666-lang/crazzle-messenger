@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase";
-import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData, arrayUnion } from "firebase/firestore";
 import type { User } from "firebase/auth";
 
 
@@ -45,6 +45,8 @@ type ChatViewProps = {
   contact?: UserType;
   onSendMessage: (content: string, type?: MessageType['type'], duration?: number, selfDestructDuration?: number) => void;
   onClearConversation: (conversationId: string) => void;
+  onBlockContact: (contactId: string) => void;
+  onUnblockContact: (contactId: string) => void;
   onBack: () => void;
   isBlocked: boolean;
   currentUser: User;
@@ -57,6 +59,8 @@ export default function ChatView({
     contact, 
     onSendMessage,
     onClearConversation,
+    onBlockContact,
+    onUnblockContact,
     onBack,
     isBlocked,
     currentUser,
@@ -200,8 +204,8 @@ export default function ChatView({
   }
 
   const handleBlockContact = () => {
-    // This logic should be lifted up to ChatLayout
-    // onBlockContact(contact.id);
+    if (!contact) return;
+    onBlockContact(contact.id);
     setShowBlockDialog(false);
   }
   
@@ -211,10 +215,8 @@ export default function ChatView({
   }
 
   const handleUnblockContact = () => {
-    // This logic should be lifted up to ChatLayout
-    // if (contact) {
-    //   onUnblockContact(contact.id);
-    // }
+    if (!contact) return;
+    onUnblockContact(contact.id);
   }
   
   const handleQuote = (message: MessageType) => {

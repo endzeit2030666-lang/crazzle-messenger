@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
 import type { User } from '@/lib/types';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, updateDoc, arrayRemove, getDoc } from 'firebase/firestore';
 
 
 const SettingsToggleItem = ({ icon, label, checked, onCheckedChange }: { icon: React.ElementType; label: string; checked: boolean; onCheckedChange: (checked: boolean) => void }) => (
@@ -41,58 +43,79 @@ const SettingsToggleItem = ({ icon, label, checked, onCheckedChange }: { icon: R
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user: currentUser } = useUser();
   
   const [readReceipts, setReadReceipts] = useState(true);
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   
-  // These will now be populated from sessionStorage, which is set by ChatLayout
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
+  const [blockedUsers, setBlockedUsers] = useState<User[]>([]);
 
   useEffect(() => {
+    if (!currentUser || !firestore) return;
+    
+    const fetchUserData = async () => {
+        try {
+            const usersJson = sessionStorage.getItem('allUsers');
+            if (usersJson) {
+                setAllUsers(JSON.parse(usersJson));
+            } else {
+                 toast({variant: "destructive", title: "Fehler", description: "Benutzerdaten nicht gefunden."});
+                 router.push('/');
+                 return;
+            }
+
+            const userDocRef = doc(firestore, 'users', currentUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const userData = userDoc.data() as User;
+                const blockedIds = userData.blockedUsers || [];
+                
+                if (usersJson) {
+                    const allUsersParsed = JSON.parse(usersJson) as User[];
+                    const blocked = allUsersParsed.filter(u => blockedIds.includes(u.id));
+                    setBlockedUsers(blocked);
+                }
+            }
+
+        } catch (error) {
+            console.error("Failed to parse data from sessionStorage or fetch user data", error);
+            toast({variant: "destructive", title: "Fehler beim Laden der Daten"});
+            router.push('/');
+        }
+    };
+    
+    fetchUserData();
+  }, [currentUser, firestore, router, toast]);
+
+  const unblockContact = async (contactId: string) => {
+    if (!currentUser || !firestore) return;
+
+    const userDocRef = doc(firestore, 'users', currentUser.uid);
+
     try {
-      const usersJson = sessionStorage.getItem('allUsers');
-      const blockedJson = sessionStorage.getItem('blockedUsers');
-
-      if (usersJson) {
-        setAllUsers(JSON.parse(usersJson));
-      } else {
-        toast({variant: "destructive", title: "Fehler", description: "Benutzerdaten nicht gefunden."});
-        router.push('/');
-        return;
-      }
-      if (blockedJson) {
-        setBlockedUserIds(new Set(JSON.parse(blockedJson)));
-      }
-    } catch (error) {
-        console.error("Failed to parse data from sessionStorage", error);
-        toast({variant: "destructive", title: "Fehler beim Laden der Daten"});
-        router.push('/');
-    }
-  }, [router, toast]);
-
-  const blockedContacts = allUsers.filter(user => blockedUserIds.has(user.id));
-
-  const unblockContact = (contactId: string) => {
-    const newBlockedIds = new Set(blockedUserIds);
-    newBlockedIds.delete(contactId);
-    setBlockedUserIds(newBlockedIds); // Update local state immediately for UI responsiveness
-    
-    // Persist the change to sessionStorage so it can be picked up on the main page
-    sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(newBlockedIds)));
-    
-    const contact = allUsers.find(u => u.id === contactId);
-    if (contact) {
-        toast({
-            title: "Blockierung aufgehoben",
-            description: `${contact.name} ist nicht mehr blockiert.`
+        await updateDoc(userDocRef, {
+            blockedUsers: arrayRemove(contactId)
         });
+        
+        setBlockedUsers(prev => prev.filter(u => u.id !== contactId));
+        
+        const contact = allUsers.find(u => u.id === contactId);
+        if (contact) {
+            toast({
+                title: "Blockierung aufgehoben",
+                description: `${contact.name} ist nicht mehr blockiert.`
+            });
+        }
+    } catch (error) {
+        console.error("Fehler beim Aufheben der Blockierung:", error);
+        toast({variant: 'destructive', title: 'Fehler', description: 'Blockierung konnte nicht aufgehoben werden.'});
     }
   }
   
   const handleGoBack = () => {
-    // Navigate back to the home page. The home page will re-read sessionStorage.
     router.push('/');
   }
 
@@ -121,7 +144,7 @@ export default function SettingsPage() {
               </div>
               <span className="flex-1 text-left font-medium">Blockierte Kontakte</span>
               <div className="flex items-center">
-                  <span className="text-white mr-2">{blockedContacts.length}</span>
+                  <span className="text-white mr-2">{blockedUsers.length}</span>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
           </button>
@@ -145,7 +168,7 @@ export default function SettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
             <div className="space-y-2 py-4">
-                {blockedContacts.map(contact => (
+                {blockedUsers.map(contact => (
                     <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
                         <span className="text-red-500 font-medium">{contact.name}</span>
                         <Button 
@@ -158,7 +181,7 @@ export default function SettingsPage() {
                         </Button>
                     </div>
                 ))}
-                {blockedContacts.length === 0 && (
+                {blockedUsers.length === 0 && (
                     <p className="text-center text-muted-foreground">Keine Kontakte blockiert.</p>
                 )}
             </div>

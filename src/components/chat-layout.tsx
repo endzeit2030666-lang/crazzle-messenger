@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Conversation, User as UserType, Message } from "@/lib/types";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
@@ -21,12 +21,22 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
+  const [currentUserData, setCurrentUserData] = useState<UserType | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
+  const blockedUserIds = useMemo(() => new Set(currentUserData?.blockedUsers || []), [currentUserData]);
+
   useEffect(() => {
     if (!firestore || !currentUser) return;
+
+    // Fetch and listen to the current user's document for real-time updates (like blocks)
+    const userDocRef = doc(firestore, "users", currentUser.uid);
+    const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+            setCurrentUserData({ id: doc.id, ...doc.data() } as UserType);
+        }
+    });
 
     // Fetch all users to act as a contact list
     const usersRef = collection(firestore, "users");
@@ -35,6 +45,7 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
           .map(doc => ({ id: doc.id, ...doc.data() } as UserType))
           .filter(u => u.id !== currentUser.uid);
         setAllUsers(usersData);
+        sessionStorage.setItem('allUsers', JSON.stringify(usersData)); // For settings page
     });
 
     // Fetch conversations for the current user
@@ -77,13 +88,16 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
     });
 
     return () => {
+        unsubscribeUser();
         unsubscribeUsers();
         unsubscribeConversations();
     };
 }, [firestore, currentUser, allUsers]);
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
-  const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.uid && blockedUsers.has(p.id));
+  const contactInSelectedConversation = selectedConversation?.participants.find(p => p.id !== currentUser.uid);
+  const isContactBlocked = contactInSelectedConversation ? blockedUserIds.has(contactInSelectedConversation.id) : false;
+
 
   const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
     if (!selectedConversationId || !firestore || !selectedConversation) return;
@@ -169,14 +183,40 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
         description: "Alle Nachrichten in diesem Chat wurden gelöscht.",
     });
   };
+
+  const handleBlockContact = async (contactId: string) => {
+      if (!firestore || !currentUser) return;
+      const userDocRef = doc(firestore, 'users', currentUser.uid);
+      try {
+          await updateDoc(userDocRef, {
+              blockedUsers: arrayUnion(contactId)
+          });
+          toast({ title: 'Kontakt blockiert', description: 'Du wirst keine Nachrichten mehr von diesem Kontakt erhalten.' });
+      } catch (error) {
+          console.error("Fehler beim Blockieren des Kontakts:", error);
+          toast({ variant: 'destructive', title: 'Fehler', description: 'Kontakt konnte nicht blockiert werden.' });
+      }
+  };
+
+  const handleUnblockContact = async (contactId: string) => {
+      if (!firestore || !currentUser) return;
+      const userDocRef = doc(firestore, 'users', currentUser.uid);
+      try {
+          await updateDoc(userDocRef, {
+              blockedUsers: arrayRemove(contactId)
+          });
+          toast({ title: 'Blockierung aufgehoben' });
+      } catch (error) {
+          console.error("Fehler beim Aufheben der Blockierung:", error);
+          toast({ variant: 'destructive', title: 'Fehler', description: 'Blockierung konnte nicht aufgehoben werden.' });
+      }
+  };
   
   const handleBack = () => {
     setSelectedConversationId(null);
   };
   
   const navigateToSettings = () => {
-    // sessionStorage.setItem('allUsers', JSON.stringify(allUsers));
-    // sessionStorage.setItem('blockedUsers', JSON.stringify(Array.from(blockedUsers)));
     router.push('/settings');
   }
 
@@ -237,11 +277,13 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
           <ChatView
             key={selectedConversation.id}
             conversation={selectedConversation}
-            contact={selectedConversation.participants.find(p => p.id !== currentUser.uid)}
+            contact={contactInSelectedConversation}
             onSendMessage={handleSendMessage}
             onClearConversation={handleClearConversation}
+            onBlockContact={handleBlockContact}
+            onUnblockContact={handleUnblockContact}
             onBack={handleBack}
-            isBlocked={isContactBlocked ?? false}
+            isBlocked={isContactBlocked}
             currentUser={currentUser}
           />
         ) : (

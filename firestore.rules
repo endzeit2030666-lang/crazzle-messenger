@@ -12,13 +12,19 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Returns the other participant's user document
+    function getOtherParticipant(conversation) {
+      let otherParticipantId = conversation.participantIds[0] == request.auth.uid ? conversation.participantIds[1] : conversation.participantIds[0];
+      return get(/databases/$(database)/documents/users/$(otherParticipantId)).data;
+    }
+
     // USERS
     // Users can read any profile (for contact lists)
-    // Users can only create and update their own profile
+    // Users can only create their own profile and update it if they are not blocking the other user.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isUser(userId);
-      allow update: if isUser(userId);
+      allow update: if isUser(userId) && !(request.resource.data.blockedUsers.hasAny(request.auth.uid.split()));
       allow delete: if false; // Users should not be able to delete their accounts this way
     }
     
@@ -30,8 +36,11 @@ service cloud.firestore {
       
       // MESSAGES subcollection
       // Users can only read/write messages in conversations they are a part of
+      // and as long as they are not blocked by the other participant.
       match /messages/{messageId} {
-        allow read, create: if isSignedIn() && get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.hasAny([request.auth.uid]);
+        allow read, create: if isSignedIn() && 
+                                get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds.hasAny([request.auth.uid]) &&
+                                !getOtherParticipant(get(/databases/$(database)/documents/conversations/$(conversationId)).data).blockedUsers.hasAny([request.auth.uid]);
         allow update, delete: if isSignedIn() && (request.auth.uid == resource.data.senderId);
       }
     }
