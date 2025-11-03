@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle, Trash2, Pencil, Loader2, Info } from "lucide-react";
+import { ShieldCheck, Phone, Video, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -106,6 +106,7 @@ export default function ChatView({
 
   useEffect(() => {
     if (!firestore || !conversation.id) return;
+    setIsInitialLoading(true);
     const messagesRef = collection(firestore, 'conversations', conversation.id, 'messages');
     const q = query(messagesRef, orderBy('date', 'desc'), limit(MESSAGES_PER_PAGE));
 
@@ -121,43 +122,10 @@ export default function ChatView({
           } as MessageType;
        });
 
-       if (isInitialLoading) {
-            setMessages(newMessagesData.reverse());
-            setIsInitialLoading(false);
-       } else {
-            // This handles real-time updates. We check for new messages and append them.
-             snapshot.docChanges().forEach((change) => {
-                if (change.type === "added") {
-                    const sender = conversation.participants.find(p => p.id === change.doc.data().senderId);
-                    const newMessage = {
-                        id: change.doc.id,
-                        ...change.doc.data(),
-                        senderName: sender?.name || 'Unbekannt',
-                        date: change.doc.data().date?.toDate()
-                    } as MessageType;
-                    // Only add if it's not already in the list to avoid duplicates
-                    if (!messages.some(m => m.id === newMessage.id)) {
-                         setMessages(prev => [...prev, newMessage]);
-                    }
-                }
-                if (change.type === "modified") {
-                    const sender = conversation.participants.find(p => p.id === change.doc.data().senderId);
-                    const modifiedMessage = {
-                        id: change.doc.id,
-                        ...change.doc.data(),
-                        senderName: sender?.name || 'Unbekannt',
-                        date: change.doc.data().date?.toDate()
-                    } as MessageType;
-                     setMessages(prev => prev.map(m => m.id === modifiedMessage.id ? modifiedMessage : m));
-                }
-                 if (change.type === "removed") {
-                    setMessages(prev => prev.filter(m => m.id !== change.doc.id));
-                }
-            });
-       }
-        
-        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-        setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
+       setMessages(newMessagesData.reverse());
+       setIsInitialLoading(false);
+       setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+       setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
 
     }, (error) => {
         console.error("Error fetching messages:", error);
@@ -166,13 +134,52 @@ export default function ChatView({
     });
 
     return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firestore, conversation.id, conversation.participants]);
+  }, [firestore, conversation.id]);
+
+  useEffect(() => {
+     if (!firestore || !conversation.id || isInitialLoading) return;
+     
+     const messagesRef = collection(firestore, 'conversations', conversation.id, 'messages');
+     const q = query(messagesRef, orderBy('date', 'desc'), limit(1));
+     
+     const unsubscribe = onSnapshot(q, (snapshot) => {
+         snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+                const sender = conversation.participants.find(p => p.id === change.doc.data().senderId);
+                const newMessage = {
+                    id: change.doc.id,
+                    ...change.doc.data(),
+                    senderName: sender?.name || 'Unbekannt',
+                    date: change.doc.data().date?.toDate()
+                } as MessageType;
+                
+                if (!messages.some(m => m.id === newMessage.id)) {
+                     setMessages(prev => [...prev, newMessage]);
+                }
+            }
+             if (change.type === "modified") {
+                const sender = conversation.participants.find(p => p.id === change.doc.data().senderId);
+                const modifiedMessage = {
+                    id: change.doc.id,
+                    ...change.doc.data(),
+                    senderName: sender?.name || 'Unbekannt',
+                    date: change.doc.data().date?.toDate()
+                } as MessageType;
+                 setMessages(prev => prev.map(m => m.id === modifiedMessage.id ? modifiedMessage : m));
+            }
+             if (change.type === "removed") {
+                setMessages(prev => prev.filter(m => m.id !== change.doc.id));
+            }
+        });
+     });
+
+     return () => unsubscribe();
+
+  }, [firestore, conversation.id, isInitialLoading, conversation.participants, messages]);
 
 
   useEffect(() => {
     if (scrollAreaRef.current && !isLoadingMore) {
-        // We scroll to the bottom only when new messages are added, not when loading more
         scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages.length, isLoadingMore]);
@@ -203,7 +210,6 @@ export default function ChatView({
     setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
     
     if (scrollAreaRef.current) {
-        // A small delay to allow React to render the new messages before adjusting scroll
         setTimeout(() => {
             if (scrollAreaRef.current) {
                 const newScrollHeight = scrollAreaRef.current.scrollHeight;
@@ -289,16 +295,12 @@ export default function ChatView({
     let newReactions = [...messageToUpdate.reactions];
   
     if (existingReactionIndex > -1) {
-      // User has reacted before
       if (newReactions[existingReactionIndex].emoji === emoji) {
-        // Same emoji, remove reaction
         newReactions.splice(existingReactionIndex, 1);
       } else {
-        // Different emoji, update reaction
         newReactions[existingReactionIndex] = { emoji, userId: currentUser.uid, username: currentUser.displayName || "You" };
       }
     } else {
-      // New reaction
       newReactions.push({ emoji, userId: currentUser.uid, username: currentUser.displayName || "You" });
     }
   
@@ -309,7 +311,6 @@ export default function ChatView({
       if(!firestore || !currentUser) return;
       const messageRef = doc(firestore, "conversations", conversation.id, "messages", messageId);
       const messageToUpdate = messages.find(m => m.id === messageId);
-      // Only mark as read if it's not from the current user and not already read
       if (messageToUpdate && messageToUpdate.senderId !== currentUser.uid && !messageToUpdate.readAt) {
           await updateDoc(messageRef, { readAt: serverTimestamp() });
       }
@@ -325,20 +326,12 @@ export default function ChatView({
     }
   };
 
-  if (isInitialLoading && messages.length === 0) {
+  if (isInitialLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!isGroup && !contact) {
-      return (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground bg-muted/20">
-            Wähle eine Konversation, um mit dem Chatten zu beginnen.
-          </div>
-        );
   }
 
   return (
@@ -357,9 +350,9 @@ export default function ChatView({
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
            <div className="flex items-center text-sm text-white">
              {isGroup ? (
-                <Users className="w-4 h-4 mr-2 text-green-500" />
+                <Users className="w-4 h-4 mr-2 text-primary" />
              ) : (
-                <Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact?.onlineStatus === 'online' ? 'text-green-500' : 'text-red-500')} />
+                <div className={cn("w-2.5 h-2.5 mr-2 rounded-full", contact?.onlineStatus === 'online' ? 'bg-green-500' : 'bg-red-500')} />
              )}
              {headerDetails.info}
           </div>
@@ -394,7 +387,7 @@ export default function ChatView({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="opacity-100">
+                <Button variant="ghost" size="icon">
                   <MoreVertical className="w-5 h-5 text-white" />
                   <span className="sr-only">Weitere Optionen</span>
                 </Button>
@@ -444,7 +437,7 @@ export default function ChatView({
         </div>
       )}
 
-      <div ref={scrollAreaRef} className="flex-1 p-6 overflow-y-auto space-y-2">
+      <div ref={scrollAreaRef} onScroll={(e) => e.currentTarget.scrollTop === 0 && loadMoreMessages()} className="flex-1 p-6 overflow-y-auto space-y-2">
         {hasMoreMessages && (
           <div className="text-center mb-4">
             <Button

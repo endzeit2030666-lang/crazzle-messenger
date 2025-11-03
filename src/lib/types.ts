@@ -57,9 +57,10 @@ export type Conversation = {
   participants: User[]; // This will be populated client-side
   lastMessage?: Message;
   isMuted?: boolean;
-  createdAt?: Timestamp;
+  createdAt: Timestamp;
   // Group-specific fields
   name?: string;
   avatar?: string;
   admins?: string[];
+  createdBy: string;
 };

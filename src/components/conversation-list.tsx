@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, MoreVertical, Users, CameraIcon, BookUser } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus } from "lucide-react";
 import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,24 +10,20 @@ import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/logo";
-import { useToast } from "@/hooks/use-toast";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { User } from "firebase/auth";
+import NewChatDialog from "./new-chat-dialog";
 
 
 type ConversationListProps = {
   conversations: Conversation[];
   selectedConversationId: string | null;
-  onConversationSelect: (id: string, type: 'private' | 'group') => void;
+  onConversationSelect: (id: string) => void;
   onNavigateToSettings: () => void;
   onNavigateToContacts: () => void;
   onNavigateToStatus: () => void;
+  onNavigateToProfile: () => void;
   currentUser: User;
+  allUsers: UserType[];
 };
 
 export default function ConversationList({
@@ -37,10 +33,12 @@ export default function ConversationList({
   onNavigateToSettings,
   onNavigateToContacts,
   onNavigateToStatus,
-  currentUser
+  onNavigateToProfile,
+  currentUser,
+  allUsers,
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
+  const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
 
   const filteredConversations = useMemo(() => {
     return conversations
@@ -58,6 +56,11 @@ export default function ConversationList({
       });
   }, [conversations, searchTerm, currentUser.uid]);
   
+  const handleConversationSelected = useCallback((conversationId: string) => {
+      onConversationSelect(conversationId);
+      setIsNewChatDialogOpen(false);
+  }, [onConversationSelect]);
+
 
   const ConversationItem = ({ convo }: { convo: Conversation }) => {
     const isGroup = convo.type === 'group';
@@ -71,7 +74,7 @@ export default function ConversationList({
       : convo.participants.find(p => p.id === lastMessage?.senderId)?.name?.split(' ')[0];
 
     const handleSelect = () => {
-      onConversationSelect(convo.id, convo.type);
+      onConversationSelect(convo.id);
     }
     
     const displayName = isGroup ? convo.name : contact?.name;
@@ -119,7 +122,7 @@ export default function ConversationList({
     <aside className="w-full h-full flex flex-col border-r border-border bg-muted/30 md:w-96">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigateToProfile}>
             <Logo className="w-8 h-8" />
             <h1 className="font-headline text-2xl font-bold text-primary">Crazzle</h1>
           </div>
@@ -133,6 +136,19 @@ export default function ConversationList({
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Status</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsNewChatDialogOpen(true)}>
+                            <MessageSquarePlus className="w-5 h-5 text-white" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Neuer Chat</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
@@ -177,10 +193,27 @@ export default function ConversationList({
       </div>
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2 space-y-1">
-          <h3 className="px-3 text-xs font-semibold text-white tracking-wider uppercase">Alle Chats</h3>
-          {filteredConversations.map(convo => <ConversationItem key={convo.id} convo={convo} />)}
+          {filteredConversations.length > 0 ? (
+            filteredConversations.map(convo => <ConversationItem key={convo.id} convo={convo} />)
+          ) : (
+             <div className="text-center text-muted-foreground p-8">
+                <p>Keine Chats gefunden.</p>
+                <Button variant="link" className="mt-2" onClick={() => setIsNewChatDialogOpen(true)}>
+                    Neuen Chat starten
+                </Button>
+            </div>
+          )}
         </nav>
       </div>
+
+       <NewChatDialog
+        open={isNewChatDialogOpen}
+        onOpenChange={setIsNewChatDialogOpen}
+        currentUser={currentUser}
+        allUsers={allUsers}
+        existingConversations={conversations}
+        onConversationSelected={handleConversationSelected}
+      />
     </aside>
   );
 }

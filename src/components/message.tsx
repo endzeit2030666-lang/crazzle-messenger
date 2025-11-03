@@ -30,16 +30,16 @@ const useDecryptedMessage = (message: MessageType, senderPublicKey: string | und
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // For group chats, messages are currently sent in plaintext.
     if (isGroup || isCurrentUser || message.type !== 'text' || !message.content) {
       setIsLoading(false);
       setDecryptedContent(message.content);
       return;
     }
     
+    // Public key is not available for old messages before the feature was added
     if (!senderPublicKey) {
         setIsLoading(false);
-        setDecryptedContent("Public Key des Senders nicht gefunden.");
+        setDecryptedContent(message.content); // Show encrypted content as fallback
         return;
     }
 
@@ -204,10 +204,10 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
       ([entry]) => {
         if (entry.isIntersecting) {
           onMessageRead(message.id);
-          observer.unobserve(entry.target); // Stop observing once read
+          observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.8 } // Mark as read when 80% of the message is visible
+      { threshold: 0.8 }
     );
 
     observer.observe(messageRef.current);
@@ -247,8 +247,6 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   };
   
   const handleDelete = (forEveryone: boolean) => {
-      // The `forEveryone` logic needs to be handled by a cloud function for atomicity
-      // For now, we'll just delete the message from the client's view
       onDelete(message.id);
   }
 
@@ -265,7 +263,6 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   }
   
   const handleSwipe = (e: React.TouchEvent) => {
-    // A very basic swipe detection
     const touch = e.changedTouches[0];
     if (touch.clientX - (e.currentTarget.getBoundingClientRect().left) > 75) {
        onQuote(message);
@@ -279,7 +276,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
 
   const hasContent = message.content || message.audioUrl || message.imageUrl || message.videoUrl;
   if (!hasContent && message.type === 'text') {
-    return null; // Don't render empty text messages that aren't media placeholders
+    return null;
   }
 
 
@@ -291,7 +288,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
             <AvatarFallback>{sender.name?.charAt(0)}</AvatarFallback>
          </Avatar>
        )}
-       <div className={cn("flex items-end gap-2", isCurrentUser ? "justify-end" : "justify-start")}>
+       <div className={cn("flex items-end gap-2", isCurrentUser ? "flex-row-reverse" : "flex-row")}>
        <div className={cn("relative opacity-0 group-hover:opacity-100 transition-opacity", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -337,7 +334,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
           isCurrentUser
             ? "bg-primary text-primary-foreground rounded-br-none"
             : "bg-secondary text-secondary-foreground rounded-bl-none",
-          (message.type === 'image' || message.type === 'video') && "p-1" // Less padding for media
+          (message.type === 'image' || message.type === 'video') && "p-1"
         )}
       >
         {isGroup && !isCurrentUser && <p className="text-xs font-bold mb-1 text-primary">{sender?.name}</p>}

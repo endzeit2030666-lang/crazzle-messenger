@@ -60,8 +60,6 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = content.match(urlRegex);
     if (urls && urls.length > 0) {
-        // For simplicity, we just use a placeholder for link previews
-        // A real implementation would fetch metadata from the URL
         linkPreview = {
             url: urls[0],
             title: `Vorschau für ${urls[0]}`,
@@ -94,7 +92,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
       senderId: currentUser.uid,
       content: encryptedContent,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: serverTimestamp() as any, // Firestore will handle this
+      date: serverTimestamp() as any,
       status: 'sent',
       reactions: [],
       type: type,
@@ -103,7 +101,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     };
     
     if(type !== 'text') {
-        newMessage.content = ''; // Do not store URL in content for non-text messages
+        newMessage.content = ''; 
     }
     
     switch (type) {
@@ -159,7 +157,6 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
    useEffect(() => {
     if (!currentUser.uid || !firestore) return;
 
-    // Fetch current user's data for blocked list
     const userDocRef = doc(firestore, 'users', currentUser.uid);
     const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
         if(doc.exists()) {
@@ -167,10 +164,9 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         }
     });
 
-    // Fetch all users for populating conversations
     const usersQuery = query(collection(firestore, 'users'));
     const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => doc.data() as UserType);
+      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserType));
       setAllUsers(usersData);
     });
 
@@ -262,13 +258,11 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
 
   const handleConversationSelect = useCallback((id: string) => {
     setSelectedConversationId(id);
-    // On mobile, this will trigger the view change
     if (window.innerWidth < 768) {
       router.push(`/?chatId=${id}`);
     }
   }, [router]);
 
-  // Effect to handle direct navigation via query param on mobile
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const chatId = urlParams.get('chatId');
@@ -280,6 +274,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const navigateToSettings = () => router.push('/settings');
   const navigateToContacts = () => router.push('/contacts');
   const navigateToStatus = () => router.push('/status');
+  const navigateToProfile = () => router.push('/profile');
 
   return (
     <div className="flex h-screen w-full">
@@ -291,7 +286,9 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
           onNavigateToSettings={navigateToSettings}
           onNavigateToContacts={navigateToContacts}
           onNavigateToStatus={navigateToStatus}
+          onNavigateToProfile={navigateToProfile}
           currentUser={currentUser}
+          allUsers={allUsers}
         />
       </div>
       <div className={cn("flex-1 flex-col", selectedConversationId ? "flex" : "hidden md:flex")}>
@@ -311,8 +308,9 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             currentUser={currentUser}
           />
         ) : (
-          <div className="flex-1 hidden md:flex items-center justify-center text-muted-foreground bg-muted/20">
-            Wähle eine Konversation, um mit dem Chatten zu beginnen.
+          <div className="flex-1 hidden md:flex flex-col items-center justify-center text-center text-muted-foreground bg-muted/20 p-8">
+            <h2 className="text-2xl font-bold font-headline text-primary mb-2">Willkommen bei Crazzle</h2>
+            <p className="max-w-sm">Wähle eine Konversation aus der Liste, um mit dem Chatten zu beginnen, oder erstelle einen neuen Chat, um mit deinen Freunden in Kontakt zu treten.</p>
           </div>
         )}
       </div>
