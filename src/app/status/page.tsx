@@ -141,7 +141,7 @@ export default function StatusPage() {
   };
   
   const handleViewStatus = (status: Status) => {
-    if (status.stories.length === 0) {
+    if (!status || status.stories.length === 0) {
       setIsSheetOpen(true);
       return;
     }
@@ -270,17 +270,17 @@ export default function StatusPage() {
                 <SheetTitle className="text-center">Status erstellen</SheetTitle>
               </SheetHeader>
               <div className="grid gap-4 py-4">
-                <Button variant="outline" className="w-full justify-start h-14 text-white" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
+                <Button variant="outline" className="w-full justify-start h-14" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
                   <Camera className="w-6 h-6 mr-4 text-primary" />
-                  <span className="text-lg">Foto oder Video</span>
+                  <span className="text-lg text-white">Foto oder Video</span>
                 </Button>
-                <Button variant="outline" className="w-full justify-start h-14 text-white" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
+                <Button variant="outline" className="w-full justify-start h-14" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
                   <Type className="w-6 h-6 mr-4 text-primary" />
-                  <span className="text-lg">Text-Status</span>
+                  <span className="text-lg text-white">Text-Status</span>
                 </Button>
-                <Button variant="outline" className="w-full justify-start h-14 text-white" onClick={handleFileUpload}>
+                <Button variant="outline" className="w-full justify-start h-14" onClick={handleFileUpload}>
                   <FileImage className="w-6 h-6 mr-4 text-primary" />
-                  <span className="text-lg">Bild oder Video aus Galerie</span>
+                  <span className="text-lg text-white">Bild oder Video aus Galerie</span>
                 </Button>
               </div>
             </SheetContent>
