@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -143,7 +144,6 @@ const ReactionPicker = ({ onSelect, onPlusClick }: { onSelect: (emoji: string) =
 export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender }: MessageProps) {
   const isCurrentUser = message.senderId === currentUser.id;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
-  const [isDestroyed, setIsDestroyed] = useState(false);
   const { toast } = useToast();
   
   // Self-destruct logic
@@ -154,20 +154,21 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   }, [message.selfDestructDuration, message.senderId, message.readAt, message.id, onMessageRead]);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (message.selfDestructDuration && message.readAt) {
       const destructTime = message.readAt + (message.selfDestructDuration * 1000);
       const remainingTime = destructTime - Date.now();
 
       if (remainingTime > 0) {
-        const timer = setTimeout(() => {
-          setIsDestroyed(true);
+        timer = setTimeout(() => {
+          onDelete(message.id, false);
         }, remainingTime);
-        return () => clearTimeout(timer);
       } else {
-        setIsDestroyed(true);
+        onDelete(message.id, false);
       }
     }
-  }, [message.selfDestructDuration, message.readAt, message.id]);
+    return () => clearTimeout(timer);
+  }, [message.selfDestructDuration, message.readAt, message.id, onDelete]);
 
 
   const handleCopy = () => {
@@ -204,10 +205,6 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
        onQuote(message);
     }
   };
-
-  if (isDestroyed) {
-    return null;
-  }
 
   if (!message.content && !message.audioUrl) {
     return null;
@@ -303,9 +300,9 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
             </TooltipProvider>
           )}
 
-          {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground/70")}>Bearbeitet</span>}
+          {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-white")}>Bearbeitet</span>}
 
-          <span className={cn("text-primary", isCurrentUser ? "text-primary-foreground/70" : "text-primary")}>
+          <span className={cn("text-white", isCurrentUser ? "text-primary-foreground/70" : "text-white")}>
             {message.timestamp}
           </span>
           {isCurrentUser && <StatusIcon status={message.status} />}
@@ -333,7 +330,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
-                <span className="pr-1 text-muted-foreground">{message.reactions.length}</span>
+                <span className="pr-1 text-white">{message.reactions.length}</span>
             </div>
         )}
       </div>
