@@ -4,13 +4,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { User } from "@/lib/types";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Image from "next/image";
-import { Lock } from "lucide-react";
+import { Copy, Link as LinkIcon, Check } from "lucide-react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 type ContactVerificationDialogProps = {
   contact: User;
@@ -25,16 +28,36 @@ export default function ContactVerificationDialog({
   open,
   onOpenChange,
 }: ContactVerificationDialogProps) {
-  const qrCodeImage = PlaceHolderImages.find(img => img.id === 'qrCode');
+  const { toast } = useToast();
+  const [inviteLink, setInviteLink] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+
+  useEffect(() => {
+    if (open && typeof window !== 'undefined') {
+      const link = `${window.location.origin}/profile?userId=${contact.id}`;
+      setInviteLink(link);
+      setIsCopied(false); // Reset copied state when dialog opens
+    }
+  }, [open, contact.id]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(inviteLink);
+    setIsCopied(true);
+    toast({
+      title: "Link kopiert!",
+      description: "Du kannst diesen Link jetzt mit anderen teilen.",
+    });
+    setTimeout(() => setIsCopied(false), 2000); // Reset icon after 2 seconds
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md bg-card">
         <DialogHeader>
-          <DialogTitle className="font-headline text-center text-2xl">Identität verifizieren</DialogTitle>
+          <DialogTitle className="font-headline text-center text-2xl">Kontakt einladen</DialogTitle>
           <DialogDescription className="text-center">
-            Du kannst die Identität dieses Kontakts überprüfen, um sicherzustellen, dass du mit der richtigen Person kommunizierst.
+            Teile diesen Link, um {contact.name} zu einer Konversation einzuladen oder damit andere dich als Kontakt hinzufügen können.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-6 py-6">
@@ -45,28 +68,19 @@ export default function ContactVerificationDialog({
             <AvatarFallback className="text-3xl">{contact.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <h3 className="text-xl font-semibold font-headline">{contact.name}</h3>
-
-          {qrCodeImage && (
-             <div className="p-2 bg-white rounded-lg">
-                <Image
-                    src={qrCodeImage.imageUrl}
-                    alt="QR Code"
-                    width={200}
-                    height={200}
-                    data-ai-hint={qrCodeImage.imageHint}
-                />
-             </div>
-          )}
-          
-          <div className="w-full p-4 bg-muted rounded-lg text-center break-all">
-            <p className="text-xs text-muted-foreground mb-2">Öffentlicher Schlüssel-Fingerabdruck</p>
-            <p className="font-mono text-sm tracking-tighter">{contact.publicKey}</p>
-          </div>
         </div>
-         <div className="flex items-center justify-center text-sm text-muted-foreground">
-            <Lock className="w-4 h-4 mr-2" />
-            Deine Kommunikation ist Ende-zu-Ende-verschlüsselt.
+         <div className="flex flex-col gap-2">
+            <label htmlFor="invite-link" className="text-sm font-medium text-muted-foreground">Dein persönlicher Einladungslink</label>
+            <div className="flex gap-2">
+                 <Input id="invite-link" value={inviteLink} readOnly className="bg-muted border-border" />
+                 <Button size="icon" onClick={handleCopy}>
+                    {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                 </Button>
+            </div>
         </div>
+        <DialogFooter className="mt-4">
+            <p className="text-xs text-muted-foreground text-center w-full">Jeder mit diesem Link kann dein Profil sehen und dich als Kontakt hinzufügen.</p>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
