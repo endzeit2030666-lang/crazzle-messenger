@@ -57,8 +57,15 @@ export default function TextStatusPage() {
   const handlePostStatus = () => {
     setShowDurationDialog(false);
     
-    // In a real app, this would save to a DB. Here we simulate by passing to the status page.
-    // This is a workaround as we don't have a global state manager.
+    if (!text.trim()) {
+        toast({
+            variant: "destructive",
+            title: "Leerer Status",
+            description: "Kann keinen leeren Status posten.",
+        });
+        return;
+    }
+    
     try {
         const newStatusStory = {
             type: 'text',
@@ -66,15 +73,16 @@ export default function TextStatusPage() {
             bgColor: bgColor,
             timestamp: new Date().toISOString(),
         };
-        // We use sessionStorage to pass the data to the status page
+
         sessionStorage.setItem('newStatusStory', JSON.stringify(newStatusStory));
 
         toast({
             title: 'Status gepostet!',
-            description: `Dein Text-Status ist jetzt für ${statusDuration === '48h' ? '48 Stunden' : 'immer'} sichtbar.`,
+            description: `Dein Text-Status ist jetzt sichtbar.`,
         });
         router.push('/status');
     } catch (e) {
+        console.error("Fehler beim Speichern des Status:", e);
         toast({
             variant: 'destructive',
             title: 'Fehler',

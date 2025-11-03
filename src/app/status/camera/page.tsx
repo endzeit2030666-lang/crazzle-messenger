@@ -42,9 +42,8 @@ export default function CameraPage() {
 
   useEffect(() => {
     if (fromGallery) {
-      // If we come from gallery, trigger the file input
       fileInputRef.current?.click();
-      return; // Don't request camera permission
+      return; 
     }
 
     const getCameraPermission = async () => {
@@ -55,7 +54,7 @@ export default function CameraPage() {
           videoRef.current.srcObject = stream;
         }
 
-        mediaRecorder.current = new MediaRecorder(stream);
+        mediaRecorder.current = new MediaRecorder(stream, { mimeType: 'video/webm' });
         mediaRecorder.current.ondataavailable = (event) => {
           if (event.data.size > 0) {
             recordedChunks.current.push(event.data);
@@ -99,7 +98,6 @@ export default function CameraPage() {
             setMediaType('photo');
         }
     } else {
-        // If user cancels file selection, go back
         router.back();
     }
   };
@@ -149,15 +147,36 @@ export default function CameraPage() {
     }
   };
   
-  const handlePostStatus = () => {
+  const handlePostStatus = async () => {
+    if (!mediaBlob || !user) return;
+
     setShowDurationDialog(false);
-    // This is still simulated as we don't have a real status backend
-    // In a real app, this would upload the mediaBlob and create a status document
-    toast({
-        title: "Status posten (simuliert)",
-        description: `Dein Status wird für ${statusDuration === '48h' ? '48 Stunden' : 'immer'} sichtbar sein. Titel: "${caption}"`
-    });
-    router.push('/status');
+    setIsUploading(true);
+
+    try {
+        const path = `status/${user.uid}/${Date.now()}`;
+        const downloadURL = await uploadMedia(mediaBlob, path);
+
+        const newStatusStory = {
+            type: mediaType,
+            content: downloadURL,
+            bgColor: '', // Not used for media
+            timestamp: new Date().toISOString(),
+        };
+        sessionStorage.setItem('newStatusStory', JSON.stringify(newStatusStory));
+
+        toast({
+            title: "Status gepostet!",
+            description: `Dein Status ist jetzt sichtbar.`
+        });
+        router.push('/status');
+
+    } catch(e) {
+        console.error(e);
+        toast({variant: 'destructive', title: 'Fehler beim Hochladen'});
+    } finally {
+        setIsUploading(false);
+    }
   }
 
   const handleSendToChat = useCallback(async () => {
@@ -175,15 +194,12 @@ export default function CameraPage() {
     try {
       const downloadURL = await uploadMedia(mediaBlob, `chats/${chatId}/${user.uid}_${Date.now()}`);
       
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams();
       params.set('mediaUrl', downloadURL);
       params.set('mediaType', mediaType);
+      params.set('chatId', chatId);
       
-      if (chatId) {
-        router.push(`/?${params.toString()}`);
-      } else {
-         router.push('/');
-      }
+      router.push(`/?${params.toString()}`);
 
     } catch (error) {
       console.error("Upload fehlgeschlagen:", error);
@@ -203,7 +219,7 @@ export default function CameraPage() {
     setMediaBlob(null);
     setCaption('');
      if (fromGallery) {
-      router.back(); // Go back if we came from gallery
+      router.back();
     }
   }
 
@@ -211,7 +227,7 @@ export default function CameraPage() {
     return (
         <div className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center text-white gap-4">
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
-            <p className="text-lg">Wird gesendet...</p>
+            <p className="text-lg">Wird verarbeitet...</p>
         </div>
     )
   }
@@ -258,9 +274,9 @@ export default function CameraPage() {
                          <Button className="bg-accent text-accent-foreground" onClick={() => setShowDurationDialog(true)}>
                             Als Status posten <Clock className="w-4 h-4 ml-2" />
                         </Button>
-                        <Button className="bg-primary hover:bg-primary/90" size="icon" onClick={handleSendToChat} disabled={!chatId}>
+                        {chatId && <Button className="bg-primary hover:bg-primary/90" size="icon" onClick={handleSendToChat}>
                             <Send className="w-5 h-5" />
-                        </Button>
+                        </Button>}
                     </div>
                 </div>
             </footer>
@@ -316,18 +332,17 @@ export default function CameraPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center relative">
-        {hasCameraPermission === null && !fromGallery && <p>Fordere Kameraberechtigung an...</p>}
-        {hasCameraPermission === false && <p className="text-destructive">Kamerazugriff verweigert. Bitte aktiviere ihn in deinen Browsereinstellungen.</p>}
-        {fromGallery && (
-            <div className="flex flex-col items-center gap-4">
-                <FileImage className="w-16 h-16 text-muted-foreground" />
+        {hasCameraPermission === false && !fromGallery && <p className="text-destructive text-center p-4">Kamerazugriff verweigert. Bitte aktiviere ihn in deinen Browsereinstellungen.</p>}
+        {hasCameraPermission !== false && fromGallery && (
+            <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                <FileImage className="w-16 h-16" />
                 <p>Öffne Galerie...</p>
             </div>
         )}
-        <video ref={videoRef} className={cn("w-full h-full object-cover", fromGallery ? "hidden" : "")} autoPlay muted playsInline />
+        <video ref={videoRef} className={cn("w-full h-full object-cover", fromGallery || hasCameraPermission === false ? "hidden" : "")} autoPlay muted playsInline />
       </main>
 
-      {!fromGallery && (
+      {!fromGallery && hasCameraPermission && (
          <footer className="p-4 flex flex-col items-center gap-4">
             <div className="flex items-center gap-8">
                 <button onClick={() => setMode('photo')} className={cn('py-1 transition-colors', mode === 'photo' ? 'font-bold text-primary border-b-2 border-primary' : 'text-neutral-400')}>Foto</button>

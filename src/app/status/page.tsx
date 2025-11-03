@@ -37,17 +37,15 @@ type Status = {
 // This is a mock data generator. Replace with real status logic later.
 const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): Status[] => {
     const otherUsers = allUsers.filter(u => u.id !== currentUserId);
-    const currentUserData = allUsers.find(u => u.id === currentUserId);
     
     let statuses: Status[] = [];
 
-    if (currentUserData) {
-        statuses.push({
-             userId: currentUserId,
-             stories: [{ type: 'image', content: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
-             viewed: true,
-        });
-    }
+    // Don't create a default status for the current user
+    // statuses.push({
+    //      userId: currentUserId,
+    //      stories: [{ type: 'image', content: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
+    //      viewed: true,
+    // });
 
     if (otherUsers.length > 0) {
       statuses.push({
@@ -104,10 +102,8 @@ export default function StatusPage() {
             const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
             setAllUsers(usersData);
             
-            // Generate initial mock statuses
             let initialStatuses = generateInitialStatusUpdates(currentUser.uid, usersData);
 
-            // Check for new status from text/camera page
             const newStoryJSON = sessionStorage.getItem('newStatusStory');
             if (newStoryJSON) {
                 const newStory = JSON.parse(newStoryJSON);
@@ -115,7 +111,6 @@ export default function StatusPage() {
 
                 if (myStatusIndex !== -1) {
                     initialStatuses[myStatusIndex].stories.push(newStory);
-                    initialStatuses[myStatusIndex].viewed = true; // Mark as viewed since we just created it
                 } else {
                      initialStatuses.unshift({
                         userId: currentUser.uid,
@@ -250,9 +245,9 @@ export default function StatusPage() {
             <div className="relative">
                 <Avatar className="w-14 h-14">
                 {currentUserData && <AvatarImage src={currentUserData.avatar} alt={currentUserData.name} />}
-                <AvatarFallback>{currentUserData?.name.charAt(0)}</AvatarFallback>
+                {currentUserData && <AvatarFallback>{currentUserData.name.charAt(0)}</AvatarFallback>}
                 </Avatar>
-                {!myStatus && (
+                {(!myStatus) && (
                     <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
                         <Plus className="w-4 h-4 text-primary-foreground" />
                     </div>
