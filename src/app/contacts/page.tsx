@@ -80,6 +80,7 @@ export default function ContactsPage() {
         typing: [],
         archivedBy: [],
         isMuted: false,
+        lastMessage: null, // THIS IS THE CRITICAL FIX
       }, { merge: true });
   
       // After ensuring the conversation exists, navigate to it.
