@@ -88,11 +88,15 @@ export default function ConversationList({
       .filter(convo => {
         if (!searchTerm) return true;
         const lowerCaseSearch = searchTerm.toLowerCase();
-        if (convo.type === 'group') {
-          return convo.name?.toLowerCase().includes(lowerCaseSearch);
+        
+        // For private chats, we check the participant's name
+        if (convo.type === 'private') {
+          const contact = convo.participants.find(p => p.id !== currentUser.uid);
+          return contact?.name?.toLowerCase().includes(lowerCaseSearch);
         }
-        const contact = convo.participants.find(p => p.id !== currentUser.uid);
-        return contact?.name?.toLowerCase().includes(lowerCaseSearch);
+        
+        // For group chats, we check the conversation name
+        return convo.name?.toLowerCase().includes(lowerCaseSearch);
       })
       .sort((a, b) => {
         const timeA = a.lastMessage?.date as any;

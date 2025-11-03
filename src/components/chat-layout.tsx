@@ -25,13 +25,24 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [currentUserData, setCurrentUserData] = useState<UserType | null>(null);
+  const [contacts, setContacts] = useState<any[]>([]);
+
   const { toast } = useToast();
   const router = useRouter();
 
-  const selectedConversation = useMemo(() => 
-    conversations.find(c => c.id === selectedConversationId),
-    [conversations, selectedConversationId]
-  );
+  const selectedConversation = useMemo(() => {
+    const convo = conversations.find(c => c.id === selectedConversationId);
+    if (convo && convo.type === 'private') {
+      const contactUser = convo.participants.find(p => p.id !== currentUser.uid);
+      if (contactUser) {
+        const savedContact = contacts.find(c => c.id === contactUser.id);
+        if (savedContact) {
+          contactUser.name = savedContact.name; // Override name with saved contact name
+        }
+      }
+    }
+    return convo;
+  }, [conversations, selectedConversationId, contacts, currentUser.uid]);
   
   const contactInSelectedConversation = useMemo(() => 
     selectedConversation?.type === 'private'
@@ -177,9 +188,17 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
       setAllUsers(usersData);
     });
 
+    const contactsQuery = collection(firestore, 'users', currentUser.uid, 'contacts');
+    const unsubscribeContacts = onSnapshot(contactsQuery, (snapshot) => {
+      const contactsData = snapshot.docs.map(doc => doc.data());
+      setContacts(contactsData);
+    });
+
+
     return () => {
       unsubscribeUser();
       unsubscribeUsers();
+      unsubscribeContacts();
     };
   }, [currentUser.uid, firestore]);
   
@@ -196,7 +215,16 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
       const convos = snapshot.docs.map(docData => {
         const data = docData.data();
         const participants = data.participantIds
-          .map((id: string) => allUsers.find(u => u.id === id))
+          .map((id: string) => {
+              const user = allUsers.find(u => u.id === id);
+              if (user && data.type === 'private' && user.id !== currentUser.uid) {
+                  const contact = contacts.find(c => c.id === user.id);
+                  if (contact) {
+                      return { ...user, name: contact.name };
+                  }
+              }
+              return user;
+          })
           .filter((p: UserType | undefined): p is UserType => p !== undefined);
 
         return {
@@ -209,7 +237,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     });
 
     return () => unsubscribe();
-  }, [currentUser.uid, firestore, allUsers]);
+  }, [currentUser.uid, firestore, allUsers, contacts]);
   
   
    const handleClearConversation = useCallback(async (conversationId: string) => {
