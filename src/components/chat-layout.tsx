@@ -310,6 +310,31 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
   }, [firestore, toast]);
 
+  const handleArchiveConversation = useCallback(async (conversationId: string, archive: boolean) => {
+    if (!currentUser.uid || !firestore) return;
+    const convoRef = doc(firestore, 'conversations', conversationId);
+    try {
+      if (archive) {
+        await updateDoc(convoRef, { archivedBy: arrayUnion(currentUser.uid) });
+        toast({ title: 'Chat archiviert' });
+        if (selectedConversationId === conversationId) {
+          setSelectedConversationId(null);
+          router.push('/');
+        }
+      } else {
+        await updateDoc(convoRef, { archivedBy: arrayRemove(currentUser.uid) });
+        toast({ title: 'Archivierung aufgehoben' });
+      }
+    } catch (e) {
+      console.error('Archive toggle failed', e);
+      toast({
+        variant: 'destructive',
+        title: 'Fehler',
+        description: 'Der Archivstatus konnte nicht geändert werden.',
+      });
+    }
+  }, [currentUser.uid, firestore, toast, selectedConversationId, router]);
+
   const handleConversationSelect = useCallback((id: string) => {
     setSelectedConversationId(id);
     if (window.innerWidth < 768) {
@@ -358,6 +383,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
           onNavigateToProfile={navigateToProfile}
           currentUser={currentUser}
           allUsers={allUsers}
+          onArchive={handleArchiveConversation}
         />
       </div>
       <div className={cn("flex-1 flex-col", selectedConversationId ? "flex" : "hidden md:flex")}>
@@ -371,11 +397,12 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             onBlockContact={handleBlockContact}
             onUnblockContact={handleUnblockContact}
             onToggleMute={handleToggleMute}
-            onSetTyping={handleSetTyping}
+            onArchive={handleArchiveConversation}
             onBack={() => {
               setSelectedConversationId(null);
               router.push('/');
             }}
+            onSetTyping={handleSetTyping}
             isBlocked={isContactBlocked}
             currentUser={currentUser}
           />

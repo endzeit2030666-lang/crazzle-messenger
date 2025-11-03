@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { ShieldCheck, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare, Bell } from "lucide-react";
+import { ShieldCheck, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare, Bell, Archive } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ type ChatViewProps = {
   onBlockContact: (contactId: string) => void;
   onUnblockContact: (contactId: string) => void;
   onToggleMute: (conversationId: string, isMuted: boolean) => void;
+  onArchive: (conversationId: string, archive: boolean) => void;
   onBack: () => void;
   onSetTyping: (isTyping: boolean) => void;
   isBlocked: boolean;
@@ -64,6 +65,7 @@ export default function ChatView({
     onBlockContact,
     onUnblockContact,
     onToggleMute,
+    onArchive,
     onBack,
     onSetTyping,
     isBlocked,
@@ -370,6 +372,10 @@ export default function ChatView({
                  <DropdownMenuItem onClick={() => onToggleMute(conversation.id, !conversation.isMuted)}>
                     {conversation.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
                     <span>{conversation.isMuted ? 'Stummschaltung aufheben' : 'Stummschalten'}</span>
+                </DropdownMenuItem>
+                 <DropdownMenuItem onClick={() => onArchive(conversation.id, true)}>
+                    <Archive className="mr-2 h-4 w-4" />
+                    <span>Archivieren</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setShowClearDialog(true)}>
