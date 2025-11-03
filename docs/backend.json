@@ -1,0 +1,351 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the CipherCom application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The user's chosen username."
+        },
+        "publicKey": {
+          "type": "string",
+          "description": "The user's public key for secure communication."
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "The date and time the user registered.",
+          "format": "date-time"
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "publicKey",
+        "registrationDate"
+      ]
+    },
+    "Contact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact",
+      "type": "object",
+      "description": "Represents a contact in a user's contact list.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the contact entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Contact). The user who owns this contact."
+        },
+        "contactUserId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Contact). The user who is the contact."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The name displayed for the contact."
+        },
+        "publicKey": {
+          "type": "string",
+          "description": "The contact's public key."
+        },
+        "verificationStatus": {
+          "type": "string",
+          "description": "The verification status of the contact (e.g., verified, unverified).",
+          "format": "string"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "contactUserId",
+        "displayName",
+        "publicKey"
+      ]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a message sent or received by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the message entity."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Message). The user who sent the message."
+        },
+        "receiverId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Message). The user who received the message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time the message was sent.",
+          "format": "date-time"
+        },
+        "content": {
+          "type": "string",
+          "description": "The encrypted content of the message."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "The type of content (e.g., text, image, audio, document)."
+        },
+        "selfDestructTimer": {
+          "type": "number",
+          "description": "The time in seconds until the message self-destructs. Null if no self-destruct timer."
+        }
+      },
+      "required": [
+        "id",
+        "senderId",
+        "receiverId",
+        "timestamp",
+        "content",
+        "contentType"
+      ]
+    },
+    "GroupChat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GroupChat",
+      "type": "object",
+      "description": "Represents a group chat.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the group chat entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the group chat."
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "The date and time the group chat was created.",
+          "format": "date-time"
+        },
+        "adminUserId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N GroupChat). The user who created the group chat."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "creationDate",
+        "adminUserId"
+      ]
+    },
+    "GroupChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GroupChatMessage",
+      "type": "object",
+      "description": "Represents a message sent within a group chat.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the group chat message entity."
+        },
+        "groupChatId": {
+          "type": "string",
+          "description": "Reference to GroupChat. (Relationship: GroupChat 1:N GroupChatMessage). The group chat the message belongs to."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N GroupChatMessage). The user who sent the message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time the message was sent.",
+          "format": "date-time"
+        },
+        "content": {
+          "type": "string",
+          "description": "The encrypted content of the message."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "The type of content (e.g., text, image, audio, document)."
+        },
+        "selfDestructTimer": {
+          "type": "number",
+          "description": "The time in seconds until the message self-destructs. Null if no self-destruct timer."
+        }
+      },
+      "required": [
+        "id",
+        "groupChatId",
+        "senderId",
+        "timestamp",
+        "content",
+        "contentType"
+      ]
+    },
+    "GroupChatMembership": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GroupChatMembership",
+      "type": "object",
+      "description": "Represents the membership of a user in a group chat.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the group chat membership entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N GroupChatMembership). The user who is a member of the group chat."
+        },
+        "groupChatId": {
+          "type": "string",
+          "description": "Reference to GroupChat. (Relationship: GroupChat 1:N GroupChatMembership). The group chat the user is a member of."
+        },
+        "joinDate": {
+          "type": "string",
+          "description": "The date and time the user joined the group chat.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "groupChatId",
+        "joinDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information.  Uses path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/contacts/{contactId}",
+        "definition": {
+          "entityName": "Contact",
+          "schema": {
+            "$ref": "#/backend/entities/Contact"
+          },
+          "description": "Stores contact information for a specific user. The 'userId' field within each contact document ensures authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the contact."
+            },
+            {
+              "name": "contactId",
+              "description": "The unique identifier of the contact."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          },
+          "description": "Stores messages sent or received by a user. The 'senderId' and 'receiverId' fields within each message document facilitates authorization rules based on user IDs.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier of the message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/group_chats/{groupChatId}",
+        "definition": {
+          "entityName": "GroupChat",
+          "schema": {
+            "$ref": "#/backend/entities/GroupChat"
+          },
+          "description": "Stores group chat metadata. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "groupChatId",
+              "description": "The unique identifier of the group chat."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/group_chats/{groupChatId}/messages/{messageId}",
+        "definition": {
+          "entityName": "GroupChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/GroupChatMessage"
+          },
+          "description": "Stores messages within a group chat. Access control is determined by the denormalized 'members' map in the parent group chat document.",
+          "params": [
+            {
+              "name": "groupChatId",
+              "description": "The unique identifier of the group chat."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier of the message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/group_chat_memberships/{groupChatMembershipId}",
+        "definition": {
+          "entityName": "GroupChatMembership",
+          "schema": {
+            "$ref": "#/backend/entities/GroupChatMembership"
+          },
+          "description": "Stores group chat membership information.  This is NOT directly used for security rules; the 'members' map is denormalized into the GroupChat document for authorization independence.",
+          "params": [
+            {
+              "name": "groupChatMembershipId",
+              "description": "The unique identifier of the group chat membership."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the principles of Authorization Independence and Structural Segregation. Private user data like contacts and messages are stored within user-specific subcollections, enabling path-based ownership. Group chats and their messages utilize a membership model with denormalized data to avoid `get()` calls in security rules.\n\nAuthorization Independence is achieved through denormalization. Specifically, for group chats, the `GroupChatMembership` collection does not directly determine access. Instead, the `members` map is denormalized into each `GroupChat` document. This means that security rules for `GroupChat` and `GroupChatMessage` documents can be enforced without needing to read parent documents, enabling atomic operations.  The `userId` is present on the Contact document, enabling the security rules to use `request.auth.uid` == resource.data.userId.\n\nQAPs (Rules Are Not Filters) are supported through structural segregation. Data with different access requirements (e.g., public vs. private) are stored in separate collections. Path-based ownership (`/users/{userId}/...`) is used extensively for private data, ensuring that listing operations can be securely filtered based on `request.auth.uid`."
+  }
+}
