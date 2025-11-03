@@ -78,28 +78,22 @@ export default function ContactsPage() {
       isMuted: false,
     };
 
-    setDoc(conversationRef, newConversationData)
+    // Wichtig: setDoc nicht mit `await` blockieren, sondern .catch() für die Fehlerbehandlung verwenden
+    setDoc(conversationRef, newConversationData, { merge: true })
       .then(() => {
         router.push(`/?chatId=${conversationId}`);
       })
       .catch((serverError) => {
-        console.error("Error creating conversation:", serverError);
-        toast({
-            variant: "destructive",
-            title: "Fehler beim Erstellen des Chats",
-            description: "Die Konversation konnte nicht gestartet werden. Bitte versuche es erneut.",
-        });
-        
-        // This is the correct error handling architecture.
-        // It creates a rich, contextual error and emits it globally.
+        // Dies ist die korrekte Fehlerbehandlungsarchitektur.
+        // Sie erstellt einen detaillierten, kontextbezogenen Fehler und gibt ihn global aus.
         const permissionError = new FirestorePermissionError({
           path: conversationRef.path,
           operation: 'create',
           requestResourceData: newConversationData,
         });
 
-        // Emit the error with the global error emitter.
-        // DO NOT show a toast here, as it hides the real error.
+        // Den Fehler mit dem globalen Error Emitter ausgeben.
+        // KEINEN Toast hier anzeigen, da dies den wahren Fehler verbergen würde.
         errorEmitter.emit('permission-error', permissionError);
       });
   }
@@ -267,3 +261,5 @@ export default function ContactsPage() {
     </div>
   );
 }
+
+    
