@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // USERS
+    // Users can read any profile (for contact lists)
+    // Users can only create their own profile.
+    // Existing users can update their profile (e.g. public key) if they are signed in.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isUser(userId);
+      allow update: if isSignedIn(); // Allow updates for signed-in users to update their public key.
+      allow delete: if false; // Users should not be able to delete their accounts this way
+      
+      // CONTACTS subcollection
+      // Users can only manage their own contacts.
+      match /contacts/{contactId} {
+        allow read, create, delete: if isUser(userId);
+        allow update: if false; // Contacts are based on user profiles, should not be updated directly
+      }
+    }
+    
+    // CONVERSATIONS
+    // Users can only read/write conversations they are a part of
+    match /conversations/{conversationId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+      // Allow updates only if user is a participant. For member changes, only admins can change participantIds
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds &&
+                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'typing', 'isMuted']) ||
+                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantIds']) && request.auth.uid in resource.data.admins));
+      
+      // MESSAGES subcollection
+      // Users can only read/write messages in conversations they are a part of
+      match /messages/{messageId} {
+        allow read, create: if isSignedIn() && 
+                                request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+                                
+        allow update: if isSignedIn() && (request.auth.uid == resource.data.senderId);
+        allow delete: if isSignedIn() && 
+                        (request.auth.uid == resource.data.senderId || 
+                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.admins);
+      }
+    }
+  }
+}

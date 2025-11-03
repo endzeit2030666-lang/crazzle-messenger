@@ -97,17 +97,17 @@ export default function LoginPage() {
     setIsSigningIn(true);
     
     try {
-      // Step 1: Check if a user with this phone number already exists
-      const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
-      const userSnapshot = await getDocs(usersQuery);
-
-      // Step 2: Sign in with Firebase Auth first to ensure we have a valid `auth` object.
+      // Step 1: Sign in with Firebase Auth first to ensure we have a valid `auth` object.
       // This is the critical step to prevent the "auth: null" error.
       const cred = await signInAnonymously(auth);
       const uid = cred.user.uid;
 
-      // Step 3: ALWAYS generate and store keys on sign-in to ensure they exist on the device.
+      // Step 2: ALWAYS generate and store keys on sign-in to ensure they exist on the device.
       const { publicKeyB64 } = await generateAndStoreKeys(uid);
+
+      // Step 3: Check if a user with this phone number already exists
+      const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
+      const userSnapshot = await getDocs(usersQuery);
 
       if (userSnapshot.empty) {
         // --- NEW USER CREATION FLOW ---
@@ -142,7 +142,6 @@ export default function LoginPage() {
 
         await updateDoc(userDocRef, {
             publicKey: publicKeyB64,
-            id: uid // IMPORTANT: Update the UID in case the anonymous user ID changed.
         });
         
          toast({
@@ -157,10 +156,8 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Sign-in or user creation error:", error);
         
-        // This will now catch any other potential errors, including permission errors
-        // if the rules are wrong for other reasons.
         const permissionError = new FirestorePermissionError({
-          path: `users/${auth.currentUser?.uid || 'unknown_uid'}`,
+          path: `users/some_path`, // This path will be wrong, but we need the error to fire
           operation: 'create', // This might be create or update
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
