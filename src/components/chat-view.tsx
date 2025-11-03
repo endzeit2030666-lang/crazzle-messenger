@@ -38,6 +38,7 @@ import { useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase";
 import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData, arrayUnion, arrayRemove } from "firebase/firestore";
 import type { User } from "firebase/auth";
+import GroupInfoSheet from "./group-info-sheet";
 
 
 type ChatViewProps = {
@@ -80,6 +81,7 @@ export default function ChatView({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
+  const [isGroupInfoSheetOpen, setGroupInfoSheetOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -376,7 +378,7 @@ export default function ChatView({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                   {isGroup ? (
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setGroupInfoSheetOpen(true)}>
                         <Info className="mr-2 h-4 w-4" />
                         <span>Gruppeninfo</span>
                       </DropdownMenuItem>
@@ -481,6 +483,16 @@ export default function ChatView({
           <span className='hidden'></span>
       </ContactVerificationDialog>}
 
+      {isGroup && (
+        <GroupInfoSheet
+          open={isGroupInfoSheetOpen}
+          onOpenChange={setGroupInfoSheetOpen}
+          conversation={conversation}
+          currentUser={currentUser}
+          isAdmin={isAdmin}
+        />
+      )}
+
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -544,5 +556,3 @@ export default function ChatView({
     </div>
   );
 }
-
-    

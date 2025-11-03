@@ -26,7 +26,10 @@ service cloud.firestore {
     // Users can only read/write conversations they are a part of
     match /conversations/{conversationId} {
       allow read, create: if isSignedIn() && request.auth.uid in resource.data.participantIds;
-      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+      // Allow updates only if user is a participant. For member changes, only admins can change participantIds
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds &&
+                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'typing', 'isMuted', 'archivedBy']) ||
+                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantIds']) && request.auth.uid in resource.data.admins));
       
       // MESSAGES subcollection
       // Users can only read/write messages in conversations they are a part of
@@ -34,10 +37,11 @@ service cloud.firestore {
         allow read, create: if isSignedIn() && 
                                 request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
                                 
-        allow update, delete: if isSignedIn() && (request.auth.uid == resource.data.senderId);
+        allow update: if isSignedIn() && (request.auth.uid == resource.data.senderId);
+        allow delete: if isSignedIn() && 
+                        (request.auth.uid == resource.data.senderId || 
+                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.admins);
       }
     }
   }
 }
-
-    
