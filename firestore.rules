@@ -20,11 +20,11 @@ service cloud.firestore {
 
     // USERS
     // Users can read any profile (for contact lists)
-    // Users can only create their own profile and update it if they are not blocking the other user.
+    // Users can only create their own profile and update it.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isUser(userId);
-      allow update: if isUser(userId) && !(request.resource.data.blockedUsers.hasAny(request.auth.uid.split()));
+      allow update: if isUser(userId);
       allow delete: if false; // Users should not be able to delete their accounts this way
     }
     

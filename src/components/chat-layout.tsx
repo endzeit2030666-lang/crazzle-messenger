@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import type { Conversation, User as UserType, Message } from "@/lib/types";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
@@ -106,6 +106,11 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversationId, firestore, isContactBlocked, currentUser.uid, selectedConversation]);
 
+  const userConvosQuery = useMemoFirebase(() => {
+    if (!firestore || !currentUser) return null;
+    return query(collection(firestore, "conversations"), where("participantIds", "array-contains", currentUser.uid));
+  }, [firestore, currentUser]);
+
   useEffect(() => {
     if (!firestore || !currentUser) return;
 
@@ -127,9 +132,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         sessionStorage.setItem('allUsers', JSON.stringify(usersData)); // For settings page
     });
 
-    // Fetch conversations for the current user
-    const convosRef = collection(firestore, "conversations");
-    const userConvosQuery = query(convosRef, where("participantIds", "array-contains", currentUser.uid));
+    if (!userConvosQuery) return;
     
     const unsubscribeConversations = onSnapshot(userConvosQuery, async (snapshot) => {
         const convosData: Conversation[] = await Promise.all(snapshot.docs.map(async (doc) => {
@@ -138,7 +141,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             
             let otherParticipant: UserType | undefined = allUsers.find(u => u.id === otherParticipantId);
             if (!otherParticipant) {
-              const userDoc = await getDocs(query(usersRef, where("id", "==", otherParticipantId)));
+              const userDoc = await getDocs(query(collection(firestore, "users"), where("id", "==", otherParticipantId)));
               if (!userDoc.empty){
                 otherParticipant = { id: userDoc.docs[0].id, ...userDoc.docs[0].data() } as UserType;
               }
@@ -169,9 +172,11 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     return () => {
         unsubscribeUser();
         unsubscribeUsers();
-        unsubscribeConversations();
+        if (unsubscribeConversations) {
+            unsubscribeConversations();
+        }
     };
-}, [firestore, currentUser, allUsers]);
+}, [firestore, currentUser, allUsers, userConvosQuery]);
 
   const handleClearConversation = async (conversationId: string) => {
     if (!firestore) return;
