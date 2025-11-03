@@ -30,14 +30,13 @@ export default function ContactsPage() {
   useEffect(() => {
     if (!currentUser || !firestore) return;
 
-    setIsLoading(true);
     // Fetch all users except the current one
     const usersQuery = query(collection(firestore, 'users'), where('id', '!=', currentUser.uid));
     
     const unsubscribeUsers = onSnapshot(usersQuery, (usersSnapshot) => {
         const usersData = usersSnapshot.docs.map(doc => doc.data() as Contact);
         setContacts(usersData);
-        if (isLoading) setIsLoading(false);
+        setIsLoading(false);
     }, (error) => {
         console.error("Fehler beim Laden der Benutzer:", error);
         toast({ variant: 'destructive', title: "Fehler beim Laden der Benutzer" });
@@ -56,7 +55,7 @@ export default function ContactsPage() {
         unsubscribeUsers();
         unsubscribeConvos();
     };
-  }, [currentUser, firestore, toast, isLoading]);
+  }, [currentUser, firestore, toast]);
 
   const handleGoBack = () => {
     router.push('/');
