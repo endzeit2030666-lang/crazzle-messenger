@@ -5,13 +5,15 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser } from '@/firebase';
-import { signInAnonymously } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { signInAnonymously, getAuth, signInWithCustomToken } from 'firebase/auth';
+import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import type { User as UserType } from '@/lib/types';
+
 
 // Helper to convert ArrayBuffer to Base64
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -60,7 +62,7 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  const handleAnonymousSignIn = async () => {
+  const handleSignIn = async () => {
     if (!auth || !firestore) return;
     if (!phoneNumber.trim()) {
         toast({
@@ -71,31 +73,52 @@ export default function LoginPage() {
         return;
     }
     setIsSigningIn(true);
+    
     try {
-      const { publicKeyB64 } = await generateAndStoreKeys();
-      
-      const cred = await signInAnonymously(auth);
-      const userRef = doc(firestore, 'users', cred.user.uid);
-      
-      const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
-      const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
+      const usersRef = collection(firestore, 'users');
+      const q = query(usersRef, where("phoneNumber", "==", phoneNumber.trim()));
+      const querySnapshot = await getDocs(q);
 
-      await setDoc(userRef, {
-        id: cred.user.uid,
-        name: randomName,
-        avatar: randomAvatar,
-        onlineStatus: 'online',
-        publicKey: publicKeyB64,
-        phoneNumber: phoneNumber.trim(),
-        readReceiptsEnabled: true,
-      }, { merge: true });
+      if (!querySnapshot.empty) {
+        // User exists, sign them in
+        const existingUser = querySnapshot.docs[0].data() as UserType;
+        const cred = await signInAnonymously(auth); // Sign in to get a session
+        
+        // We don't need to update the doc unless we want to update 'lastSeen' etc.
+        // For now, just signing in is enough.
+        // The useUser hook will pick up the user and redirect.
+        
+        // We'll replace the anonymous user with our 'real' user data contextually in the app
+        // This is a simplified approach. A more robust way would involve custom tokens.
+         await setDoc(doc(firestore, 'users', cred.user.uid), existingUser, { merge: true });
+
+
+      } else {
+        // New user, create them
+        const { publicKeyB64 } = await generateAndStoreKeys();
+        const cred = await signInAnonymously(auth);
+        const userRef = doc(firestore, 'users', cred.user.uid);
+        
+        const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
+        const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
+
+        await setDoc(userRef, {
+          id: cred.user.uid,
+          name: randomName,
+          avatar: randomAvatar,
+          onlineStatus: 'online',
+          publicKey: publicKeyB64,
+          phoneNumber: phoneNumber.trim(),
+          readReceiptsEnabled: true,
+        }, { merge: true });
+      }
 
     } catch (error) {
-      console.error('Anonymous sign-in failed', error);
+      console.error('Sign-in failed', error);
       toast({
           variant: "destructive",
           title: "Anmeldung fehlgeschlagen",
-          description: "Es konnte kein anonymer Account erstellt werden. Bitte versuche es erneut.",
+          description: "Es konnte kein Account erstellt oder gefunden werden. Bitte versuche es erneut.",
       });
     } finally {
         setIsSigningIn(false);
@@ -128,7 +151,7 @@ export default function LoginPage() {
             className="text-center"
             disabled={isSigningIn}
         />
-        <Button size="lg" onClick={handleAnonymousSignIn} className="w-full" disabled={isSigningIn}>
+        <Button size="lg" onClick={handleSignIn} className="w-full" disabled={isSigningIn}>
             {isSigningIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sicher & Anonym beitreten
         </Button>
