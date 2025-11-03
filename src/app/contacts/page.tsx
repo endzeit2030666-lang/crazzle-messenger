@@ -61,7 +61,7 @@ export default function ContactsPage() {
     router.push('/');
   };
 
-  const handleStartChat = (contact: Contact) => {
+  const handleStartChat = async (contact: Contact) => {
     if (!currentUser || !firestore) return;
   
     const participantIds = [currentUser.uid, contact.id].sort();
@@ -79,24 +79,17 @@ export default function ContactsPage() {
       isMuted: false,
     };
 
-    setDoc(conversationRef, newConversationData, { merge: true })
-      .then(() => {
+    try {
+        await setDoc(conversationRef, newConversationData);
         router.push(`/?chatId=${conversationId}`);
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: conversationRef.path,
-            operation: 'create',
-            requestResourceData: newConversationData
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        // Optional: show a user-friendly toast, but the dev error is now in the console
+    } catch(e) {
+        console.error("Fehler beim Erstellen des Chats:", e);
         toast({ 
             variant: 'destructive', 
             title: "Fehler", 
-            description: "Der Chat konnte nicht erstellt werden. Fehlende Berechtigungen." 
+            description: "Der Chat konnte nicht erstellt werden." 
         });
-      });
+    }
   }
   
   const handleSaveContact = async () => {
