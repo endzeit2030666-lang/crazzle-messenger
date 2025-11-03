@@ -42,7 +42,6 @@ export default function ContactsPage() {
     if (!currentUser || !firestore) return;
 
     setIsLoading(true);
-    // Fetch user's personal contacts
     const contactsQuery = collection(firestore, 'users', currentUser.uid, 'contacts');
     const unsubscribe = onSnapshot(contactsQuery, (snapshot) => {
       const contactsData = snapshot.docs.map(doc => doc.data() as Contact);
@@ -73,7 +72,7 @@ export default function ContactsPage() {
       type: 'private' as const,
       participantIds: participantIds,
       createdAt: serverTimestamp(),
-      createdBy: currentUser.uid,
+      createdBy: currentUser.uid, // This field is required by security rules
       lastMessage: null,
       typing: [],
       isMuted: false,
@@ -94,7 +93,7 @@ export default function ContactsPage() {
 
         // Emit the error with the global error emitter
         errorEmitter.emit('permission-error', permissionError);
-        // Also show a user-facing toast
+        // Also show a user-facing toast as a fallback
         toast({
             variant: "destructive",
             title: "Fehler bei der Chaterstellung",
@@ -112,7 +111,6 @@ export default function ContactsPage() {
 
     setIsSavingContact(true);
     try {
-      // 1. Find user by phone number
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', newContactPhone.trim()));
       const userSnapshot = await getDocs(usersQuery);
 
@@ -124,14 +122,12 @@ export default function ContactsPage() {
       
       const foundUser = userSnapshot.docs[0].data() as UserType;
       
-      // 2. Check if user is trying to add themselves
       if (foundUser.id === currentUser.uid) {
         toast({ variant: 'destructive', title: 'Fehler', description: 'Du kannst dich nicht selbst als Kontakt hinzufügen.' });
         setIsSavingContact(false);
         return;
       }
 
-      // 3. Check if contact already exists
       const contactExists = contacts.some(contact => contact.id === foundUser.id);
       if(contactExists){
         toast({ variant: 'destructive', title: 'Kontakt existiert bereits' });
@@ -139,11 +135,10 @@ export default function ContactsPage() {
         return;
       }
 
-      // 4. Add to current user's contacts subcollection
       const contactRef = collection(firestore, 'users', currentUser.uid, 'contacts');
       await addDoc(contactRef, {
         id: foundUser.id,
-        name: newContactName.trim(), // Use the name provided by the user
+        name: newContactName.trim(),
         avatar: foundUser.avatar,
         phoneNumber: foundUser.phoneNumber,
         publicKey: foundUser.publicKey,
