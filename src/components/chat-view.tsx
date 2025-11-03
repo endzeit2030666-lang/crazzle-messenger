@@ -44,6 +44,7 @@ type ChatViewProps = {
   conversation: Conversation;
   onSendMessage: (content: string, type?: MessageType['type'], duration?: number, selfDestructDuration?: number, fileName?: string) => void;
   onClearConversation: (conversationId: string) => void;
+  onDeleteConversation: (conversationId: string) => void;
   onBlockContact: (contactId: string) => void;
   onUnblockContact: (contactId: string) => void;
   onToggleMute: (conversationId: string, isMuted: boolean) => void;
@@ -59,6 +60,7 @@ export default function ChatView({
     conversation, 
     onSendMessage,
     onClearConversation,
+    onDeleteConversation,
     onBlockContact,
     onUnblockContact,
     onToggleMute,
@@ -78,6 +80,7 @@ export default function ChatView({
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<MessageType['quotedMessage'] | undefined>(undefined);
   const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
 
@@ -173,7 +176,6 @@ export default function ChatView({
             newMessagesData.forEach(m => messageMap.set(m.id, m));
             const sortedMessages = Array.from(messageMap.values()).sort((a,b) => (a.date as any) - (b.date as any));
             
-            // Mark new incoming messages as read
             const batch = writeBatch(firestore);
             let hasUpdates = false;
             sortedMessages.forEach(msg => {
@@ -247,6 +249,11 @@ export default function ChatView({
   const handleClearChat = () => {
     onClearConversation(conversation.id);
     setShowClearDialog(false);
+  }
+
+  const handleDeleteChat = () => {
+    onDeleteConversation(conversation.id);
+    setShowDeleteDialog(false);
   }
 
   const handleUnblockContact = () => {
@@ -365,22 +372,27 @@ export default function ChatView({
                     <span>{conversation.isMuted ? 'Stummschaltung aufheben' : 'Stummschalten'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowClearDialog(true)}>
+                  <DropdownMenuItem onClick={() => setShowClearDialog(true)}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     <span>Chat leeren</span>
                   </DropdownMenuItem>
                   {!isGroup && (
-                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowBlockDialog(true)}>
+                    <DropdownMenuItem onClick={() => setShowBlockDialog(true)}>
                         <XCircle className="mr-2 h-4 w-4" />
                         <span>Kontakt blockieren</span>
                     </DropdownMenuItem>
                   )}
                   {isGroup && (
-                     <DropdownMenuItem className="text-destructive focus:text-destructive">
+                     <DropdownMenuItem>
                         <XCircle className="mr-2 h-4 w-4" />
                         <span>Gruppe verlassen</span>
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowDeleteDialog(true)}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span>Chat löschen</span>
+                  </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
         </div>
@@ -402,8 +414,8 @@ export default function ChatView({
         {messages.length === 0 && !isInitialLoading ? (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
                 <MessageSquare className="w-16 h-16 mb-4 text-primary" />
-                <h3 className="text-xl font-bold text-white">Keine Nachrichten</h3>
-                <p>Beginne die Konversation, indem du eine Nachricht sendest.</p>
+                <h3 className="text-xl font-bold text-white">Noch keine Nachrichten</h3>
+                <p>Beginne die Konversation, indem du eine Nachricht sendest oder der Chatverlauf wurde geleert.</p>
             </div>
         ) : (
              messages.map((message, index) => (
@@ -415,7 +427,7 @@ export default function ChatView({
                     onDelete={onDeleteMessage}
                     onReact={onReact}
                     currentUserData={conversation.participants.find(p => p.id === currentUser.uid)}
-                    sender={isGroup ? conversation.participants.find(p => p.id === message.senderId) : contact}
+                    sender={conversation.participants.find(p => p.id === message.senderId)}
                     currentUser={currentUser}
                     isGroup={isGroup}
                 />
@@ -472,6 +484,21 @@ export default function ChatView({
           <AlertDialogFooter>
             <AlertDialogCancel>Abbrechen</AlertDialogCancel>
             <AlertDialogAction onClick={handleClearChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Leeren</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konversation löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+             Diese Aktion kann nicht rückgängig gemacht werden. Dadurch wird die Konversation für alle Teilnehmer dauerhaft gelöscht.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Löschen</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

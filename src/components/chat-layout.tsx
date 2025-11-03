@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Conversation, User as UserType, Message } from "@/lib/types";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion, arrayRemove, setDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion, arrayRemove, setDoc, deleteDoc } from "firebase/firestore";
 import { useFirestore, useMemoFirebase } from "@/firebase";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
@@ -220,20 +220,51 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         return;
     }
     
-    const batch = writeBatch(firestore);
-    messagesSnapshot.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-    
-    await batch.commit();
+    try {
+      const batch = writeBatch(firestore);
+      messagesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
 
-    const convoRef = doc(firestore, "conversations", conversationId);
-    await updateDoc(convoRef, {
-        lastMessage: null
-    });
-    
-    toast({ title: "Chatverlauf gelöscht" });
+      const convoRef = doc(firestore, "conversations", conversationId);
+      await updateDoc(convoRef, {
+          lastMessage: null
+      });
+      
+      toast({ title: "Chatverlauf gelöscht" });
+
+    } catch (error) {
+      console.error("Fehler beim Löschen des Chatverlaufs:", error);
+      toast({ variant: 'destructive', title: "Fehler", description: "Der Chatverlauf konnte nicht gelöscht werden." });
+    }
   }, [firestore, toast]);
+
+  const handleDeleteConversation = useCallback(async (conversationId: string) => {
+    if (!firestore) return;
+    const conversationRef = doc(firestore, "conversations", conversationId);
+    const messagesRef = collection(firestore, "conversations", conversationId, "messages");
+
+    try {
+        // 1. Delete all messages in the subcollection
+        const messagesSnapshot = await getDocs(messagesRef);
+        const batch = writeBatch(firestore);
+        messagesSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        // 2. Delete the conversation document itself
+        await deleteDoc(conversationRef);
+        
+        toast({ title: "Chat gelöscht", description: "Die Konversation wurde endgültig entfernt." });
+        setSelectedConversationId(null); // Deselect the chat
+        router.push('/'); // Navigate to home
+    } catch (error) {
+        console.error("Fehler beim Löschen der Konversation:", error);
+        toast({ variant: 'destructive', title: "Fehler", description: "Die Konversation konnte nicht gelöscht werden." });
+    }
+  }, [firestore, toast, router]);
   
   const handleBlockContact = useCallback(async (contactId: string) => {
     if (!currentUser.uid || !firestore) return;
@@ -336,6 +367,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             conversation={selectedConversation}
             onSendMessage={handleSendMessage}
             onClearConversation={handleClearConversation}
+            onDeleteConversation={handleDeleteConversation}
             onBlockContact={handleBlockContact}
             onUnblockContact={handleUnblockContact}
             onToggleMute={handleToggleMute}

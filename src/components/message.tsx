@@ -331,7 +331,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Löschen</span>
                     </DropdownMenuItem>
-                )}
+                 )}
             </DropdownMenuContent>
         </DropdownMenu>
        </div>
