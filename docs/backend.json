@@ -57,6 +57,20 @@
         "registrationDate"
       ]
     },
+    "Contact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact",
+      "type": "object",
+      "description": "Represents a user's saved contact. It's a snapshot of a user profile.",
+      "properties": {
+        "id": { "type": "string", "description": "The UID of the user being saved as a contact." },
+        "name": { "type": "string", "description": "The custom name the user assigns to this contact." },
+        "phoneNumber": { "type": "string", "description": "The phone number of the contact." },
+        "avatar": { "type": "string", "description": "The avatar URL of the contact at the time of adding." },
+        "publicKey": { "type": "string", "description": "The public key of the contact for encryption." }
+      },
+      "required": ["id", "name", "phoneNumber", "publicKey"]
+    },
     "Conversation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Conversation",
@@ -253,11 +267,29 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information.  Uses path-based ownership.",
+          "description": "Stores user profile information. Uses path-based ownership.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/contacts/{contactId}",
+        "definition": {
+          "entityName": "Contact",
+          "schema": { "$ref": "#/backend/entities/Contact" },
+          "description": "Stores a user's personal contacts. Each user can only access their own contacts.",
+           "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the contact list."
+            },
+            {
+              "name": "contactId",
+              "description": "The unique identifier for the contact entry."
             }
           ]
         }

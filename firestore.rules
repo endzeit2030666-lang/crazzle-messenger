@@ -20,6 +20,13 @@ service cloud.firestore {
       allow create: if isUser(userId);
       allow update: if isUser(userId);
       allow delete: if false; // Users should not be able to delete their accounts this way
+      
+      // CONTACTS subcollection
+      // Users can only manage their own contacts.
+      match /contacts/{contactId} {
+        allow read, create, delete: if isUser(userId);
+        allow update: if false; // Contacts are based on user profiles, should not be updated directly
+      }
     }
     
     // CONVERSATIONS
