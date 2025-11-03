@@ -92,6 +92,7 @@ export default function LoginPage() {
         return;
     }
     setIsSigningIn(true);
+    let cred: UserCredential | null = null;
     
     try {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
@@ -101,9 +102,7 @@ export default function LoginPage() {
         // User does not exist, create a new one.
         
         // 1. Sign in anonymously to get a new UID.
-        const cred = await signInAnonymously(auth);
-        
-        // 2. Now that we are authenticated, create the user document.
+        cred = await signInAnonymously(auth);
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
@@ -119,6 +118,7 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
         
+        // 2. Now that we are authenticated, create the user document.
         await setDoc(newUserRef, newUser);
 
       } else {
@@ -132,12 +132,11 @@ export default function LoginPage() {
       });
 
     } catch (error: any) {
-        console.error("Fehler beim Anmelden oder Registrieren:", error);
-        
         // This is the correct error handling architecture.
         // It creates a rich, contextual error and emits it globally.
+        const uid = cred?.user?.uid || 'unknown_uid';
         const permissionError = new FirestorePermissionError({
-          path: `users/unknown_uid`,
+          path: `users/${uid}`,
           operation: 'create',
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
