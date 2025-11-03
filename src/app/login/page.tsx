@@ -54,6 +54,7 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
@@ -64,6 +65,16 @@ export default function LoginPage() {
   
   const handleSignIn = async () => {
     if (!auth || !firestore) return;
+    
+    if (password !== '66578') {
+      toast({
+        variant: "destructive",
+        title: "Falsches Passwort",
+        description: "Das eingegebene Passwort ist nicht korrekt.",
+      });
+      return;
+    }
+
     const trimmedPhoneNumber = phoneNumber.trim();
 
     if (!trimmedPhoneNumber) {
@@ -84,12 +95,7 @@ export default function LoginPage() {
       if (!userSnapshot.empty) {
         // User exists. "Log them in" by signing in anonymously to get a session, then route to main page.
         // The useUser hook will pick up the auth state and existing user data.
-        const existingUser = userSnapshot.docs[0].data() as UserType;
         await signInAnonymously(auth); // Create a session
-        // We don't need to write to Firestore, just navigate.
-        // The app will function based on the logged-in user's UID.
-        // To make this work robustly, we should ensure the UID is predictable or stored.
-        // For now, we assume the anonymous auth state is picked up correctly.
         router.push('/');
 
       } else {
@@ -113,7 +119,13 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
 
-        await setDoc(newUserRef, newUser);
+        const newUserCreationData = {
+          ...newUser,
+          createdAt: serverTimestamp(),
+          createdBy: cred.user.uid
+        };
+
+        await setDoc(newUserRef, newUserCreationData);
         // The onAuthStateChanged listener will handle the redirect.
       }
     } catch (error: any) {
@@ -151,6 +163,14 @@ export default function LoginPage() {
             placeholder="Deine Telefonnummer"
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
+            className="text-center"
+            disabled={isSigningIn}
+        />
+        <Input
+            type="password"
+            placeholder="Passwort"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="text-center"
             disabled={isSigningIn}
         />
