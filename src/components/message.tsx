@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile, Play, Pause } from "lucide-react";
+import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile, Play, Pause, Loader2 } from "lucide-react";
 import type { Message as MessageType, User as UserType } from "@/lib/types";
 import {
   Tooltip,
@@ -21,6 +21,38 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Slider } from './ui/slider';
 import type { User } from 'firebase/auth';
+import { decryptMessage } from '@/lib/crypto';
+
+
+const useDecryptedMessage = (message: MessageType, sender: UserType | undefined) => {
+  const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (message.type !== 'text' || !message.content) {
+      setIsLoading(false);
+      setDecryptedContent(message.content);
+      return;
+    }
+    
+    if (!sender?.publicKey) {
+        setIsLoading(false);
+        setDecryptedContent("Public Key des Senders nicht gefunden.");
+        return;
+    }
+
+    const decrypt = async () => {
+      setIsLoading(true);
+      const decrypted = await decryptMessage(sender.publicKey!, message.content);
+      setDecryptedContent(decrypted);
+      setIsLoading(false);
+    };
+
+    decrypt();
+  }, [message, sender]);
+
+  return { isLoading, decryptedContent };
+};
 
 
 const AudioMessage = ({ message, currentUser }: { message: MessageType, currentUser: User }) => {
@@ -146,6 +178,8 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const { toast } = useToast();
   
+  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, isCurrentUser ? currentUser as any : sender);
+  
   useEffect(() => {
     if (message.selfDestructDuration && message.senderId !== currentUser.uid && !message.readAt) {
       onMessageRead(message.id);
@@ -174,8 +208,8 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
 
 
   const handleCopy = () => {
-    if (message.content) {
-      navigator.clipboard.writeText(message.content);
+    if (decryptedContent) {
+      navigator.clipboard.writeText(decryptedContent);
       toast({ title: 'Nachricht kopiert!' });
     }
   };
@@ -206,6 +240,11 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
     }
   };
 
+  const editableMessage = useMemo(() => ({
+    ...message,
+    content: decryptedContent || message.content,
+  }), [message, decryptedContent])
+
   if (!message.content && !message.audioUrl) {
     return null;
   }
@@ -220,7 +259,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align={isCurrentUser ? "end" : "start"}>
-                <DropdownMenuItem onClick={() => onQuote(message)}>
+                <DropdownMenuItem onClick={() => onQuote(editableMessage)}>
                     <CornerUpRight className="mr-2 h-4 w-4" />
                     <span>Antworten</span>
                 </DropdownMenuItem>
@@ -233,7 +272,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
                     <span>Kopieren</span>
                 </DropdownMenuItem>}
                 {isCurrentUser && message.type === 'text' && (
-                    <DropdownMenuItem onClick={() => onEdit(message)}>
+                    <DropdownMenuItem onClick={() => onEdit(editableMessage)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         <span>Bearbeiten</span>
                     </DropdownMenuItem>
@@ -269,7 +308,14 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
         {message.type === 'audio' ? (
           <AudioMessage message={message} currentUser={currentUser} />
         ) : (
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          isDecrypting ? (
+            <div className="flex items-center gap-2 text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Entschlüssle...</span>
+            </div>
+          ) : (
+            <p className="text-sm whitespace-pre-wrap">{decryptedContent}</p>
+          )
         )}
         
         {message.linkPreview && (

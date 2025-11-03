@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import type { User } from 'firebase/auth';
+import { encryptMessage } from "@/lib/crypto";
 
 interface ChatLayoutProps {
   currentUser: User;
@@ -54,7 +55,7 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
             }
 
             const participants: UserType[] = [
-                { id: currentUser.uid, name: currentUser.displayName || "You", avatar: currentUser.photoURL || '', onlineStatus: 'online' },
+                { id: currentUser.uid, name: currentUser.displayName || "You", avatar: currentUser.photoURL || '', onlineStatus: 'online', publicKey: '' },
             ];
             if(otherParticipant) participants.push(otherParticipant);
 
@@ -67,10 +68,8 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
         
         // Sort conversations by the most recent message
         convosData.sort((a, b) => {
-            const lastMessageA = a.messages?.[a.messages.length - 1];
-            const lastMessageB = b.messages?.[b.messages.length - 1];
-            const timeA = lastMessageA?.date?.toMillis() || a.createdAt?.toMillis() || 0;
-            const timeB = lastMessageB?.date?.toMillis() || b.createdAt?.toMillis() || 0;
+            const timeA = a.lastMessage?.date?.toMillis() || a.createdAt?.toMillis() || 0;
+            const timeB = b.lastMessage?.date?.toMillis() || b.createdAt?.toMillis() || 0;
             return timeB - timeA;
         });
 
@@ -87,7 +86,7 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
   const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.uid && blockedUsers.has(p.id));
 
   const handleSendMessage = async (content: string, type: 'text' | 'audio' = 'text', duration?: number, selfDestructDuration?: number) => {
-    if (!selectedConversationId || !firestore) return;
+    if (!selectedConversationId || !firestore || !selectedConversation) return;
 
      if (isContactBlocked) {
       toast({
@@ -97,12 +96,28 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
       });
       return;
     }
+
+    const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
+    if (!contact || !contact.publicKey) {
+      toast({ variant: "destructive", title: "Fehler", description: "Der öffentliche Schlüssel des Kontakts wurde nicht gefunden." });
+      return;
+    }
+
+    let encryptedContent = content;
+    if (type === 'text') {
+      const encrypted = await encryptMessage(contact.publicKey, content);
+      if (!encrypted) {
+          toast({ variant: "destructive", title: "Verschlüsselungsfehler", description: "Nachricht konnte nicht verschlüsselt werden." });
+          return;
+      }
+      encryptedContent = encrypted;
+    }
     
     const messagesRef = collection(firestore, "conversations", selectedConversationId, "messages");
     
     const newMessage: Omit<Message, 'id'> = {
       senderId: currentUser.uid,
-      content: content,
+      content: encryptedContent,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: serverTimestamp() as any, // Firestore will handle this
       status: 'sent',
@@ -111,9 +126,9 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
       readAt: null,
     };
     if (type === 'audio') {
-      newMessage.audioUrl = content;
+      newMessage.audioUrl = content; // Keep original URL for audio
       newMessage.audioDuration = duration;
-      newMessage.content = '';
+      newMessage.content = ''; // No encrypted text content for audio
     }
     if (selfDestructDuration) {
       newMessage.selfDestructDuration = selfDestructDuration;
