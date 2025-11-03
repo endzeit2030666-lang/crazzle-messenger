@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus, BellOff } from "lucide-react";
+import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus, BellOff, FileArchive, FileCode2 } from "lucide-react";
 import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -128,6 +128,9 @@ export default function ConversationList({
                 break;
             case 'audio':
                 lastMessageDisplay = "🎤 Sprachnachricht";
+                break;
+            case 'document':
+                 lastMessageDisplay = `📄 ${lastMessage.fileName || 'Dokument'}`;
                 break;
             default:
                 lastMessageDisplay = "Neue Nachricht";

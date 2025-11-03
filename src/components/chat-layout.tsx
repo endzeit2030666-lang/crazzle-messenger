@@ -14,7 +14,7 @@ import { encryptMessage } from "@/lib/crypto";
 
 interface ChatLayoutProps {
   currentUser: User;
-  setSendMessage: (fn: (content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number) => void) => void;
+  setSendMessage: (fn: (content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number, fileName?: string) => void) => void;
 }
 
 export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutProps) {
@@ -41,7 +41,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const blockedUserIds = useMemo(() => new Set(currentUserData?.blockedUsers || []), [currentUserData]);
   const isContactBlocked = contactInSelectedConversation ? blockedUserIds.has(contactInSelectedConversation.id) : false;
 
-  const handleSendMessage = useCallback(async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
+  const handleSendMessage = useCallback(async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number, fileName?: string) => {
     if (!selectedConversationId || !firestore || !selectedConversation) return;
 
      if (selectedConversation.type === 'private' && isContactBlocked) {
@@ -113,6 +113,10 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
       case 'video':
         newMessage.videoUrl = content;
         break;
+      case 'document':
+        newMessage.fileUrl = content;
+        newMessage.fileName = fileName;
+        break;
     }
 
     if (selfDestructDuration) {
@@ -129,6 +133,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             case 'image': lastMessageText = "📷 Bild gesendet"; break;
             case 'video': lastMessageText = "📹 Video gesendet"; break;
             case 'audio': lastMessageText = "🎤 Sprachnachricht"; break;
+            case 'document': lastMessageText = `📄 ${fileName || 'Dokument'}`; break;
             default: lastMessageText = "Neue Nachricht";
         }
         

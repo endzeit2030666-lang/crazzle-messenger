@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile, Play, Pause, Loader2, Users } from "lucide-react";
+import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile, Play, Pause, Loader2, Users, File, Download } from "lucide-react";
 import type { Message as MessageType, User as UserType } from "@/lib/types";
 import {
   Tooltip,
@@ -187,6 +187,18 @@ const MediaMessage = ({ message }: { message: MessageType }) => {
     if (message.type === 'video' && message.videoUrl) {
         return <video src={message.videoUrl} controls className="rounded-lg mt-1 w-full max-w-sm" />;
     }
+    if (message.type === 'document' && message.fileUrl) {
+        return (
+            <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-black/10 rounded-lg hover:bg-black/20 transition-colors">
+                <File className="w-8 h-8 text-primary" />
+                <div className="flex-1">
+                    <p className="font-semibold text-sm break-all">{message.fileName || 'Dokument'}</p>
+                    <p className="text-xs text-muted-foreground">Tippen zum Öffnen</p>
+                </div>
+                <Download className="w-5 h-5 text-muted-foreground" />
+            </a>
+        )
+    }
     return null;
 };
 
@@ -271,7 +283,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
     content: decryptedContent || message.content,
   }), [message, decryptedContent])
 
-  const hasContent = message.audioUrl || message.imageUrl || message.videoUrl || (decryptedContent && decryptedContent.trim() !== '');
+  const hasContent = message.audioUrl || message.imageUrl || message.videoUrl || message.fileUrl || (decryptedContent && decryptedContent.trim() !== '');
   if (!hasContent) {
     return null;
   }
@@ -329,7 +341,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
           isCurrentUser
             ? "bg-primary text-primary-foreground rounded-br-none"
             : "bg-secondary text-secondary-foreground rounded-bl-none",
-          (message.type === 'image' || message.type === 'video') && "p-1 bg-transparent"
+          (message.type === 'image' || message.type === 'video' || message.type === 'document') && "p-1 bg-transparent"
         )}
       >
         {isGroup && !isCurrentUser && <p className="text-xs font-bold mb-1 text-primary">{sender?.name}</p>}
@@ -342,7 +354,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
         
         {message.type === 'audio' ? (
           <AudioMessage message={message} currentUser={currentUser} />
-        ) : message.type === 'image' || message.type === 'video' ? (
+        ) : message.type === 'image' || message.type === 'video' || message.type === 'document' ? (
           <MediaMessage message={message} />
         ) : (
           isDecrypting ? (

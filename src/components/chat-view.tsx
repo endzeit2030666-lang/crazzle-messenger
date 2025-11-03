@@ -42,7 +42,7 @@ import type { User } from "firebase/auth";
 
 type ChatViewProps = {
   conversation: Conversation;
-  onSendMessage: (content: string, type?: MessageType['type'], duration?: number, selfDestructDuration?: number) => void;
+  onSendMessage: (content: string, type?: MessageType['type'], duration?: number, selfDestructDuration?: number, fileName?: string) => void;
   onClearConversation: (conversationId: string) => void;
   onBlockContact: (contactId: string) => void;
   onUnblockContact: (contactId: string) => void;
@@ -306,12 +306,12 @@ export default function ChatView({
     await updateDoc(messageRef, { reactions: newReactions });
   };
   
-  const handleSendMessageSubmit = (content: string, type: MessageType['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
+  const handleSendMessageSubmit = (content: string, type: MessageType['type'] = 'text', duration?: number, selfDestructDuration?: number, fileName?: string) => {
     if (editingMessage) {
       onEditMessage(editingMessage.id, content);
       setEditingMessage(null);
     } else {
-        onSendMessage(content, type, duration, selfDestructDuration);
+        onSendMessage(content, type, duration, selfDestructDuration, fileName);
         setQuotedMessage(undefined);
     }
   };

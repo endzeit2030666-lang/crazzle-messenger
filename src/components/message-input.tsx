@@ -47,7 +47,7 @@ import { uploadMedia } from '@/firebase/storage';
 
 type MessageInputProps = {
   chatId: string;
-  onSendMessage: (content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number) => void;
+  onSendMessage: (content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number, fileName?: string) => void;
   onSetTyping: (isTyping: boolean) => void;
   quotedMessage?: Message['quotedMessage'];
   onClearQuote: () => void;
@@ -294,7 +294,7 @@ export default function MessageInput({
       const mediaType = file.type.startsWith('image') ? 'image' : (file.type.startsWith('video') ? 'video' : 'document');
       const path = `chats/${chatId}/${user.uid}_${Date.now()}_${file.name}`;
       const downloadURL = await uploadMedia(file, path);
-      onSendMessage(downloadURL, mediaType, undefined, selfDestructDuration);
+      onSendMessage(downloadURL, mediaType, undefined, selfDestructDuration, file.name);
       setSelfDestructDuration(undefined);
     } catch (error) {
       console.error('Upload failed:', error);
@@ -310,13 +310,6 @@ export default function MessageInput({
     }
   };
 
-  const handleFeatureNotImplemented = (featureName: string) => {
-    toast({
-      title: `${featureName}`,
-      description: 'Diese Funktion ist noch nicht implementiert.',
-    });
-  };
-
   const handleEmojiSelect = (emoji: string) => {
     const cursorPosition = textareaRef.current?.selectionStart || 0;
     const newText = text.slice(0, cursorPosition) + emoji + text.slice(cursorPosition);
@@ -324,7 +317,9 @@ export default function MessageInput({
     
     setTimeout(() => {
         textareaRef.current?.focus();
-        textareaRef.current?.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
+        if (textareaRef.current) {
+          textareaRef.current.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
+        }
     }, 0);
   };
   

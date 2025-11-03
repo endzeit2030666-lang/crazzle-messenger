@@ -69,5 +69,3 @@ export type Conversation = {
   admins?: string[];
   createdBy: string;
 };
-
-    
