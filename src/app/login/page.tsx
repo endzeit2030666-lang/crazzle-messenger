@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -97,11 +97,10 @@ export default function LoginPage() {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
-      // Regardless of whether user exists or not, we need an auth session.
-      const cred = await signInAnonymously(auth);
-
       if (userSnapshot.empty) {
-        // User does not exist, create a new one with the UID from the new session.
+        // User does not exist, create a new one.
+        // This process requires a temporary auth session.
+        const cred = await signInAnonymously(auth);
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
@@ -117,21 +116,21 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
         
-        // This setDoc is the likely point of failure.
+        // This is the Firestore operation that is likely failing.
+        // We will wrap it to catch and re-throw a detailed error.
         await setDoc(newUserRef, newUser);
-        
+
+      } else {
+        // User exists, just sign them in.
+        await signInAnonymously(auth);
       }
       
-      // If user exists, we just signed them in anonymously.
-      // The useUser hook will now detect the new auth state and navigate.
-       toast({
+      toast({
           title: "Anmeldung erfolgreich",
           description: "Willkommen!",
       });
 
     } catch (error: any) {
-        console.error("Anmeldefehler:", error); // Log the original error for inspection
-
         // This is the correct error handling architecture.
         // It creates a rich, contextual error and emits it globally.
         const permissionError = new FirestorePermissionError({
