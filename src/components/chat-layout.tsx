@@ -22,13 +22,17 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+    const [selectedConversationType, setSelectedConversationType] = useState<'private' | 'group' | null>(null);
   const [currentUserData, setCurrentUserData] = useState<UserType | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
-  const blockedUserIds = useMemo(() => new Set(currentUserData?.blockedUsers || []), [currentUserData]);
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
-  const contactInSelectedConversation = selectedConversation?.participants.find(p => p.id !== currentUser.uid);
+  const contactInSelectedConversation = selectedConversation?.type === 'private'
+    ? selectedConversation?.participants.find(p => p.id !== currentUser.uid)
+    : undefined;
+  
+  const blockedUserIds = useMemo(() => new Set(currentUserData?.blockedUsers || []), [currentUserData]);
   const isContactBlocked = contactInSelectedConversation ? blockedUserIds.has(contactInSelectedConversation.id) : false;
   
   const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
@@ -44,13 +48,15 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
 
     const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
-    if (!contact || !contact.publicKey) {
+    // TODO: Handle group message encryption
+    if (selectedConversation.type === 'private' && (!contact || !contact.publicKey)) {
       toast({ variant: "destructive", title: "Fehler", description: "Der öffentliche Schlüssel des Kontakts wurde nicht gefunden." });
       return;
     }
 
     let encryptedContent = content;
-    if (type === 'text') {
+    // Only encrypt text messages for private chats for now
+    if (type === 'text' && selectedConversation.type === 'private' && contact?.publicKey) {
       const encrypted = await encryptMessage(contact.publicKey, content);
       if (!encrypted) {
           toast({ variant: "destructive", title: "Verschlüsselungsfehler", description: "Nachricht konnte nicht verschlüsselt werden." });
@@ -127,7 +133,6 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     const unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
         const usersData = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as UserType))
-          .filter(u => u.id !== currentUser.uid);
         setAllUsers(usersData);
         sessionStorage.setItem('allUsers', JSON.stringify(usersData)); // For settings page
     });
@@ -137,20 +142,21 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     const unsubscribeConversations = onSnapshot(userConvosQuery, async (snapshot) => {
         const convosData: Conversation[] = await Promise.all(snapshot.docs.map(async (doc) => {
             const convoData = doc.data();
-            const otherParticipantId = convoData.participantIds.find((pId: string) => pId !== currentUser.uid);
+            const participantIds = convoData.participantIds || [];
             
-            let otherParticipant: UserType | undefined = allUsers.find(u => u.id === otherParticipantId);
-            if (!otherParticipant) {
-              const userDoc = await getDocs(query(collection(firestore, "users"), where("id", "==", otherParticipantId)));
-              if (!userDoc.empty){
-                otherParticipant = { id: userDoc.docs[0].id, ...userDoc.docs[0].data() } as UserType;
-              }
+            const participants: UserType[] = [];
+            for (const pId of participantIds) {
+                let participant = allUsers.find(u => u.id === pId);
+                if (!participant) {
+                     const userDoc = await getDocs(query(collection(firestore, "users"), where("id", "==", pId)));
+                     if (!userDoc.empty){
+                       participant = { id: userDoc.docs[0].id, ...userDoc.docs[0].data() } as UserType;
+                     }
+                }
+                if (participant) {
+                    participants.push(participant);
+                }
             }
-
-            const participants: UserType[] = [
-                { id: currentUser.uid, name: currentUser.displayName || "You", avatar: currentUser.photoURL || '', onlineStatus: 'online', publicKey: '' },
-            ];
-            if(otherParticipant) participants.push(otherParticipant);
 
             return {
                 id: doc.id,
@@ -234,6 +240,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     const conversationsRef = collection(firestore, "conversations");
     const q = query(
       conversationsRef,
+      where("type", "==", "private"),
       where("participantIds", "array-contains", currentUser.uid)
     );
     const querySnapshot = await getDocs(q);
@@ -247,15 +254,23 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
 
     if (existingConvo) {
       setSelectedConversationId(existingConvo.id);
+      setSelectedConversationType('private');
     } else {
       // Create a new conversation
       const newConvo = await addDoc(conversationsRef, {
         participantIds: [currentUser.uid, contact.id],
+        type: 'private',
         createdAt: serverTimestamp()
       });
       setSelectedConversationId(newConvo.id);
+      setSelectedConversationType('private');
     }
   };
+
+  const handleSelect = (id: string, type: 'private' | 'group') => {
+    setSelectedConversationId(id);
+    setSelectedConversationType(type);
+  }
 
 
   return (
@@ -269,9 +284,9 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         <ConversationList
           conversations={conversations}
           selectedConversationId={selectedConversationId}
-          onConversationSelect={setSelectedConversationId}
+          onConversationSelect={handleSelect}
           onNavigateToSettings={navigateToSettings}
-          allUsers={allUsers}
+          allUsers={allUsers.filter(u => u.id !== currentUser.uid)}
           onContactSelect={handleConversationSelect}
           currentUser={currentUser}
         />

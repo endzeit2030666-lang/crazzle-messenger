@@ -281,73 +281,37 @@
         }
       },
       {
-        "path": "/users/{userId}/messages/{messageId}",
+        "path": "/conversations/{conversationId}",
+        "definition": {
+          "entityName": "Conversation",
+          "schema": {
+            "$ref": "#/backend/entities/Conversation"
+          },
+          "description": "Stores conversation metadata for both private and group chats.",
+          "params": [
+            {
+              "name": "conversationId",
+              "description": "The unique identifier of the conversation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/conversations/{conversationId}/messages/{messageId}",
         "definition": {
           "entityName": "Message",
           "schema": {
             "$ref": "#/backend/entities/Message"
           },
-          "description": "Stores messages sent or received by a user. The 'senderId' and 'receiverId' fields within each message document facilitates authorization rules based on user IDs.",
+          "description": "Stores messages within a conversation. Access control is determined by membership in the parent conversation document.",
           "params": [
             {
-              "name": "userId",
-              "description": "The unique identifier of the user."
+              "name": "conversationId",
+              "description": "The unique identifier of the conversation."
             },
             {
               "name": "messageId",
               "description": "The unique identifier of the message."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/group_chats/{groupChatId}",
-        "definition": {
-          "entityName": "GroupChat",
-          "schema": {
-            "$ref": "#/backend/entities/GroupChat"
-          },
-          "description": "Stores group chat metadata. Includes denormalized 'members' map for authorization independence.",
-          "params": [
-            {
-              "name": "groupChatId",
-              "description": "The unique identifier of the group chat."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/group_chats/{groupChatId}/messages/{messageId}",
-        "definition": {
-          "entityName": "GroupChatMessage",
-          "schema": {
-            "$ref": "#/backend/entities/GroupChatMessage"
-          },
-          "description": "Stores messages within a group chat. Access control is determined by the denormalized 'members' map in the parent group chat document.",
-          "params": [
-            {
-              "name": "groupChatId",
-              "description": "The unique identifier of the group chat."
-            },
-            {
-              "name": "messageId",
-              "description": "The unique identifier of the message."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/group_chat_memberships/{groupChatMembershipId}",
-        "definition": {
-          "entityName": "GroupChatMembership",
-          "schema": {
-            "$ref": "#/backend/entities/GroupChatMembership"
-          },
-          "description": "Stores group chat membership information.  This is NOT directly used for security rules; the 'members' map is denormalized into the GroupChat document for authorization independence.",
-          "params": [
-            {
-              "name": "groupChatMembershipId",
-              "description": "The unique identifier of the group chat membership."
             }
           ]
         }

@@ -41,7 +41,7 @@ export type Message = {
       senderName: string;
   };
   isEdited?: boolean;
-  type: 'text' | 'audio' | 'image' | 'video';
+  type: 'text' | 'audio' | 'image' | 'video' | 'system';
   audioUrl?: string;
   audioDuration?: number;
   imageUrl?: string;
@@ -50,10 +50,14 @@ export type Message = {
 
 export type Conversation = {
   id: string;
-  type: 'private';
+  type: 'private' | 'group';
   participantIds: string[];
   participants: User[]; // This will be populated client-side
   lastMessage?: Message;
   isMuted?: boolean;
   createdAt?: Timestamp;
+  // Group-specific fields
+  name?: string;
+  avatar?: string;
+  admins?: string[];
 };
