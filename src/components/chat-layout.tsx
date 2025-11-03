@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Conversation, User as UserType, Message } from "@/lib/types";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion, arrayRemove, setDoc } from "firebase/firestore";
 import { useFirestore, useMemoFirebase } from "@/firebase";
@@ -41,7 +41,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const blockedUserIds = useMemo(() => new Set(currentUserData?.blockedUsers || []), [currentUserData]);
   const isContactBlocked = contactInSelectedConversation ? blockedUserIds.has(contactInSelectedConversation.id) : false;
 
-  const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
+  const handleSendMessage = useCallback(async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
     if (!selectedConversationId || !firestore || !selectedConversation) return;
 
      if (selectedConversation.type === 'private' && isContactBlocked) {
@@ -54,6 +54,23 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
 
     let encryptedContent = content;
+    let linkPreview = null;
+    
+    // Link detection
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = content.match(urlRegex);
+    if (urls && urls.length > 0) {
+        // For simplicity, we just use a placeholder for link previews
+        // A real implementation would fetch metadata from the URL
+        linkPreview = {
+            url: urls[0],
+            title: `Vorschau für ${urls[0]}`,
+            description: "Dies ist eine automatisch generierte Vorschau für den geteilten Link.",
+            image: `https://picsum.photos/seed/${urls[0]}/400/225`
+        }
+    }
+
+
     if (type === 'text' && selectedConversation.type === 'private') {
       const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
       if (!contact || !contact.publicKey) {
@@ -82,6 +99,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
       reactions: [],
       type: type,
       readAt: null,
+      linkPreview: linkPreview,
     };
     
     if(type !== 'text') {
@@ -107,155 +125,165 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
 
     try {
         await addDoc(messagesRef, newMessage);
-        // Also update the lastMessage on the conversation
         const convoRef = doc(firestore, "conversations", selectedConversationId);
+        
+        let lastMessageText = "Neue Nachricht";
+        switch(type) {
+            case 'text': lastMessageText = content; break;
+            case 'image': lastMessageText = "📷 Bild gesendet"; break;
+            case 'video': lastMessageText = "📹 Video gesendet"; break;
+            case 'audio': lastMessageText = "🎤 Sprachnachricht"; break;
+            default: lastMessageText = "Neue Nachricht";
+        }
+        
         await updateDoc(convoRef, {
             lastMessage: {
-                ...newMessage,
-                date: new Date(), // Use client time for immediate UI update
+                content: lastMessageText,
+                date: serverTimestamp(),
+                senderId: currentUser.uid,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                type: type,
             }
         });
-
-    } catch(e) {
-        console.error("Error sending message: ", e);
-        toast({
-            variant: "destructive",
-            title: "Fehler beim Senden",
-            description: "Nachricht konnte nicht gesendet werden."
-        })
+    } catch (e) {
+        console.error("Failed to send message:", e);
+        toast({ variant: "destructive", title: "Fehler beim Senden", description: "Nachricht konnte nicht gesendet werden." });
     }
-  };
-  
-  useEffect(() => {
+  }, [selectedConversationId, firestore, selectedConversation, currentUser, toast, isContactBlocked]);
+
+   useEffect(() => {
     setSendMessage(handleSendMessage);
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedConversationId, firestore, isContactBlocked, currentUser.uid, selectedConversation]);
+  }, [handleSendMessage, setSendMessage]);
 
-  const userConvosQuery = useMemoFirebase(() => {
-    if (!firestore || !currentUser) return null;
-    return query(collection(firestore, "conversations"), where("participantIds", "array-contains", currentUser.uid));
-  }, [firestore, currentUser]);
 
-  useEffect(() => {
-    if (!firestore || !currentUser) return;
+   useEffect(() => {
+    if (!currentUser.uid || !firestore) return;
 
-    const userDocRef = doc(firestore, "users", currentUser.uid);
+    // Fetch current user's data for blocked list
+    const userDocRef = doc(firestore, 'users', currentUser.uid);
     const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
-        if (doc.exists()) {
-            setCurrentUserData({ id: doc.id, ...doc.data() } as UserType);
+        if(doc.exists()) {
+            setCurrentUserData(doc.data() as UserType);
         }
     });
 
-    const usersRef = collection(firestore, "users");
-    const unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
-        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserType));
-        setAllUsers(usersData);
-    });
-
-    if (!userConvosQuery) return;
-    
-    const unsubscribeConversations = onSnapshot(userConvosQuery, async (snapshot) => {
-        const convosDataPromises = snapshot.docs.map(async (doc) => {
-            const convoData = doc.data();
-            const participantIds = convoData.participantIds || [];
-            
-            // This is inefficient, but necessary for now without a proper user cache
-            const participantsSnap = await getDocs(query(collection(firestore, "users"), where("id", 'in', participantIds)));
-            const participants = participantsSnap.docs.map(d => ({id: d.id, ...d.data()}) as UserType);
-
-            return {
-                id: doc.id,
-                ...convoData,
-                participants,
-            } as Conversation;
-        });
-        
-        const convosData = await Promise.all(convosDataPromises);
-        
-        convosData.sort((a, b) => {
-            const timeA = a.lastMessage?.date?.toMillis ? a.lastMessage.date.toMillis() : (a.lastMessage?.date ? new Date(a.lastMessage.date as any).getTime() : a.createdAt?.toMillis() || 0);
-            const timeB = b.lastMessage?.date?.toMillis ? b.lastMessage.date.toMillis() : (b.lastMessage?.date ? new Date(b.lastMessage.date as any).getTime() : b.createdAt?.toMillis() || 0);
-            return timeB - timeA;
-        });
-
-        setConversations(convosData);
+    // Fetch all users for populating conversations
+    const usersQuery = query(collection(firestore, 'users'));
+    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+      const usersData = snapshot.docs.map(doc => doc.data() as UserType);
+      setAllUsers(usersData);
     });
 
     return () => {
-        unsubscribeUser();
-        unsubscribeUsers();
-        if (unsubscribeConversations) unsubscribeConversations();
+      unsubscribeUser();
+      unsubscribeUsers();
     };
-}, [firestore, currentUser, userConvosQuery]);
+  }, [currentUser.uid, firestore]);
+  
 
-  const handleClearConversation = async (conversationId: string) => {
+  useEffect(() => {
+    if (!currentUser.uid || !firestore || allUsers.length === 0) return;
+
+    const conversationsQuery = query(
+      collection(firestore, 'conversations'),
+      where('participantIds', 'array-contains', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(conversationsQuery, (snapshot) => {
+      const convos = snapshot.docs.map(docData => {
+        const data = docData.data();
+        const participants = data.participantIds
+          .map((id: string) => allUsers.find(u => u.id === id))
+          .filter((p: UserType | undefined): p is UserType => p !== undefined);
+
+        return {
+          id: docData.id,
+          ...data,
+          participants,
+        } as Conversation;
+      });
+      setConversations(convos);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser.uid, firestore, allUsers]);
+  
+  
+   const handleClearConversation = useCallback(async (conversationId: string) => {
     if (!firestore) return;
     const messagesRef = collection(firestore, "conversations", conversationId, "messages");
     const messagesSnapshot = await getDocs(messagesRef);
+    
+    if (messagesSnapshot.empty) {
+        toast({ title: "Chat ist bereits leer" });
+        return;
+    }
+    
     const batch = writeBatch(firestore);
     messagesSnapshot.forEach(doc => {
       batch.delete(doc.ref);
     });
-    // Also clear the last message on the conversation doc
-    const convoRef = doc(firestore, "conversations", conversationId);
-    batch.update(convoRef, { lastMessage: null });
+    
     await batch.commit();
-    toast({
-        title: "Chat geleert",
-        description: "Alle Nachrichten in diesem Chat wurden gelöscht.",
+
+    const convoRef = doc(firestore, "conversations", conversationId);
+    await updateDoc(convoRef, {
+        lastMessage: null
     });
-  };
-
-  const handleBlockContact = async (contactId: string) => {
-      if (!firestore || !currentUser) return;
-      const userDocRef = doc(firestore, 'users', currentUser.uid);
-      try {
-          await updateDoc(userDocRef, {
-              blockedUsers: arrayUnion(contactId)
-          });
-          toast({ title: 'Kontakt blockiert', description: 'Du wirst keine Nachrichten mehr von diesem Kontakt erhalten.' });
-      } catch (error) {
-          console.error("Fehler beim Blockieren des Kontakts:", error);
-          toast({ variant: 'destructive', title: 'Fehler', description: 'Kontakt konnte nicht blockiert werden.' });
-      }
-  };
-
-  const handleUnblockContact = async (contactId: string) => {
-      if (!firestore || !currentUser) return;
-      const userDocRef = doc(firestore, 'users', currentUser.uid);
-      try {
-          await updateDoc(userDocRef, {
-              blockedUsers: arrayRemove(contactId)
-          });
-          toast({ title: 'Blockierung aufgehoben' });
-      } catch (error) {
-          console.error("Fehler beim Aufheben der Blockierung:", error);
-          toast({ variant: 'destructive', title: 'Fehler', description: 'Blockierung konnte nicht aufgehoben werden.' });
-      }
-  };
+    
+    toast({ title: "Chatverlauf gelöscht" });
+  }, [firestore, toast]);
   
-  const handleBack = () => {
-    setSelectedConversationId(null);
-  };
-  
+  const handleBlockContact = useCallback(async (contactId: string) => {
+    if (!currentUser.uid || !firestore) return;
+    const userDocRef = doc(firestore, "users", currentUser.uid);
+    try {
+        await updateDoc(userDocRef, {
+            blockedUsers: arrayUnion(contactId)
+        });
+        toast({ title: "Kontakt blockiert", description: "Sie erhalten keine Nachrichten oder Anrufe mehr von diesem Kontakt."});
+    } catch(e) {
+        toast({ variant: "destructive", title: "Fehler beim Blockieren" });
+    }
+  }, [currentUser.uid, firestore, toast]);
+
+  const handleUnblockContact = useCallback(async (contactId: string) => {
+    if (!currentUser.uid || !firestore) return;
+    const userDocRef = doc(firestore, "users", currentUser.uid);
+     try {
+        await updateDoc(userDocRef, {
+            blockedUsers: arrayRemove(contactId)
+        });
+        toast({ title: "Blockierung aufgehoben"});
+    } catch(e) {
+        toast({ variant: "destructive", title: "Fehler beim Aufheben der Blockierung" });
+    }
+  }, [currentUser.uid, firestore, toast]);
+
+  const handleConversationSelect = useCallback((id: string) => {
+    setSelectedConversationId(id);
+    // On mobile, this will trigger the view change
+    if (window.innerWidth < 768) {
+      router.push(`/?chatId=${id}`);
+    }
+  }, [router]);
+
+  // Effect to handle direct navigation via query param on mobile
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatId = urlParams.get('chatId');
+    if (chatId) {
+      setSelectedConversationId(chatId);
+    }
+  }, []);
+
   const navigateToSettings = () => router.push('/settings');
   const navigateToContacts = () => router.push('/contacts');
   const navigateToStatus = () => router.push('/status');
 
-
-  const handleConversationSelect = async (id: string, type: 'private' | 'group') => {
-    setSelectedConversationId(id);
-  };
-
-
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background md:grid md:grid-cols-[384px_1fr]">
-      <div
-        className={cn(
-          "w-full flex-col md:flex",
-          selectedConversationId && "hidden"
-        )}
-      >
+    <div className="flex h-screen w-full">
+      <div className={cn("w-full md:w-96 flex-col md:flex", selectedConversationId ? "hidden" : "flex")}>
         <ConversationList
           conversations={conversations}
           selectedConversationId={selectedConversationId}
@@ -266,12 +294,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
           currentUser={currentUser}
         />
       </div>
-      <div
-        className={cn(
-          "flex-1 flex-col",
-          !selectedConversationId ? "hidden md:flex" : "flex"
-        )}
-      >
+      <div className={cn("flex-1 flex-col", selectedConversationId ? "flex" : "hidden md:flex")}>
         {selectedConversation ? (
           <ChatView
             key={selectedConversation.id}
@@ -280,12 +303,15 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             onClearConversation={handleClearConversation}
             onBlockContact={handleBlockContact}
             onUnblockContact={handleUnblockContact}
-            onBack={handleBack}
             isBlocked={isContactBlocked}
+            onBack={() => {
+              setSelectedConversationId(null);
+              router.push('/');
+            }}
             currentUser={currentUser}
           />
         ) : (
-          <div className="flex-1 items-center justify-center text-muted-foreground bg-muted/20 hidden md:flex">
+          <div className="flex-1 hidden md:flex items-center justify-center text-muted-foreground bg-muted/20">
             Wähle eine Konversation, um mit dem Chatten zu beginnen.
           </div>
         )}
