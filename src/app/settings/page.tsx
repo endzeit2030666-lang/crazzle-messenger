@@ -26,7 +26,7 @@ import {
 import { Label } from '@/components/ui/label';
 import type { User } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
-import { doc, updateDoc, arrayRemove, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 
 const SettingsToggleItem = ({ icon, label, checked, onCheckedChange }: { icon: React.ElementType; label: string; checked: boolean; onCheckedChange: (checked: boolean) => void }) => (
@@ -50,7 +50,6 @@ export default function SettingsPage() {
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   
-  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -58,40 +57,33 @@ export default function SettingsPage() {
     if (!currentUser || !firestore) return;
     
     setIsLoading(true);
-    const fetchUserData = async () => {
-        let allUsersParsed: User[] = [];
+    const fetchBlockedUsers = async () => {
         try {
-            const usersJson = sessionStorage.getItem('allUsers');
-            if (usersJson) {
-                allUsersParsed = JSON.parse(usersJson);
-                setAllUsers(allUsersParsed);
-            } else {
-                 toast({variant: "destructive", title: "Fehler", description: "Benutzerdaten nicht gefunden. Bitte zur Chat-Ansicht zurückkehren."});
-                 setIsLoading(false);
-                 return;
-            }
-
             const userDocRef = doc(firestore, 'users', currentUser.uid);
             const userDoc = await getDoc(userDocRef);
+
             if (userDoc.exists()) {
-                const userData = userDoc.data() as User;
+                const userData = userDoc.data();
                 const blockedIds = userData.blockedUsers || [];
                 
-                if (allUsersParsed.length > 0) {
-                    const blocked = allUsersParsed.filter(u => blockedIds.includes(u.id));
-                    setBlockedUsers(blocked);
+                if (blockedIds.length > 0) {
+                    const usersQuery = query(collection(firestore, 'users'), where('id', 'in', blockedIds));
+                    const usersSnapshot = await getDocs(usersQuery);
+                    const blockedUsersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+                    setBlockedUsers(blockedUsersData);
+                } else {
+                    setBlockedUsers([]);
                 }
             }
-
         } catch (error) {
-            console.error("Failed to parse data from sessionStorage or fetch user data", error);
-            toast({variant: "destructive", title: "Fehler beim Laden der Daten"});
+            console.error("Failed to fetch blocked users", error);
+            toast({variant: "destructive", title: "Fehler beim Laden der blockierten Benutzer"});
         } finally {
             setIsLoading(false);
         }
     };
     
-    fetchUserData();
+    fetchBlockedUsers();
   }, [currentUser, firestore, toast]);
 
   const unblockContact = async (contactId: string) => {
@@ -104,13 +96,13 @@ export default function SettingsPage() {
             blockedUsers: arrayRemove(contactId)
         });
         
+        const unblockedUser = blockedUsers.find(u => u.id === contactId);
         setBlockedUsers(prev => prev.filter(u => u.id !== contactId));
         
-        const contact = allUsers.find(u => u.id === contactId);
-        if (contact) {
+        if (unblockedUser) {
             toast({
                 title: "Blockierung aufgehoben",
-                description: `${contact.name} ist nicht mehr blockiert.`
+                description: `${unblockedUser.name} ist nicht mehr blockiert.`
             });
         }
     } catch (error) {

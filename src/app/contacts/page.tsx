@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare, Phone, Video, Search, BookUser } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
-import { collection, onSnapshot, query, getDocs } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, onSnapshot, query, getDocs, doc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,44 +28,54 @@ export default function ContactsPage() {
   const firestore = useFirestore();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isLoadingContacts, setIsLoadingContacts] = useState(true);
+  const [allUsers, setAllUsers] = useState<UserType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!currentUser || !firestore) return;
 
-    const contactsQuery = query(collection(firestore, 'users', currentUser.uid, 'contacts'));
-    const unsubscribe = onSnapshot(contactsQuery, async (snapshot) => {
-      setIsLoadingContacts(true);
-      const contactsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      const userDocs = await getDocs(collection(firestore, 'users'));
-      const allUsers = userDocs.docs.map(doc => ({id: doc.id, ...doc.data()}) as UserType);
-
-      const enrichedContacts = contactsData.map(contact => {
-          const userData = allUsers.find(u => u.id === contact.id);
-          if (userData) {
-            return {
-              ...contact,
-              id: contact.id,
-              name: userData.name,
-              avatar: userData.avatar,
-              phoneNumber: userData.phoneNumber,
-              displayName: userData.name,
-            } as Contact;
-          }
-          return null;
-        })
-      
-      setContacts(enrichedContacts.filter(Boolean) as Contact[]);
-      setIsLoadingContacts(false);
+    // 1. Fetch all users once and for all
+    const usersQuery = query(collection(firestore, 'users'));
+    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserType));
+        setAllUsers(usersData);
     }, (error) => {
-        console.error("Fehler beim Laden der Kontakte:", error);
-        setIsLoadingContacts(false);
+        console.error("Error fetching all users:", error);
     });
 
-    return () => unsubscribe();
-  }, [currentUser, firestore]);
+    // 2. Fetch the user's contact IDs
+    const contactsQuery = query(collection(firestore, 'users', currentUser.uid, 'contacts'));
+    const unsubscribeContacts = onSnapshot(contactsQuery, (snapshot) => {
+        const contactIds = snapshot.docs.map(doc => doc.id);
+        
+        // 3. Enrich contact data using the allUsers state
+        if (allUsers.length > 0) {
+            const enriched = contactIds.map(id => {
+                const userData = allUsers.find(u => u.id === id);
+                return userData ? {
+                    id: userData.id,
+                    name: userData.name,
+                    displayName: userData.name,
+                    avatar: userData.avatar,
+                    phoneNumber: userData.phoneNumber,
+                } as Contact : null;
+            }).filter(Boolean) as Contact[];
+
+            setContacts(enriched);
+            setIsLoading(false);
+        }
+
+    }, (error) => {
+        console.error("Fehler beim Laden der Kontakte:", error);
+        setIsLoading(false);
+    });
+
+    return () => {
+        unsubscribeUsers();
+        unsubscribeContacts();
+    };
+  }, [currentUser, firestore, allUsers]); // Rerun when allUsers is populated
 
   const handleGoBack = () => {
     router.push('/');
@@ -90,7 +100,7 @@ export default function ContactsPage() {
     contact.phoneNumber?.includes(searchTerm)
   );
 
-  if (isUserLoading) {
+  if (isUserLoading || isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -121,7 +131,7 @@ export default function ContactsPage() {
       </div>
 
       <main className="flex-1 overflow-y-auto">
-        {isLoadingContacts ? (
+        {isLoading ? (
            <div className="flex h-full items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>

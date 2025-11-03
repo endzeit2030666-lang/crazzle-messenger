@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Camera, Type, FileImage } from 'lucide-react';
+import { ArrowLeft, Plus, Camera, Type, FileImage, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -15,9 +15,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { collection, getDocs, query } from 'firebase/firestore';
 
 
 type Story = { 
@@ -59,6 +59,7 @@ export default function StatusPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user: currentUser, isUserLoading } = useUser();
+  const firestore = useFirestore();
   
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [viewingStatus, setViewingStatus] = useState<Status | null>(null);
@@ -66,8 +67,9 @@ export default function StatusPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [currentUserData, setCurrentUserData] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const currentUserData = allUsers.find(u => u.id === currentUser?.uid);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -75,33 +77,31 @@ export default function StatusPage() {
         router.push('/login');
         return;
     }
+    if (!firestore) return;
 
     setIsLoading(true);
-    try {
-        const usersJson = sessionStorage.getItem('allUsers');
-        if (usersJson) {
-            const parsedUsers = JSON.parse(usersJson) as User[];
-            setAllUsers(parsedUsers);
-            const self = parsedUsers.find(u => u.id === currentUser.uid);
-            setCurrentUserData(self || null);
-            setStatuses(generateInitialStatusUpdates(currentUser.uid, parsedUsers));
-        } else {
-            toast({ variant: 'destructive', title: "Benutzerdaten nicht gefunden", description: "Bitte kehre zur Chat-Ansicht zurück, um die Daten zu laden." });
+    const fetchUsers = async () => {
+        try {
+            const usersQuery = query(collection(firestore, 'users'));
+            const querySnapshot = await getDocs(usersQuery);
+            const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+            setAllUsers(usersData);
+            setStatuses(generateInitialStatusUpdates(currentUser.uid, usersData));
+        } catch (error) {
+            console.error("Fehler beim Laden der Benutzerdaten aus Firestore", error);
+            toast({ variant: 'destructive', title: "Fehler", description: "Konnte Benutzerdaten nicht laden." });
+        } finally {
+            setIsLoading(false);
         }
-    } catch (error) {
-        console.error("Fehler beim Laden der Benutzerdaten aus dem Session Storage", error);
-        toast({ variant: 'destructive', title: "Fehler", description: "Konnte Benutzerdaten nicht laden." });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [currentUser, isUserLoading, router, toast]);
+    };
+    fetchUsers();
+  }, [currentUser, isUserLoading, router, toast, firestore]);
 
   const myStatus = statuses.find(s => s.userId === currentUser?.uid);
   const recentUpdates = statuses.filter(s => s.userId !== currentUser?.uid && !s.viewed);
   const viewedUpdates = statuses.filter(s => s.userId !== currentUser?.uid && s.viewed);
 
   const getUserById = (id: string): User | undefined => {
-    if (id === currentUserData?.id) return currentUserData;
     return allUsers.find(u => u.id === id);
   };
   
@@ -136,6 +136,10 @@ export default function StatusPage() {
     // Simulate picking a file by going to the camera page.
     // In a real app, this would open a file picker.
     router.push('/status/camera?from=gallery');
+  }
+
+  const handleGoBack = () => {
+    router.push('/');
   }
 
 
@@ -184,7 +188,7 @@ export default function StatusPage() {
   return (
     <div className="w-full h-screen bg-background text-foreground flex flex-col">
       <header className="flex items-center p-4 border-b border-border shadow-sm z-10 sticky top-0 bg-background">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={handleGoBack}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="font-headline text-xl font-bold ml-4 text-primary">Status</h1>
