@@ -27,6 +27,9 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const router = useRouter();
 
   const blockedUserIds = useMemo(() => new Set(currentUserData?.blockedUsers || []), [currentUserData]);
+  const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+  const contactInSelectedConversation = selectedConversation?.participants.find(p => p.id !== currentUser.uid);
+  const isContactBlocked = contactInSelectedConversation ? blockedUserIds.has(contactInSelectedConversation.id) : false;
   
   const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
     if (!selectedConversationId || !firestore || !selectedConversation) return;
@@ -169,10 +172,6 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         unsubscribeConversations();
     };
 }, [firestore, currentUser, allUsers]);
-
-  const selectedConversation = conversations.find(c => c.id === selectedConversationId);
-  const contactInSelectedConversation = selectedConversation?.participants.find(p => p.id !== currentUser.uid);
-  const isContactBlocked = contactInSelectedConversation ? blockedUserIds.has(contactInSelectedConversation.id) : false;
 
   const handleClearConversation = async (conversationId: string) => {
     if (!firestore) return;
