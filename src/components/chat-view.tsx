@@ -168,33 +168,16 @@ export default function ChatView({
     const unsubscribe = onSnapshot(q, (snapshot) => {
        const newMessagesData = processMessages(snapshot.docs).reverse();
        
+       setMessages(currentMessages => {
+         const messageMap = new Map(currentMessages.map(m => [m.id, m]));
+         newMessagesData.forEach(m => messageMap.set(m.id, m));
+         return Array.from(messageMap.values()).sort((a, b) => (a.date as any) - (b.date as any));
+       });
+
        if (isInitialLoading) {
-         setMessages(newMessagesData);
          setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
          setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
          setIsInitialLoading(false);
-       } else {
-          // This handles real-time updates after initial load
-          setMessages(currentMessages => {
-            const messageMap = new Map(currentMessages.map(m => [m.id, m]));
-            newMessagesData.forEach(m => messageMap.set(m.id, m));
-            const sortedMessages = Array.from(messageMap.values()).sort((a,b) => (a.date as any) - (b.date as any));
-            
-            const batch = writeBatch(firestore);
-            let hasUpdates = false;
-            sortedMessages.forEach(msg => {
-                if (msg.senderId !== currentUser.uid && msg.status !== 'read') {
-                    const msgRef = doc(firestore, 'conversations', conversation.id, 'messages', msg.id);
-                    batch.update(msgRef, { status: 'read', readAt: serverTimestamp() });
-                    hasUpdates = true;
-                }
-            });
-            if(hasUpdates) {
-                batch.commit().catch(e => console.error("Error marking messages as read", e));
-            }
-
-            return sortedMessages;
-          });
        }
     }, (error) => {
         console.error("Error fetching messages:", error);
@@ -205,6 +188,27 @@ export default function ChatView({
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firestore, conversation.id]);
+
+  // Effect to mark messages as read
+  useEffect(() => {
+      if (!firestore || messages.length === 0) return;
+
+      const batch = writeBatch(firestore);
+      let hasUpdates = false;
+
+      messages.forEach(msg => {
+          if (msg.senderId !== currentUser.uid && msg.status !== 'read') {
+              const msgRef = doc(firestore, 'conversations', conversation.id, 'messages', msg.id);
+              batch.update(msgRef, { status: 'read', readAt: serverTimestamp() });
+              hasUpdates = true;
+          }
+      });
+
+      if (hasUpdates) {
+          batch.commit().catch(e => console.error("Error marking messages as read", e));
+      }
+  }, [messages, conversation.id, currentUser.uid, firestore]);
+
 
   useEffect(() => {
     if (scrollAreaRef.current && !isLoadingMore) {
