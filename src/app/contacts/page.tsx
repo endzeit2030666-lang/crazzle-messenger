@@ -1,17 +1,17 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare, Phone, Video, Search, BookUser } from 'lucide-react';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, onSnapshot, query, getDocs, doc } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, onSnapshot, query, getDocs, doc, where } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import type { User as UserType } from '@/lib/types';
-
+import { useToast } from '@/hooks/use-toast';
 
 type Contact = {
   id: string;
@@ -26,56 +26,57 @@ export default function ContactsPage() {
   const router = useRouter();
   const { user: currentUser, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!currentUser || !firestore) return;
 
-    // 1. Fetch all users once and for all
-    const usersQuery = query(collection(firestore, 'users'));
-    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
-        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserType));
-        setAllUsers(usersData);
-    }, (error) => {
-        console.error("Error fetching all users:", error);
-    });
-
-    // 2. Fetch the user's contact IDs
+    setIsLoading(true);
+    // 1. Listen for changes in the user's contacts subcollection
     const contactsQuery = query(collection(firestore, 'users', currentUser.uid, 'contacts'));
-    const unsubscribeContacts = onSnapshot(contactsQuery, (snapshot) => {
-        const contactIds = snapshot.docs.map(doc => doc.id);
-        
-        // 3. Enrich contact data using the allUsers state
-        if (allUsers.length > 0) {
-            const enriched = contactIds.map(id => {
-                const userData = allUsers.find(u => u.id === id);
-                return userData ? {
+    
+    const unsubscribe = onSnapshot(contactsQuery, async (contactsSnapshot) => {
+        const contactIds = contactsSnapshot.docs.map(doc => doc.data().contactUserId);
+
+        if (contactIds.length === 0) {
+            setContacts([]);
+            setIsLoading(false);
+            return;
+        }
+
+        // 2. Fetch the user documents for those contact IDs
+        try {
+            const usersQuery = query(collection(firestore, 'users'), where('id', 'in', contactIds));
+            const usersSnapshot = await getDocs(usersQuery);
+            const enrichedContacts = usersSnapshot.docs.map(doc => {
+                const userData = doc.data() as UserType;
+                return {
                     id: userData.id,
                     name: userData.name,
                     displayName: userData.name,
                     avatar: userData.avatar,
                     phoneNumber: userData.phoneNumber,
-                } as Contact : null;
-            }).filter(Boolean) as Contact[];
-
-            setContacts(enriched);
+                } as Contact;
+            });
+            setContacts(enrichedContacts);
+        } catch (error) {
+            console.error("Error fetching contact user data:", error);
+            toast({ variant: 'destructive', title: "Fehler beim Laden der Kontaktdetails" });
+        } finally {
             setIsLoading(false);
         }
-
     }, (error) => {
         console.error("Fehler beim Laden der Kontakte:", error);
+        toast({ variant: 'destructive', title: "Fehler beim Laden der Kontakte" });
         setIsLoading(false);
     });
 
-    return () => {
-        unsubscribeUsers();
-        unsubscribeContacts();
-    };
-  }, [currentUser, firestore, allUsers]); // Rerun when allUsers is populated
+    return () => unsubscribe();
+  }, [currentUser, firestore, toast]);
 
   const handleGoBack = () => {
     router.push('/');
@@ -131,11 +132,7 @@ export default function ContactsPage() {
       </div>
 
       <main className="flex-1 overflow-y-auto">
-        {isLoading ? (
-           <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : filteredContacts.length > 0 ? (
+        {filteredContacts.length > 0 ? (
           <div className="space-y-1 p-2">
             {filteredContacts.map(contact => (
               <div key={contact.id} className="flex items-center p-3 rounded-lg hover:bg-muted transition-colors">

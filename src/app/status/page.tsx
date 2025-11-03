@@ -34,25 +34,26 @@ type Status = {
 const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): Status[] => {
     const otherUsers = allUsers.filter(u => u.id !== currentUserId);
     return [
-  {
-    userId: currentUserId,
-    stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
-    viewed: true,
-  },
-  ...(otherUsers.length > 0 ? [{
-    userId: otherUsers[0].id,
-    stories: [
-        { imageUrl: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
-        { imageUrl: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
-    ],
-    viewed: false,
-  }] : []),
-  ...(otherUsers.length > 2 ? [{
-    userId: otherUsers[2].id,
-    stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
-    viewed: true,
-  }] : []),
-]};
+      {
+        userId: currentUserId,
+        stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
+        viewed: true,
+      },
+      ...(otherUsers.length > 0 ? [{
+        userId: otherUsers[0].id,
+        stories: [
+            { imageUrl: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
+            { imageUrl: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
+        ],
+        viewed: false,
+      }] : []),
+      ...(otherUsers.length > 2 ? [{
+        userId: otherUsers[2].id,
+        stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
+        viewed: true,
+      }] : []),
+    ]
+};
 
 
 export default function StatusPage() {
@@ -86,6 +87,7 @@ export default function StatusPage() {
             const querySnapshot = await getDocs(usersQuery);
             const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
             setAllUsers(usersData);
+            // This is mock data generation, replace with real status logic later
             setStatuses(generateInitialStatusUpdates(currentUser.uid, usersData));
         } catch (error) {
             console.error("Fehler beim Laden der Benutzerdaten aus Firestore", error);
@@ -143,7 +145,7 @@ export default function StatusPage() {
   }
 
 
-  if (isLoading || isUserLoading || !currentUserData) {
+  if (isLoading || isUserLoading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -195,46 +197,48 @@ export default function StatusPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6">
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetTrigger asChild>
-            <div
-              className="flex items-center gap-4 cursor-pointer"
-            >
-              <div className="relative">
-                <Avatar className="w-14 h-14">
-                  <AvatarImage src={currentUserData.avatar} alt={currentUserData.name} />
-                  <AvatarFallback>{currentUserData.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
-                  <Plus className="w-4 h-4 text-primary-foreground" />
+        {currentUserData && (
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <SheetTrigger asChild>
+              <div
+                className="flex items-center gap-4 cursor-pointer"
+              >
+                <div className="relative">
+                  <Avatar className="w-14 h-14">
+                    <AvatarImage src={currentUserData.avatar} alt={currentUserData.name} />
+                    <AvatarFallback>{currentUserData.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
+                    <Plus className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="font-semibold text-lg text-primary">Mein Status</h2>
+                  <p className="text-sm text-white">Tippen, um Status hinzuzufügen</p>
                 </div>
               </div>
-              <div>
-                <h2 className="font-semibold text-lg text-primary">Mein Status</h2>
-                <p className="text-sm text-white">Tippen, um Status hinzuzufügen</p>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-lg">
+              <SheetHeader>
+                <SheetTitle className="text-center text-primary">Status erstellen</SheetTitle>
+              </SheetHeader>
+              <div className="grid gap-4 py-4">
+                <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
+                  <Camera className="w-6 h-6 mr-4" />
+                  <span className="text-lg">Foto oder Video</span>
+                </Button>
+                <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
+                  <Type className="w-6 h-6 mr-4" />
+                  <span className="text-lg">Text-Status</span>
+                </Button>
+                <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={handleFileUpload}>
+                  <FileImage className="w-6 h-6 mr-4" />
+                  <span className="text-lg">Bild oder Video aus Galerie</span>
+                </Button>
               </div>
-            </div>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="rounded-t-lg">
-            <SheetHeader>
-              <SheetTitle className="text-center text-primary">Status erstellen</SheetTitle>
-            </SheetHeader>
-            <div className="grid gap-4 py-4">
-              <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/camera'); }}>
-                <Camera className="w-6 h-6 mr-4" />
-                <span className="text-lg">Foto oder Video</span>
-              </Button>
-              <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={() => { setIsSheetOpen(false); router.push('/status/text'); }}>
-                <Type className="w-6 h-6 mr-4" />
-                <span className="text-lg">Text-Status</span>
-              </Button>
-              <Button variant="outline" className="w-full justify-start h-14 text-primary" onClick={handleFileUpload}>
-                <FileImage className="w-6 h-6 mr-4" />
-                <span className="text-lg">Bild oder Video aus Galerie</span>
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
+            </SheetContent>
+          </Sheet>
+        )}
 
         {recentUpdates.length > 0 && (
             <div>

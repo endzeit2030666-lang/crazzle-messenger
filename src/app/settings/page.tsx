@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, 'useState', useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   Bell,
   BellOff,
   UserX,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -44,7 +45,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user: currentUser } = useUser();
+  const { user: currentUser, isUserLoading } = useUser();
   
   const [readReceipts, setReadReceipts] = useState(true);
   const [notificationsMuted, setNotificationsMuted] = useState(false);
@@ -115,10 +116,10 @@ export default function SettingsPage() {
     router.push('/');
   }
 
-  if (isLoading) {
+  if (isLoading || isUserLoading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
-             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     );
   }
