@@ -63,38 +63,41 @@ export default function ContactsPage() {
 
   const handleStartChat = async (contact: Contact) => {
     if (!currentUser || !firestore) return;
+    
+    // Sort IDs to ensure the query is consistent regardless of who initiates.
+    const participantIds = [currentUser.uid, contact.id].sort();
 
-    // Check if a private conversation already exists
+    // Check if a private conversation already exists with these two participants.
     const convosQuery = query(
       collection(firestore, 'conversations'),
       where('type', '==', 'private'),
-      where('participantIds', 'array-contains', currentUser.uid)
+      where('participantIds', '==', participantIds)
     );
-    const convoSnapshot = await getDocs(convosQuery);
-    const existingConvo = convoSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as Conversation))
-        .find(c => c.participantIds.includes(contact.id));
 
-
-    if (existingConvo) {
-      router.push(`/?chatId=${existingConvo.id}`);
-      return;
-    }
-
-    // Create a new private conversation
     try {
+      const convoSnapshot = await getDocs(convosQuery);
+      
+      if (!convoSnapshot.empty) {
+        // Conversation already exists, navigate to it.
+        const existingConvo = convoSnapshot.docs[0];
+        router.push(`/?chatId=${existingConvo.id}`);
+        return;
+      }
+
+      // Create a new private conversation if it doesn't exist.
       const newConvoRef = await addDoc(collection(firestore, 'conversations'), {
         type: 'private',
-        participantIds: [currentUser.uid, contact.id],
+        participantIds: participantIds, // Use the sorted array
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
       });
       router.push(`/?chatId=${newConvoRef.id}`);
+
     } catch (e) {
-      console.error("Fehler beim Erstellen des Chats:", e);
+      console.error("Fehler beim Erstellen oder Abrufen des Chats:", e);
       toast({ variant: 'destructive', title: "Fehler", description: "Der Chat konnte nicht erstellt werden." });
     }
-  }
+}
   
   const handleSaveContact = async () => {
     if (!newContactName.trim() || !newContactPhone.trim()) {
