@@ -52,6 +52,7 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -69,6 +70,7 @@ export default function LoginPage() {
         });
         return;
     }
+    setIsSigningIn(true);
     try {
       const { publicKeyB64 } = await generateAndStoreKeys();
       
@@ -85,10 +87,18 @@ export default function LoginPage() {
         onlineStatus: 'online',
         publicKey: publicKeyB64,
         phoneNumber: phoneNumber.trim(),
+        readReceiptsEnabled: true,
       }, { merge: true });
 
     } catch (error) {
       console.error('Anonymous sign-in failed', error);
+      toast({
+          variant: "destructive",
+          title: "Anmeldung fehlgeschlagen",
+          description: "Es konnte kein anonymer Account erstellt werden. Bitte versuche es erneut.",
+      });
+    } finally {
+        setIsSigningIn(false);
     }
   };
 
@@ -116,8 +126,10 @@ export default function LoginPage() {
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
             className="text-center"
+            disabled={isSigningIn}
         />
-        <Button size="lg" onClick={handleAnonymousSignIn} className="w-full">
+        <Button size="lg" onClick={handleAnonymousSignIn} className="w-full" disabled={isSigningIn}>
+            {isSigningIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sicher & Anonym beitreten
         </Button>
       </div>

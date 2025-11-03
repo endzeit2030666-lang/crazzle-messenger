@@ -213,14 +213,6 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
   const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender, isCurrentUser, isGroup);
   
   useEffect(() => {
-    if (!messageRef.current || isCurrentUser || message.status === 'read' || currentUserData?.readReceiptsEnabled === false) {
-      return;
-    }
-    // The parent component now handles marking messages as read in batch
-  }, [message.id, isCurrentUser, message.status, currentUserData?.readReceiptsEnabled]);
-
-
-  useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (message.selfDestructDuration && message.readAt) {
       const readAtTime = (message.readAt as any).toMillis ? (message.readAt as any).toMillis() : new Date(message.readAt as any).getTime();
@@ -254,6 +246,9 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
 
   const getStatusIcon = () => {
     if (!isCurrentUser) return null;
+    if (currentUserData?.readReceiptsEnabled === false) {
+        return <CheckCheck className="h-4 w-4 text-muted-foreground" />;
+    }
     switch (message.status) {
       case 'read':
         return <CheckCheck className="h-4 w-4 text-green-400" />;
@@ -400,7 +395,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
           <span className={cn(isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground")}>
             {message.timestamp}
           </span>
-          {isCurrentUser && getStatusIcon()}
+          {getStatusIcon()}
         </div>
         {showReactionPicker && (
             <div className="absolute bottom-full mb-2 z-10">
@@ -447,5 +442,3 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
     </div>
   );
 }
-
-    

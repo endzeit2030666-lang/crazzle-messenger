@@ -4,13 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare, Search, BookUser } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, onSnapshot, query, getDocs, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, getDocs, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import type { User as UserType } from '@/lib/types';
+import type { User as UserType, Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 type Contact = UserType;
@@ -23,6 +23,7 @@ export default function ContactsPage() {
   const { toast } = useToast();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [existingConversations, setExistingConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -30,30 +31,63 @@ export default function ContactsPage() {
     if (!currentUser || !firestore) return;
 
     setIsLoading(true);
-    // This is a placeholder for a real contacts collection.
-    // In a real app, you would likely store contact relationships.
-    // For now, we list all users except the current one.
+    // Fetch all users except the current one
     const usersQuery = query(collection(firestore, 'users'), where('id', '!=', currentUser.uid));
     
-    const unsubscribe = onSnapshot(usersQuery, async (usersSnapshot) => {
+    const unsubscribeUsers = onSnapshot(usersQuery, (usersSnapshot) => {
         const usersData = usersSnapshot.docs.map(doc => doc.data() as Contact);
         setContacts(usersData);
-        setIsLoading(false);
+        if (isLoading) setIsLoading(false);
     }, (error) => {
         console.error("Fehler beim Laden der Benutzer:", error);
         toast({ variant: 'destructive', title: "Fehler beim Laden der Benutzer" });
         setIsLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [currentUser, firestore, toast]);
+    // Fetch existing conversations to avoid creating duplicates
+    const convosQuery = query(collection(firestore, 'conversations'), where('participantIds', 'array-contains', currentUser.uid));
+    const unsubscribeConvos = onSnapshot(convosQuery, (convoSnapshot) => {
+        const convosData = convoSnapshot.docs.map(doc => doc.data() as Conversation);
+        setExistingConversations(convosData);
+    });
+
+
+    return () => {
+        unsubscribeUsers();
+        unsubscribeConvos();
+    };
+  }, [currentUser, firestore, toast, isLoading]);
 
   const handleGoBack = () => {
     router.push('/');
   };
   
-  const handleStartChat = (contactId: string) => {
-     router.push(`/?chatId=${contactId}`);
+  const handleStartChat = async (contact: Contact) => {
+     if (!currentUser || !firestore) return;
+
+     // Check if a private conversation already exists
+     const existingConvo = existingConversations.find(c =>
+        c.type === 'private' && c.participantIds.length === 2 && c.participantIds.includes(contact.id)
+     );
+
+     if (existingConvo) {
+        router.push(`/?chatId=${existingConvo.id}`);
+        return;
+     }
+
+     // Create a new private conversation
+     try {
+        const newConvoRef = await addDoc(collection(firestore, 'conversations'), {
+            type: 'private',
+            participantIds: [currentUser.uid, contact.id],
+            createdAt: serverTimestamp(),
+            createdBy: currentUser.uid,
+        });
+        router.push(`/?chatId=${newConvoRef.id}`);
+     } catch (e) {
+        console.error("Fehler beim Erstellen des Chats:", e);
+        toast({ variant: 'destructive', title: "Fehler", description: "Der Chat konnte nicht erstellt werden."});
+     }
   }
 
   const filteredContacts = contacts.filter(contact => 
@@ -95,7 +129,7 @@ export default function ContactsPage() {
         {filteredContacts.length > 0 ? (
           <div className="space-y-1 p-2">
             {filteredContacts.map(contact => (
-              <div key={contact.id} className="flex items-center p-3 rounded-lg hover:bg-muted transition-colors">
+              <div key={contact.id} className="flex items-center p-3 rounded-lg hover:bg-muted transition-colors cursor-pointer" onClick={() => handleStartChat(contact)}>
                 <Avatar className="w-12 h-12 mr-4">
                   <AvatarImage asChild>
                     <Image src={contact.avatar || ''} alt={contact.name} width={48} height={48} data-ai-hint="person portrait" />
@@ -107,7 +141,7 @@ export default function ContactsPage() {
                   <p className="text-sm text-muted-foreground">{contact.phoneNumber || "Keine Nummer"}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => handleStartChat(contact.id)}>
+                  <Button variant="ghost" size="icon">
                     <MessageSquare className="w-5 h-5 text-white" />
                   </Button>
                 </div>
