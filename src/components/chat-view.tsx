@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { ShieldCheck, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare } from "lucide-react";
+import { ShieldCheck, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare, Bell } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ type ChatViewProps = {
   onClearConversation: (conversationId: string) => void;
   onBlockContact: (contactId: string) => void;
   onUnblockContact: (contactId: string) => void;
+  onToggleMute: (conversationId: string, isMuted: boolean) => void;
   onBack: () => void;
   onSetTyping: (isTyping: boolean) => void;
   isBlocked: boolean;
@@ -60,13 +61,13 @@ export default function ChatView({
     onClearConversation,
     onBlockContact,
     onUnblockContact,
+    onToggleMute,
     onBack,
     onSetTyping,
     isBlocked,
     currentUser,
 }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const topMessageRef = useRef<HTMLDivElement>(null);
   
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
@@ -170,7 +171,23 @@ export default function ChatView({
           setMessages(currentMessages => {
             const messageMap = new Map(currentMessages.map(m => [m.id, m]));
             newMessagesData.forEach(m => messageMap.set(m.id, m));
-            return Array.from(messageMap.values()).sort((a,b) => (a.date as any) - (b.date as any));
+            const sortedMessages = Array.from(messageMap.values()).sort((a,b) => (a.date as any) - (b.date as any));
+            
+            // Mark new incoming messages as read
+            const batch = writeBatch(firestore);
+            let hasUpdates = false;
+            sortedMessages.forEach(msg => {
+                if (msg.senderId !== currentUser.uid && msg.status !== 'read') {
+                    const msgRef = doc(firestore, 'conversations', conversation.id, 'messages', msg.id);
+                    batch.update(msgRef, { status: 'read', readAt: serverTimestamp() });
+                    hasUpdates = true;
+                }
+            });
+            if(hasUpdates) {
+                batch.commit().catch(e => console.error("Error marking messages as read", e));
+            }
+
+            return sortedMessages;
           });
        }
     }, (error) => {
@@ -289,15 +306,6 @@ export default function ChatView({
     await updateDoc(messageRef, { reactions: newReactions });
   };
   
-  const onMessageRead = async (messageId: string) => {
-      if(!firestore || !currentUser) return;
-      const messageRef = doc(firestore, "conversations", conversation.id, "messages", messageId);
-      const messageToUpdate = messages.find(m => m.id === messageId);
-      if (messageToUpdate && messageToUpdate.senderId !== currentUser.uid && messageToUpdate.status !== 'read') {
-          await updateDoc(messageRef, { status: 'read', readAt: serverTimestamp() });
-      }
-  };
-  
   const handleSendMessageSubmit = (content: string, type: MessageType['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
     if (editingMessage) {
       onEditMessage(editingMessage.id, content);
@@ -352,9 +360,9 @@ export default function ChatView({
                       <span>Kontakt verifizieren</span>
                     </DropdownMenuItem>
                   )}
-                 <DropdownMenuItem>
-                  <BellOff className="mr-2 h-4 w-4" />
-                  <span>Benachrichtigungen stummschalten</span>
+                 <DropdownMenuItem onClick={() => onToggleMute(conversation.id, !conversation.isMuted)}>
+                    {conversation.isMuted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                    <span>{conversation.isMuted ? 'Stummschaltung aufheben' : 'Stummschalten'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowClearDialog(true)}>
@@ -406,7 +414,7 @@ export default function ChatView({
                     onEdit={handleEdit}
                     onDelete={onDeleteMessage}
                     onReact={onReact}
-                    onMessageRead={onMessageRead}
+                    currentUserData={conversation.participants.find(p => p.id === currentUser.uid)}
                     sender={isGroup ? conversation.participants.find(p => p.id === message.senderId) : contact}
                     currentUser={currentUser}
                     isGroup={isGroup}

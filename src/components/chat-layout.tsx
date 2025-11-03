@@ -256,6 +256,24 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
   }, [currentUser.uid, firestore, toast]);
 
+  const handleToggleMute = useCallback(async (conversationId: string, isMuted: boolean) => {
+    if (!firestore) return;
+    const convoRef = doc(firestore, 'conversations', conversationId);
+    try {
+      await updateDoc(convoRef, { isMuted: isMuted });
+      toast({
+        title: isMuted ? 'Chat stummgeschaltet' : 'Stummschaltung aufgehoben',
+      });
+    } catch (e) {
+      console.error('Mute toggle failed', e);
+      toast({
+        variant: 'destructive',
+        title: 'Fehler',
+        description: 'Der Status der Stummschaltung konnte nicht geändert werden.',
+      });
+    }
+  }, [firestore, toast]);
+
   const handleConversationSelect = useCallback((id: string) => {
     setSelectedConversationId(id);
     if (window.innerWidth < 768) {
@@ -315,6 +333,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             onClearConversation={handleClearConversation}
             onBlockContact={handleBlockContact}
             onUnblockContact={handleUnblockContact}
+            onToggleMute={handleToggleMute}
             onSetTyping={handleSetTyping}
             onBack={() => {
               setSelectedConversationId(null);

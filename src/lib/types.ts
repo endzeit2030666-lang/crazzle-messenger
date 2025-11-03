@@ -59,6 +59,7 @@ export type Conversation = {
   participantIds: string[];
   participants: User[]; // This will be populated client-side
   lastMessage?: Message;
+  unreadCount?: number; // Added for unread messages badge
   isMuted?: boolean;
   createdAt: Timestamp;
   typing?: string[];

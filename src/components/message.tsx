@@ -149,7 +149,7 @@ type MessageProps = {
   onEdit: (message: MessageType) => void;
   onDelete: (messageId: string) => void;
   onReact: (messageId: string, emoji: string) => void;
-  onMessageRead: (messageId: string) => void;
+  currentUserData?: UserType | null;
   sender?: UserType;
   currentUser: User;
   isGroup: boolean;
@@ -191,7 +191,7 @@ const MediaMessage = ({ message }: { message: MessageType }) => {
 };
 
 
-export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender, currentUser, isGroup }: MessageProps) {
+export default function Message({ message, onQuote, onEdit, onDelete, onReact, currentUserData, sender, currentUser, isGroup }: MessageProps) {
   const messageRef = useRef<HTMLDivElement>(null);
   const isCurrentUser = message.senderId === currentUser.uid;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -201,26 +201,11 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender, isCurrentUser, isGroup);
   
   useEffect(() => {
-    if (!messageRef.current || isCurrentUser || message.readAt) {
+    if (!messageRef.current || isCurrentUser || message.status === 'read' || currentUserData?.readReceiptsEnabled === false) {
       return;
     }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          onMessageRead(message.id);
-          observer.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.8 }
-    );
-
-    observer.observe(messageRef.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [message.id, isCurrentUser, message.readAt, onMessageRead]);
+    // The parent component now handles marking messages as read in batch
+  }, [message.id, isCurrentUser, message.status, currentUserData?.readReceiptsEnabled]);
 
 
   useEffect(() => {
@@ -398,9 +383,9 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
             </TooltipProvider>
           )}
 
-          {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-white")}>Bearbeitet</span>}
+          {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground")}>Bearbeitet</span>}
 
-          <span className={cn("text-white", isCurrentUser ? "text-primary-foreground/70" : "text-white")}>
+          <span className={cn(isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground")}>
             {message.timestamp}
           </span>
           {isCurrentUser && getStatusIcon()}

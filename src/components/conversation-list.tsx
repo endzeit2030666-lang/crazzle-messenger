@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus } from "lucide-react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus, BellOff } from "lucide-react";
 import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import Logo from "@/components/logo";
 import type { User } from "firebase/auth";
 import NewChatDialog from "./new-chat-dialog";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 
 type ConversationListProps = {
@@ -27,7 +29,7 @@ type ConversationListProps = {
 };
 
 export default function ConversationList({
-  conversations,
+  conversations: initialConversations,
   selectedConversationId,
   onConversationSelect,
   onNavigateToSettings,
@@ -39,6 +41,36 @@ export default function ConversationList({
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
+  const [conversations, setConversations] = useState(initialConversations);
+  const firestore = useFirestore();
+
+  useEffect(() => {
+    if (!firestore || !currentUser) return;
+    
+    const unreadCountsMap = new Map<string, number>();
+
+    const unsubscribes = initialConversations.map(convo => {
+        const messagesRef = collection(firestore, 'conversations', convo.id, 'messages');
+        const q = query(messagesRef, where('senderId', '!=', currentUser.uid), where('status', '!=', 'read'));
+
+        return onSnapshot(q, (snapshot) => {
+            unreadCountsMap.set(convo.id, snapshot.size);
+            
+            setConversations(prevConvos => 
+                prevConvos.map(p => 
+                    p.id === convo.id ? { ...p, unreadCount: snapshot.size } : p
+                )
+            );
+        });
+    });
+
+    setConversations(initialConversations);
+
+    return () => {
+        unsubscribes.forEach(unsub => unsub());
+    };
+}, [initialConversations, firestore, currentUser]);
+
 
   const filteredConversations = useMemo(() => {
     return conversations
@@ -127,12 +159,22 @@ export default function ConversationList({
               <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{displayName}</h3>
               <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
             </div>
-            <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
-                <>
-                  {lastMessage && lastMessageSenderName && `${lastMessageSenderName}: `}
-                  {lastMessageDisplay}
-                </>
-            </p>
+             <div className="flex items-center justify-between">
+                <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
+                    <>
+                    {lastMessage && lastMessageSenderName && `${lastMessageSenderName}: `}
+                    {lastMessageDisplay}
+                    </>
+                </p>
+                <div className="flex items-center gap-2">
+                    {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
+                    {convo.unreadCount && convo.unreadCount > 0 && (
+                        <span className={cn("flex items-center justify-center text-xs font-bold rounded-full h-5 min-w-[1.25rem] px-1", selectedConversationId === convo.id ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground")}>
+                            {convo.unreadCount}
+                        </span>
+                    )}
+                </div>
+            </div>
           </div>
         </div>
       </div>

@@ -30,13 +30,13 @@ import { useFirestore, useUser } from '@/firebase';
 import { doc, updateDoc, arrayRemove, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 
-const SettingsToggleItem = ({ icon, label, checked, onCheckedChange }: { icon: React.ElementType; label: string; checked: boolean; onCheckedChange: (checked: boolean) => void }) => (
+const SettingsToggleItem = ({ icon, label, checked, onCheckedChange, disabled = false }: { icon: React.ElementType; label: string; checked: boolean; onCheckedChange: (checked: boolean) => void; disabled?: boolean }) => (
     <div className="w-full flex items-center p-4 rounded-lg">
       <div className="p-2 bg-muted rounded-full mr-4">
         {React.createElement(icon, { className: "w-5 h-5 text-primary" })}
       </div>
-      <Label htmlFor={`toggle-${label}`} className="flex-1 text-left font-medium cursor-pointer">{label}</Label>
-      <Switch id={`toggle-${label}`} checked={checked} onCheckedChange={onCheckedChange} />
+      <Label htmlFor={`toggle-${label}`} className={cn("flex-1 text-left font-medium", disabled ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer")}>{label}</Label>
+      <Switch id={`toggle-${label}`} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
     </div>
 );
 
@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const firestore = useFirestore();
   const { user: currentUser, isUserLoading } = useUser();
   
+  const [userData, setUserData] = useState<UserType | null>(null);
   const [readReceipts, setReadReceipts] = useState(true);
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
@@ -63,35 +64,49 @@ export default function SettingsPage() {
     if (!firestore) return;
     
     setIsLoading(true);
-    const fetchBlockedUsers = async () => {
-        try {
-            const userDocRef = doc(firestore, 'users', currentUser.uid);
-            const userDoc = await getDoc(userDocRef);
+    const userDocRef = doc(firestore, 'users', currentUser.uid);
+    const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+            const data = doc.data() as UserType;
+            setUserData(data);
+            setReadReceipts(data.readReceiptsEnabled ?? true);
 
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const blockedIds = userData.blockedUsers || [];
-                
-                if (blockedIds.length > 0) {
-                    // Firestore 'in' query is limited to 30 elements.
-                    const usersQuery = query(collection(firestore, 'users'), where('id', 'in', blockedIds.slice(0, 30)));
-                    const usersSnapshot = await getDocs(usersQuery);
-                    const blockedUsersData = usersSnapshot.docs.map(doc => doc.data() as UserType);
-                    setBlockedUsers(blockedUsersData);
-                } else {
-                    setBlockedUsers([]);
-                }
+            const blockedIds = data.blockedUsers || [];
+            if (blockedIds.length > 0) {
+                 const usersQuery = query(collection(firestore, 'users'), where('id', 'in', blockedIds.slice(0, 30)));
+                 getDocs(usersQuery).then(usersSnapshot => {
+                     const blockedUsersData = usersSnapshot.docs.map(doc => doc.data() as UserType);
+                     setBlockedUsers(blockedUsersData);
+                 });
+            } else {
+                setBlockedUsers([]);
             }
-        } catch (error) {
-            console.error("Failed to fetch blocked users", error);
-            toast({variant: "destructive", title: "Fehler beim Laden der blockierten Benutzer"});
-        } finally {
-            setIsLoading(false);
         }
-    };
-    
-    fetchBlockedUsers();
-  }, [currentUser, firestore, toast, isUserLoading, router]);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to fetch user data", error);
+        toast({variant: "destructive", title: "Fehler beim Laden der Benutzerdaten"});
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, firestore, isUserLoading, router, toast]);
+
+  const handleReadReceiptsChange = async (checked: boolean) => {
+    if (!currentUser || !firestore) return;
+    setReadReceipts(checked);
+    const userDocRef = doc(firestore, 'users', currentUser.uid);
+    try {
+        await updateDoc(userDocRef, { readReceiptsEnabled: checked });
+        toast({
+            title: "Lesebestätigungen " + (checked ? "aktiviert" : "deaktiviert"),
+        });
+    } catch(e) {
+        console.error(e);
+        toast({variant: 'destructive', title: 'Fehler beim Speichern der Einstellung'});
+        setReadReceipts(!checked); // Revert on error
+    }
+  }
 
   const unblockContact = async (contactId: string) => {
     if (!currentUser || !firestore) return;
@@ -104,7 +119,7 @@ export default function SettingsPage() {
         });
         
         const unblockedUser = blockedUsers.find(u => u.id === contactId);
-        setBlockedUsers(prev => prev.filter(u => u.id !== contactId));
+        // The onSnapshot listener will update the state automatically
         
         if (unblockedUser) {
             toast({
@@ -146,7 +161,7 @@ export default function SettingsPage() {
             icon={Shield} 
             label="Lesebestätigungen"
             checked={readReceipts}
-            onCheckedChange={setReadReceipts}
+            onCheckedChange={handleReadReceiptsChange}
           />
           <div className="border-t border-border mx-4"></div>
            <button onClick={() => setShowBlockDialog(true)} className="w-full flex items-center p-4 rounded-lg hover:bg-muted transition-colors">
