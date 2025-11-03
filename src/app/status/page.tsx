@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -216,9 +217,11 @@ export default function StatusPage() {
             <div className="relative">
                  <div className={cn("relative p-0.5 rounded-full", myLastStory ? "border-2 border-primary" : "")}>
                     <Avatar className="w-14 h-14">
-                        <AvatarImage src={currentUserData?.avatar} alt="Mein Status" className="object-cover" />
+                        {myLastStory ? (
+                          <AvatarImage src={currentUserData?.avatar} alt="Mein Status" className="object-cover" />
+                        ) : null}
                         <AvatarFallback className='bg-muted/20'>
-                           {currentUserData?.name ? currentUserData.name.charAt(0) : <Plus className="w-6 h-6" />}
+                           {(!myStatus || myStatus.stories.length === 0) ? <Plus className="w-6 h-6" /> : currentUserData?.name.charAt(0)}
                         </AvatarFallback>
                     </Avatar>
                 </div>
