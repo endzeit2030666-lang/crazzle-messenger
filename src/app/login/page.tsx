@@ -92,6 +92,7 @@ export default function LoginPage() {
       const userSnapshot = await getDocs(usersQuery);
 
       if (userSnapshot.empty) {
+        // User does not exist, create a new one
         const cred = await signInAnonymously(auth);
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         
@@ -111,10 +112,10 @@ export default function LoginPage() {
         };
         
         await setDoc(newUserRef, newUser);
+        // Let the useUser hook handle navigation
+        
       } else {
-         // If user exists, just sign in anonymously. The useUser hook will pick up the existing session if one is active.
-         // If not, it will establish a new anonymous session, but since we don't link it to the existing user doc,
-         // the app state relies on the useUser hook correctly identifying the user upon reload.
+         // User exists, just sign in. The onAuthStateChanged listener will handle the session.
          await signInAnonymously(auth);
          toast({
             title: "Angemeldet",
