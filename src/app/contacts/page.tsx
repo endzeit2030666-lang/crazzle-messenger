@@ -62,10 +62,10 @@ export default function ContactsPage() {
 
   const handleStartChat = (contact: Contact) => {
     if (!currentUser || !firestore) return;
-  
+
     const participantIds = [currentUser.uid, contact.id].sort();
     const conversationId = participantIds.join('-');
-  
+
     const conversationRef = doc(firestore, 'conversations', conversationId);
     
     const newConversationData = {
@@ -78,12 +78,18 @@ export default function ContactsPage() {
       isMuted: false,
     };
 
-    // Use a non-blocking write and catch permission errors
     setDoc(conversationRef, newConversationData)
       .then(() => {
         router.push(`/?chatId=${conversationId}`);
       })
       .catch((serverError) => {
+        console.error("Error creating conversation:", serverError);
+        toast({
+            variant: "destructive",
+            title: "Fehler beim Erstellen des Chats",
+            description: "Die Konversation konnte nicht gestartet werden. Bitte versuche es erneut.",
+        });
+        
         // This is the correct error handling architecture.
         // It creates a rich, contextual error and emits it globally.
         const permissionError = new FirestorePermissionError({
