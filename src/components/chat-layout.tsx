@@ -8,7 +8,7 @@ import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { User } from 'firebase/auth';
 import { encryptMessage } from "@/lib/crypto";
 import { signOut } from "firebase/auth";
@@ -22,13 +22,12 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const firestore = useFirestore();
   const auth = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [currentUserData, setCurrentUserData] = useState<UserType | null>(null);
-  const [contacts, setContacts] = useState<any[]>([]);
 
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const selectedConversation = useMemo(() => {
     return conversations.find(c => c.id === selectedConversationId);
@@ -127,9 +126,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
 
     try {
-        const docRef = await addDoc(messagesRef, { ...newMessage, date: serverTimestamp() });
-        const convoRef = doc(firestore, "conversations", selectedConversationId);
-        
+        const messageDate = serverTimestamp();
         let lastMessageText = "Neue Nachricht";
         switch(type) {
             case 'text': lastMessageText = content; break;
@@ -140,14 +137,16 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             default: lastMessageText = "Neue Nachricht";
         }
         
+        const docRef = await addDoc(messagesRef, { ...newMessage, date: messageDate });
+        const convoRef = doc(firestore, "conversations", selectedConversationId);
+        
         await updateDoc(convoRef, {
             lastMessage: {
                 ...newMessage,
                 id: docRef.id,
                 content: lastMessageText,
-                date: serverTimestamp(),
+                date: messageDate, // Use the same serverTimestamp
             },
-            // Remove current user from typing array after sending a message
             typing: arrayRemove(currentUser.uid)
         });
     } catch (e) {
@@ -170,17 +169,9 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             setCurrentUserData(doc.data() as UserType);
         }
     });
-    
-    const contactsQuery = collection(firestore, 'users', currentUser.uid, 'contacts');
-    const unsubscribeContacts = onSnapshot(contactsQuery, (snapshot) => {
-      const contactsData = snapshot.docs.map(doc => doc.data());
-      setContacts(contactsData);
-    });
-
 
     return () => {
       unsubscribeUser();
-      unsubscribeContacts();
     };
   }, [currentUser.uid, firestore]);
   
@@ -203,12 +194,10 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         return;
       }
       
-      // Fetch all required user profiles in one go
       const usersQuery = query(collection(firestore, 'users'), where('id', 'in', allParticipantIds.slice(0, 30)));
       const usersSnapshot = await getDocs(usersQuery);
       const usersMap = new Map(usersSnapshot.docs.map(d => [d.id, { id: d.id, ...d.data() } as UserType]));
 
-      // Get contacts to override names
       const contactsQuery = query(collection(firestore, 'users', currentUser.uid, 'contacts'));
       const contactsSnapshot = await getDocs(contactsQuery);
       const contactsMap = new Map(contactsSnapshot.docs.map(d => [d.data().id, d.data()]));
@@ -220,7 +209,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
               if (user && convo.type === 'private' && user.id !== currentUser.uid) {
                   const contact = contactsMap.get(user.id);
                   if (contact) {
-                      return { ...user, name: contact.name };
+                      return { ...user, name: contact.name, avatar: user.avatar };
                   }
               }
               return user;
@@ -273,7 +262,6 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     const messagesRef = collection(firestore, "conversations", conversationId, "messages");
 
     try {
-        // 1. Delete all messages in the subcollection
         const messagesSnapshot = await getDocs(messagesRef);
         const batch = writeBatch(firestore);
         messagesSnapshot.forEach(doc => {
@@ -281,12 +269,11 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         });
         await batch.commit();
 
-        // 2. Delete the conversation document itself
         await deleteDoc(conversationRef);
         
         toast({ title: "Chat gelöscht", description: "Die Konversation wurde endgültig entfernt." });
-        setSelectedConversationId(null); // Deselect the chat
-        router.push('/'); // Navigate to home
+        setSelectedConversationId(null); 
+        router.push('/'); 
     } catch (error) {
         console.error("Fehler beim Löschen der Konversation:", error);
         toast({ variant: 'destructive', title: "Fehler", description: "Die Konversation konnte nicht gelöscht werden." });
@@ -372,12 +359,11 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
 
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const chatId = urlParams.get('chatId');
-    if (chatId) {
+    const chatId = searchParams.get('chatId');
+    if (chatId && conversations.some(c => c.id === chatId)) {
       setSelectedConversationId(chatId);
     }
-  }, []);
+  }, [searchParams, conversations]);
 
   const navigateToSettings = () => router.push('/settings');
   const navigateToContacts = () => router.push('/contacts');

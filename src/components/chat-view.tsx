@@ -157,7 +157,6 @@ export default function ChatView({
     });
   };
 
-  // Initial fetch and real-time updates for new messages
   useEffect(() => {
     if (!firestore || !conversation.id) return;
     setIsInitialLoading(true);
@@ -189,23 +188,30 @@ export default function ChatView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firestore, conversation.id]);
 
-  // Effect to mark messages as read
+  // Effect to mark messages as 'delivered' or 'read'
   useEffect(() => {
-      if (!firestore || messages.length === 0) return;
+      if (!firestore || messages.length === 0 || !currentUser.uid) return;
 
       const batch = writeBatch(firestore);
       let hasUpdates = false;
 
       messages.forEach(msg => {
-          if (msg.senderId !== currentUser.uid && msg.status !== 'read') {
-              const msgRef = doc(firestore, 'conversations', conversation.id, 'messages', msg.id);
-              batch.update(msgRef, { status: 'read', readAt: serverTimestamp() });
-              hasUpdates = true;
+          if (msg.senderId !== currentUser.uid) {
+              if (msg.status === 'sent') {
+                  const msgRef = doc(firestore, 'conversations', conversation.id, 'messages', msg.id);
+                  batch.update(msgRef, { status: 'delivered' });
+                  hasUpdates = true;
+              }
+              else if (msg.status === 'delivered') {
+                 const msgRef = doc(firestore, 'conversations', conversation.id, 'messages', msg.id);
+                  batch.update(msgRef, { status: 'read', readAt: serverTimestamp() });
+                  hasUpdates = true;
+              }
           }
       });
 
       if (hasUpdates) {
-          batch.commit().catch(e => console.error("Error marking messages as read", e));
+          batch.commit().catch(e => console.error("Error updating message statuses", e));
       }
   }, [messages, conversation.id, currentUser.uid, firestore]);
 
@@ -239,7 +245,6 @@ export default function ChatView({
     setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
     setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
     
-    // Maintain scroll position
     setTimeout(() => {
        const el = document.getElementById(`message-${firstOldMessageId}`);
        el?.scrollIntoView({ block: 'start', behavior: 'auto' });
