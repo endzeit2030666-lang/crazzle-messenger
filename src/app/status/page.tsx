@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Camera, Type, FileImage, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Camera, Type, FileImage, Loader2, Play } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -18,11 +18,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { collection, getDocs, query } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 
 type Story = { 
-  imageUrl: string; 
+  type: 'image' | 'video' | 'text';
+  content: string; // URL for image/video, text for text status
   timestamp: string;
+  bgColor?: string; // For text status
 };
 
 type Status = {
@@ -41,7 +44,7 @@ const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): 
     if (currentUserData) {
         statuses.push({
              userId: currentUserId,
-             stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
+             stories: [{ type: 'image', content: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
              viewed: true,
         });
     }
@@ -50,8 +53,8 @@ const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): 
       statuses.push({
         userId: otherUsers[0].id,
         stories: [
-            { imageUrl: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
-            { imageUrl: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
+            { type: 'image', content: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
+            { type: 'image', content: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
         ],
         viewed: false,
       });
@@ -60,7 +63,7 @@ const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): 
     if (otherUsers.length > 1) {
       statuses.push({
         userId: otherUsers[1].id,
-        stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
+        stories: [{ type: 'image', content: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
         viewed: true,
       });
     }
@@ -93,14 +96,37 @@ export default function StatusPage() {
     }
     if (!firestore) return;
 
-    setIsLoading(true);
-    const fetchUsers = async () => {
+    const fetchUsersAndStatuses = async () => {
+        setIsLoading(true);
         try {
             const usersQuery = query(collection(firestore, 'users'));
             const querySnapshot = await getDocs(usersQuery);
             const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
             setAllUsers(usersData);
-            setStatuses(generateInitialStatusUpdates(currentUser.uid, usersData));
+            
+            // Generate initial mock statuses
+            let initialStatuses = generateInitialStatusUpdates(currentUser.uid, usersData);
+
+            // Check for new status from text/camera page
+            const newStoryJSON = sessionStorage.getItem('newStatusStory');
+            if (newStoryJSON) {
+                const newStory = JSON.parse(newStoryJSON);
+                const myStatusIndex = initialStatuses.findIndex(s => s.userId === currentUser.uid);
+
+                if (myStatusIndex !== -1) {
+                    initialStatuses[myStatusIndex].stories.push(newStory);
+                    initialStatuses[myStatusIndex].viewed = true; // Mark as viewed since we just created it
+                } else {
+                     initialStatuses.unshift({
+                        userId: currentUser.uid,
+                        stories: [newStory],
+                        viewed: true
+                     });
+                }
+                sessionStorage.removeItem('newStatusStory');
+            }
+
+            setStatuses(initialStatuses);
         } catch (error) {
             console.error("Fehler beim Laden der Benutzerdaten aus Firestore", error);
             toast({ variant: 'destructive', title: "Fehler", description: "Konnte Benutzerdaten nicht laden." });
@@ -108,7 +134,7 @@ export default function StatusPage() {
             setIsLoading(false);
         }
     };
-    fetchUsers();
+    fetchUsersAndStatuses();
   }, [currentUser, isUserLoading, router, toast, firestore]);
 
   const myStatus = statuses.find(s => s.userId === currentUser?.uid);
@@ -122,7 +148,9 @@ export default function StatusPage() {
   const handleViewStatus = (status: Status) => {
     setViewingStatus(status);
     setCurrentStoryIndex(0);
-    setStatuses(currentStatuses => currentStatuses.map(s => s.userId === status.userId ? { ...s, viewed: true } : s))
+    if (status.userId !== currentUser?.uid) {
+      setStatuses(currentStatuses => currentStatuses.map(s => s.userId === status.userId ? { ...s, viewed: true } : s))
+    }
   }
   
   const handleCloseViewer = () => {
@@ -189,8 +217,16 @@ export default function StatusPage() {
         </div>
         <div className="flex-1 flex items-center justify-center relative">
             <div className="absolute left-0 top-0 h-full w-1/3 z-20" onClick={(e) => { e.stopPropagation(); prevStory(); }}></div>
-            <div className="absolute right-0 top-0 h-full w-1/3 z-20" onClick={(e) => { e.stopPropagation(); nextStory(); }}></div>
-            <Image src={story.imageUrl} layout="fill" objectFit="contain" alt="Status" data-ai-hint="story image" />
+            <div className="absolute right-0 top-0 h-full w-2/3 z-20" onClick={(e) => { e.stopPropagation(); nextStory(); }}></div>
+             {story.type === 'text' ? (
+                <div className={cn("w-full h-full flex items-center justify-center p-8", story.bgColor)}>
+                    <p className="text-white text-4xl font-bold text-center">{story.content}</p>
+                </div>
+             ) : story.type === 'video' ? (
+                <video src={story.content} autoPlay onEnded={nextStory} className="w-full h-full object-contain" />
+             ) : (
+                <Image src={story.content} layout="fill" objectFit="contain" alt="Status" data-ai-hint="story image" />
+             )}
         </div>
       </div>
     );
@@ -206,26 +242,29 @@ export default function StatusPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6">
-        {currentUserData && (
-          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <div
+            className="flex items-center gap-4 cursor-pointer"
+            onClick={() => myStatus ? handleViewStatus(myStatus) : setIsSheetOpen(true)}
+            >
+            <div className="relative">
+                <Avatar className="w-14 h-14">
+                {currentUserData && <AvatarImage src={currentUserData.avatar} alt={currentUserData.name} />}
+                <AvatarFallback>{currentUserData?.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                {!myStatus && (
+                    <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
+                        <Plus className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                )}
+            </div>
+            <div>
+                <h2 className="font-semibold text-lg text-primary">Mein Status</h2>
+                <p className="text-sm text-white">{myStatus ? "Meinen Status ansehen" : "Tippen, um Status hinzuzufügen"}</p>
+            </div>
+            </div>
             <SheetTrigger asChild>
-              <div
-                className="flex items-center gap-4 cursor-pointer"
-              >
-                <div className="relative">
-                  <Avatar className="w-14 h-14">
-                    <AvatarImage src={currentUserData.avatar} alt={currentUserData.name} />
-                    <AvatarFallback>{currentUserData.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
-                    <Plus className="w-4 h-4 text-primary-foreground" />
-                  </div>
-                </div>
-                <div>
-                  <h2 className="font-semibold text-lg text-primary">Mein Status</h2>
-                  <p className="text-sm text-white">Tippen, um Status hinzuzufügen</p>
-                </div>
-              </div>
+                <button className="hidden">Öffnen</button>
             </SheetTrigger>
             <SheetContent side="bottom" className="rounded-t-lg">
               <SheetHeader>
@@ -247,7 +286,6 @@ export default function StatusPage() {
               </div>
             </SheetContent>
           </Sheet>
-        )}
 
         {recentUpdates.length > 0 && (
             <div>

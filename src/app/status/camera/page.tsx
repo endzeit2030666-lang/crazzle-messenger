@@ -17,6 +17,7 @@ export default function CameraPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const recordedChunks = useRef<Blob[]>([]);
 
@@ -36,8 +37,16 @@ export default function CameraPage() {
   const { toast } = useToast();
   const { user } = useUser();
   const chatId = searchParams.get('chatId');
+  const fromGallery = searchParams.get('from') === 'gallery';
+
 
   useEffect(() => {
+    if (fromGallery) {
+      // If we come from gallery, trigger the file input
+      fileInputRef.current?.click();
+      return; // Don't request camera permission
+    }
+
     const getCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -76,7 +85,24 @@ export default function CameraPage() {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
       }
     };
-  }, [toast]);
+  }, [toast, fromGallery]);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        const url = URL.createObjectURL(file);
+        setCapturedMedia(url);
+        setMediaBlob(file);
+        if (file.type.startsWith('video')) {
+            setMediaType('video');
+        } else {
+            setMediaType('photo');
+        }
+    } else {
+        // If user cancels file selection, go back
+        router.back();
+    }
+  };
 
   const takePhoto = () => {
     const canvas = document.createElement('canvas');
@@ -125,6 +151,8 @@ export default function CameraPage() {
   
   const handlePostStatus = () => {
     setShowDurationDialog(false);
+    // This is still simulated as we don't have a real status backend
+    // In a real app, this would upload the mediaBlob and create a status document
     toast({
         title: "Status posten (simuliert)",
         description: `Dein Status wird für ${statusDuration === '48h' ? '48 Stunden' : 'immer'} sichtbar sein. Titel: "${caption}"`
@@ -147,13 +175,10 @@ export default function CameraPage() {
     try {
       const downloadURL = await uploadMedia(mediaBlob, `chats/${chatId}/${user.uid}_${Date.now()}`);
       
-      // The parent component is responsible for creating the message in firestore
       const params = new URLSearchParams(window.location.search);
       params.set('mediaUrl', downloadURL);
       params.set('mediaType', mediaType);
       
-      // Navigate back to the chat, which will read the params and send the message.
-      // This is a workaround to pass data back. A better solution would be a global state manager.
       if (chatId) {
         router.push(`/?${params.toString()}`);
       } else {
@@ -177,6 +202,9 @@ export default function CameraPage() {
     setCapturedMedia(null);
     setMediaBlob(null);
     setCaption('');
+     if (fromGallery) {
+      router.back(); // Go back if we came from gallery
+    }
   }
 
   if (isUploading) {
@@ -264,49 +292,66 @@ export default function CameraPage() {
 
   return (
     <div className="w-full h-screen bg-black text-white flex flex-col">
+       <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        className="hidden"
+        accept="image/*,video/*"
+      />
       <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <X className="w-6 h-6" />
         </Button>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon">
-            <Zap className="w-6 h-6" />
-          </Button>
-           <Button variant="ghost" size="icon">
-            <RefreshCw className="w-6 h-6" />
-          </Button>
-        </div>
+         {!fromGallery && (
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon">
+                    <Zap className="w-6 h-6" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                    <RefreshCw className="w-6 h-6" />
+                </Button>
+            </div>
+         )}
       </header>
 
       <main className="flex-1 flex items-center justify-center relative">
-        {hasCameraPermission === null && <p>Fordere Kameraberechtigung an...</p>}
+        {hasCameraPermission === null && !fromGallery && <p>Fordere Kameraberechtigung an...</p>}
         {hasCameraPermission === false && <p className="text-destructive">Kamerazugriff verweigert. Bitte aktiviere ihn in deinen Browsereinstellungen.</p>}
-        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+        {fromGallery && (
+            <div className="flex flex-col items-center gap-4">
+                <FileImage className="w-16 h-16 text-muted-foreground" />
+                <p>Öffne Galerie...</p>
+            </div>
+        )}
+        <video ref={videoRef} className={cn("w-full h-full object-cover", fromGallery ? "hidden" : "")} autoPlay muted playsInline />
       </main>
 
-      <footer className="p-4 flex flex-col items-center gap-4">
-        <div className="flex items-center gap-8">
-            <button onClick={() => setMode('photo')} className={cn('py-1 transition-colors', mode === 'photo' ? 'font-bold text-primary border-b-2 border-primary' : 'text-neutral-400')}>Foto</button>
-            <button onClick={() => setMode('video')} className={cn('py-1 transition-colors', mode === 'video' ? 'font-bold text-primary border-b-2 border-primary' : 'text-neutral-400')}>Video</button>
-        </div>
-        <div className="w-full flex items-center justify-around">
-            <Button variant="ghost" size="icon">
-                <FileImage className="w-7 h-7" />
-            </Button>
-            <button
-                onClick={handleCapture}
-                className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-all"
-                aria-label={isRecording ? "Aufnahme stoppen" : (mode === 'photo' ? 'Foto aufnehmen' : 'Aufnahme starten')}
-            >
-                {mode === 'photo' ? (
-                     <div className="w-16 h-16 bg-primary rounded-full"></div>
-                ) : (
-                    <div className={cn("transition-all", isRecording ? "w-8 h-8 bg-red-500 rounded-md" : "w-16 h-16 bg-primary rounded-full")}></div>
-                )}
-            </button>
-            <div className="w-12 h-12" /> {/* Placeholder to balance the flex layout */}
-        </div>
-      </footer>
+      {!fromGallery && (
+         <footer className="p-4 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-8">
+                <button onClick={() => setMode('photo')} className={cn('py-1 transition-colors', mode === 'photo' ? 'font-bold text-primary border-b-2 border-primary' : 'text-neutral-400')}>Foto</button>
+                <button onClick={() => setMode('video')} className={cn('py-1 transition-colors', mode === 'video' ? 'font-bold text-primary border-b-2 border-primary' : 'text-neutral-400')}>Video</button>
+            </div>
+            <div className="w-full flex items-center justify-around">
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
+                    <FileImage className="w-7 h-7" />
+                </Button>
+                <button
+                    onClick={handleCapture}
+                    className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-all"
+                    aria-label={isRecording ? "Aufnahme stoppen" : (mode === 'photo' ? 'Foto aufnehmen' : 'Aufnahme starten')}
+                >
+                    {mode === 'photo' ? (
+                        <div className="w-16 h-16 bg-primary rounded-full"></div>
+                    ) : (
+                        <div className={cn("transition-all", isRecording ? "w-8 h-8 bg-red-500 rounded-md" : "w-16 h-16 bg-primary rounded-full")}></div>
+                    )}
+                </button>
+                <div className="w-12 h-12" /> {/* Placeholder to balance the flex layout */}
+            </div>
+        </footer>
+      )}
     </div>
   );
 }
