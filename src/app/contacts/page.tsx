@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Phone, Video, Search } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Phone, Video, Search, BookUser, Users } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import Image from 'next/image';
 type Contact = {
   id: string;
   displayName: string;
+  phoneNumber?: string;
   avatar?: string; // We might not have this stored, but good to have
 };
 
@@ -89,7 +90,8 @@ export default function ContactsPage() {
   }
 
   const filteredContacts = fullContacts.filter(contact => 
-    contact.displayName.toLowerCase().includes(searchTerm.toLowerCase())
+    contact.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.phoneNumber?.includes(searchTerm)
   );
 
   if (isUserLoading) {
@@ -114,7 +116,7 @@ export default function ContactsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white" />
           <Input
             type="search"
-            placeholder="Kontakte suchen..."
+            placeholder="Kontakte oder Nummern suchen..."
             className="pl-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-primary placeholder:text-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -139,6 +141,7 @@ export default function ContactsPage() {
                 </Avatar>
                 <div className="flex-1">
                   <h2 className="font-semibold text-lg text-primary">{contact.displayName}</h2>
+                  <p className="text-sm text-muted-foreground">{contact.phoneNumber || "Keine Nummer"}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" onClick={() => handleStartChat(contact.id)}>

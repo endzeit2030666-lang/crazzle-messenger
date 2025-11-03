@@ -18,6 +18,10 @@
           "type": "string",
           "description": "The user's public key for secure communication."
         },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
         "registrationDate": {
           "type": "string",
           "description": "The date and time the user registered.",
@@ -64,6 +68,10 @@
         "displayName": {
           "type": "string",
           "description": "The name displayed for the contact."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The contact's phone number."
         },
         "publicKey": {
           "type": "string",

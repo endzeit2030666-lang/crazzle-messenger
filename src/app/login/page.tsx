@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser } from '@/firebase';
@@ -10,6 +10,8 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 // Helper to convert ArrayBuffer to Base64
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -47,6 +49,9 @@ export default function LoginPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
+
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -56,6 +61,14 @@ export default function LoginPage() {
 
   const handleAnonymousSignIn = async () => {
     if (!auth || !firestore) return;
+    if (!phoneNumber.trim()) {
+        toast({
+            variant: "destructive",
+            title: "Telefonnummer erforderlich",
+            description: "Bitte gib eine Telefonnummer ein, um fortzufahren.",
+        });
+        return;
+    }
     try {
       const { publicKeyB64 } = await generateAndStoreKeys();
       
@@ -71,6 +84,7 @@ export default function LoginPage() {
         avatar: randomAvatar,
         onlineStatus: 'online',
         publicKey: publicKeyB64,
+        phoneNumber: phoneNumber,
       }, { merge: true });
 
     } catch (error) {
@@ -95,9 +109,18 @@ export default function LoginPage() {
       <p className="text-lg text-white max-w-md mb-8">
         Willkommen beim sichersten Messenger der Welt. Deine Privatsphäre ist unsere Priorität.
       </p>
-      <Button size="lg" onClick={handleAnonymousSignIn}>
-        Sicher & Anonym beitreten
-      </Button>
+      <div className="w-full max-w-sm space-y-4">
+        <Input
+            type="tel"
+            placeholder="Deine Telefonnummer"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="text-center"
+        />
+        <Button size="lg" onClick={handleAnonymousSignIn} className="w-full">
+            Sicher & Anonym beitreten
+        </Button>
+      </div>
       <p className="text-xs text-muted-foreground mt-4">
         Durch die Teilnahme stimmst du unseren nicht vorhandenen Nutzungsbedingungen zu.
       </p>

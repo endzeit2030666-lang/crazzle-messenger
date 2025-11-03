@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon, UserPlus, Users, BookUser } from "lucide-react";
+import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon, UserPlus, Users, BookUser, Info } from "lucide-react";
 import type { Conversation, Message, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,7 +25,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 
 
@@ -52,10 +52,31 @@ export default function ConversationList({
   const [isAddContactOpen, setAddContactOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<UserType[]>([]);
   const [groupName, setGroupName] = useState("");
+  const [phoneSearchTerm, setPhoneSearchTerm] = useState("");
+  const [phoneSearchResult, setPhoneSearchResult] = useState<UserType | null>(null);
 
   const { toast } = useToast();
   const router = useRouter();
   const firestore = useFirestore();
+
+
+  const handleSearchByPhone = async () => {
+    if (!phoneSearchTerm.trim() || !firestore) return;
+    const usersRef = collection(firestore, 'users');
+    const q = query(usersRef, where("phoneNumber", "==", phoneSearchTerm.trim()));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        setPhoneSearchResult({ id: userDoc.id, ...userDoc.data() } as UserType);
+    } else {
+        setPhoneSearchResult(null);
+        toast({
+            variant: "destructive",
+            title: "Benutzer nicht gefunden",
+            description: "Es wurde kein Benutzer mit dieser Telefonnummer gefunden.",
+        });
+    }
+  };
 
 
   const filteredConversations = useMemo(() => {
@@ -181,6 +202,10 @@ export default function ConversationList({
                   <Bell className="mr-2 h-4 w-4" />
                   <span>Stummschalten</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/contacts')}>
+                  <Info className="mr-2 h-4 w-4" />
+                  <span>Kontaktinfo anzeigen</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => toast({ title: 'Archivieren noch nicht implementiert' })}>
                   <Archive className="mr-2 h-4 w-4" />
                   <span>Archivieren</span>
@@ -258,8 +283,28 @@ export default function ConversationList({
                     <TabsTrigger value="group">Neue Gruppe</TabsTrigger>
                   </TabsList>
                   <TabsContent value="private">
-                    <DialogDescription>Wähle einen Kontakt aus, um eine neue Konversation zu beginnen.</DialogDescription>
-                     <ScrollArea className="max-h-96 mt-4">
+                    <DialogDescription>Wähle einen Kontakt oder suche nach einer Telefonnummer.</DialogDescription>
+                    <div className="flex items-center gap-2 my-4">
+                        <Input 
+                            placeholder="Telefonnummer suchen..."
+                            value={phoneSearchTerm}
+                            onChange={(e) => setPhoneSearchTerm(e.target.value)}
+                        />
+                        <Button onClick={handleSearchByPhone}>Suchen</Button>
+                    </div>
+                    {phoneSearchResult && (
+                         <div onClick={() => {onContactSelect(phoneSearchResult); setAddContactOpen(false);}} className="flex items-center gap-4 p-2 rounded-lg cursor-pointer hover:bg-muted">
+                           <Avatar className="w-10 h-10">
+                             <AvatarImage src={phoneSearchResult.avatar} alt={phoneSearchResult.name} />
+                             <AvatarFallback>{phoneSearchResult.name?.charAt(0)}</AvatarFallback>
+                           </Avatar>
+                           <div>
+                            <p className="font-semibold text-primary">{phoneSearchResult.name}</p>
+                            <p className="text-sm text-muted-foreground">{phoneSearchResult.phoneNumber}</p>
+                           </div>
+                        </div>
+                    )}
+                     <ScrollArea className="max-h-80 mt-4">
                       <div className="p-2">
                       {allUsers.map(user => (
                         <div key={user.id} onClick={() => {onContactSelect(user); setAddContactOpen(false);}} className="flex items-center gap-4 p-2 rounded-lg cursor-pointer hover:bg-muted">

@@ -6,6 +6,7 @@ export type User = {
   avatar: string;
   onlineStatus: 'online' | 'offline' | 'away';
   publicKey?: string;
+  phoneNumber?: string;
   bio?: string;
   readReceiptsEnabled?: boolean;
   blockedUsers?: string[];
