@@ -54,32 +54,10 @@ export default function ConversationList({
   const [isAddContactOpen, setAddContactOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<UserType[]>([]);
   const [groupName, setGroupName] = useState("");
-  const [phoneSearchTerm, setPhoneSearchTerm] = useState("");
-  const [phoneSearchResult, setPhoneSearchResult] = useState<UserType | null>(null);
 
   const { toast } = useToast();
   const router = useRouter();
   const firestore = useFirestore();
-
-
-  const handleSearchByPhone = async () => {
-    if (!phoneSearchTerm.trim() || !firestore) return;
-    const usersRef = collection(firestore, 'users');
-    const q = query(usersRef, where("phoneNumber", "==", phoneSearchTerm.trim()));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        setPhoneSearchResult({ id: userDoc.id, ...userDoc.data() } as UserType);
-    } else {
-        setPhoneSearchResult(null);
-        toast({
-            variant: "destructive",
-            title: "Benutzer nicht gefunden",
-            description: "Es wurde kein Benutzer mit dieser Telefonnummer gefunden.",
-        });
-    }
-  };
-
 
   const filteredConversations = useMemo(() => {
     return conversations
@@ -285,27 +263,7 @@ export default function ConversationList({
                     <TabsTrigger value="group">Neue Gruppe</TabsTrigger>
                   </TabsList>
                   <TabsContent value="private">
-                    <DialogDescription>Wähle einen Kontakt oder suche nach einer Telefonnummer.</DialogDescription>
-                    <div className="flex items-center gap-2 my-4">
-                        <Input 
-                            placeholder="Telefonnummer suchen..."
-                            value={phoneSearchTerm}
-                            onChange={(e) => setPhoneSearchTerm(e.target.value)}
-                        />
-                        <Button onClick={handleSearchByPhone}>Suchen</Button>
-                    </div>
-                    {phoneSearchResult && (
-                         <div onClick={() => {onContactSelect(phoneSearchResult); setAddContactOpen(false);}} className="flex items-center gap-4 p-2 rounded-lg cursor-pointer hover:bg-muted">
-                           <Avatar className="w-10 h-10">
-                             <AvatarImage src={phoneSearchResult.avatar} alt={phoneSearchResult.name} />
-                             <AvatarFallback>{phoneSearchResult.name?.charAt(0)}</AvatarFallback>
-                           </Avatar>
-                           <div>
-                            <p className="font-semibold text-primary">{phoneSearchResult.name}</p>
-                            <p className="text-sm text-muted-foreground">{phoneSearchResult.phoneNumber}</p>
-                           </div>
-                        </div>
-                    )}
+                    <DialogDescription>Wähle einen Kontakt aus der Liste, um einen neuen privaten Chat zu starten.</DialogDescription>
                      <ScrollArea className="max-h-80 mt-4">
                       <div className="p-2">
                       {allUsers.map(user => (
