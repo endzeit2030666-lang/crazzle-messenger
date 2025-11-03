@@ -30,7 +30,6 @@ type ConversationListProps = {
   onNavigateToProfile: () => void;
   onLogout: () => void;
   currentUser: User;
-  allUsers: UserType[];
 };
 
 export default function ConversationList({
@@ -43,7 +42,6 @@ export default function ConversationList({
   onNavigateToProfile,
   onLogout,
   currentUser,
-  allUsers,
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
 

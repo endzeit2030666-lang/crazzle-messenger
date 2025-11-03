@@ -31,18 +31,8 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const router = useRouter();
 
   const selectedConversation = useMemo(() => {
-    const convo = conversations.find(c => c.id === selectedConversationId);
-    if (convo && convo.type === 'private') {
-      const contactUser = convo.participants.find(p => p.id !== currentUser.uid);
-      if (contactUser) {
-        const savedContact = contacts.find(c => c.id === contactUser.id);
-        if (savedContact) {
-          contactUser.name = savedContact.name; // Override name with saved contact name
-        }
-      }
-    }
-    return convo;
-  }, [conversations, selectedConversationId, contacts, currentUser.uid]);
+    return conversations.find(c => c.id === selectedConversationId);
+  }, [conversations, selectedConversationId]);
   
   const contactInSelectedConversation = useMemo(() => 
     selectedConversation?.type === 'private'
@@ -180,13 +170,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             setCurrentUserData(doc.data() as UserType);
         }
     });
-
-    const usersQuery = query(collection(firestore, 'users'));
-    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserType));
-      setAllUsers(usersData);
-    });
-
+    
     const contactsQuery = collection(firestore, 'users', currentUser.uid, 'contacts');
     const unsubscribeContacts = onSnapshot(contactsQuery, (snapshot) => {
       const contactsData = snapshot.docs.map(doc => doc.data());
@@ -196,28 +180,45 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
 
     return () => {
       unsubscribeUser();
-      unsubscribeUsers();
       unsubscribeContacts();
     };
   }, [currentUser.uid, firestore]);
   
 
   useEffect(() => {
-    if (!currentUser.uid || !firestore || allUsers.length === 0) return;
+    if (!currentUser.uid || !firestore) return;
 
     const conversationsQuery = query(
       collection(firestore, 'conversations'),
       where('participantIds', 'array-contains', currentUser.uid)
     );
 
-    const unsubscribe = onSnapshot(conversationsQuery, (snapshot) => {
-      const convos = snapshot.docs.map(docData => {
-        const data = docData.data();
-        const participants = data.participantIds
+    const unsubscribe = onSnapshot(conversationsQuery, async (snapshot) => {
+      const convosData = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Omit<Conversation, 'participants'>));
+      
+      const allParticipantIds = [...new Set(convosData.flatMap(c => c.participantIds))];
+      
+      if (allParticipantIds.length === 0) {
+        setConversations([]);
+        return;
+      }
+      
+      // Fetch all required user profiles in one go
+      const usersQuery = query(collection(firestore, 'users'), where('id', 'in', allParticipantIds.slice(0, 30)));
+      const usersSnapshot = await getDocs(usersQuery);
+      const usersMap = new Map(usersSnapshot.docs.map(d => [d.id, { id: d.id, ...d.data() } as UserType]));
+
+      // Get contacts to override names
+      const contactsQuery = query(collection(firestore, 'users', currentUser.uid, 'contacts'));
+      const contactsSnapshot = await getDocs(contactsQuery);
+      const contactsMap = new Map(contactsSnapshot.docs.map(d => [d.data().id, d.data()]));
+
+      const populatedConvos = convosData.map(convo => {
+        const participants = convo.participantIds
           .map((id: string) => {
-              const user = allUsers.find(u => u.id === id);
-              if (user && data.type === 'private' && user.id !== currentUser.uid) {
-                  const contact = contacts.find(c => c.id === user.id);
+              const user = usersMap.get(id);
+              if (user && convo.type === 'private' && user.id !== currentUser.uid) {
+                  const contact = contactsMap.get(user.id);
                   if (contact) {
                       return { ...user, name: contact.name };
                   }
@@ -226,17 +227,14 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
           })
           .filter((p: UserType | undefined): p is UserType => p !== undefined);
 
-        return {
-          id: docData.id,
-          ...data,
-          participants,
-        } as Conversation;
+        return { ...convo, participants } as Conversation;
       });
-      setConversations(convos);
+
+      setConversations(populatedConvos);
     });
 
     return () => unsubscribe();
-  }, [currentUser.uid, firestore, allUsers, contacts]);
+  }, [currentUser.uid, firestore]);
   
   
    const handleClearConversation = useCallback(async (conversationId: string) => {
@@ -399,7 +397,6 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
           onNavigateToProfile={navigateToProfile}
           onLogout={handleLogout}
           currentUser={currentUser}
-          allUsers={allUsers}
         />
       </div>
       <div className={cn("flex-1 flex-col", selectedConversationId ? "flex" : "hidden md:flex")}>
