@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -120,13 +120,12 @@ export default function LoginPage() {
         };
 
         const newUserCreationData = {
-          ...newUser,
-          createdAt: serverTimestamp(),
-          createdBy: cred.user.uid
+          ...newUser
         };
-
+        
+        // Use setDoc to create the new user document.
         await setDoc(newUserRef, newUserCreationData);
-        // The onAuthStateChanged listener will handle the redirect.
+        // The onAuthStateChanged listener in the provider will handle the redirect.
       }
     } catch (error: any) {
       console.error('Sign-in failed', error);
