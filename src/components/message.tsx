@@ -26,7 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { EmojiPicker } from './emoji-picker';
 
 
-const useDecryptedMessage = (message: MessageType, sender: UserType | undefined, isCurrentUser: boolean, isGroup: boolean) => {
+const useDecryptedMessage = (message: MessageType, sender: UserType | undefined, isCurrentUser: boolean, isGroup: boolean, currentUserId: string) => {
   const [decryptedContent, setDecryptedContent] = useState<string | null>(message.content);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,13 +47,13 @@ const useDecryptedMessage = (message: MessageType, sender: UserType | undefined,
 
     const decrypt = async () => {
       setIsLoading(true);
-      const decrypted = await decryptMessage(sender.publicKey!, message.content);
+      const decrypted = await decryptMessage(sender.publicKey!, message.content, currentUserId);
       setDecryptedContent(decrypted);
       setIsLoading(false);
     };
 
     decrypt();
-  }, [message.content, message.type, sender?.publicKey, isCurrentUser, isGroup]);
+  }, [message.content, message.type, sender?.publicKey, isCurrentUser, isGroup, currentUserId]);
 
   return { isLoading, decryptedContent };
 };
@@ -210,7 +210,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
   const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
   const { toast } = useToast();
   
-  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender, isCurrentUser, isGroup);
+  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender, isCurrentUser, isGroup, currentUser.uid);
   
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;

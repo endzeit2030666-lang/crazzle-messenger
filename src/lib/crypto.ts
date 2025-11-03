@@ -23,16 +23,18 @@ function base64ToArrayBuffer(base64: string) {
 }
 
 // Import a stored private key from localStorage
-async function getPrivateKey(): Promise<CryptoKey | null> {
-  const jwk = localStorage.getItem('privateKey');
-  if (!jwk) {
-    console.error('Private key not found in storage.');
+async function getPrivateKey(uid: string): Promise<CryptoKey | null> {
+  if (typeof window === 'undefined') return null;
+  const jwkString = localStorage.getItem(`privateKey_${uid}`);
+  if (!jwkString) {
+    console.error(`Private key not found in storage for user ${uid}.`);
     return null;
   }
   try {
+    const jwk = JSON.parse(jwkString);
     return await window.crypto.subtle.importKey(
       'jwk',
-      JSON.parse(jwk),
+      jwk,
       { name: 'ECDH', namedCurve: 'P-256' },
       true,
       ['deriveKey']
@@ -77,9 +79,10 @@ async function deriveSharedKey(
 // Encrypt a message
 export async function encryptMessage(
   recipientPublicKeyB64: string,
-  plaintext: string
+  plaintext: string,
+  currentUserId: string,
 ): Promise<string | null> {
-  const privateKey = await getPrivateKey();
+  const privateKey = await getPrivateKey(currentUserId);
   const publicKey = await importPublicKey(recipientPublicKeyB64);
 
   if (!privateKey || !publicKey) {
@@ -109,12 +112,13 @@ export async function encryptMessage(
 // Decrypt a message
 export async function decryptMessage(
   senderPublicKeyB64: string,
-  ciphertextB64: string
+  ciphertextB64: string,
+  currentUserId: string,
 ): Promise<string | null> {
   if (!senderPublicKeyB64 || !ciphertextB64) {
     return ciphertextB64; // Return original content if no key/cipher is provided (e.g., system messages)
   }
-  const privateKey = await getPrivateKey();
+  const privateKey = await getPrivateKey(currentUserId);
   const publicKey = await importPublicKey(senderPublicKeyB64);
 
   if (!privateKey || !publicKey) {

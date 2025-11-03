@@ -77,7 +77,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         return;
       }
       try {
-        const encrypted = await encryptMessage(contact.publicKey, content);
+        const encrypted = await encryptMessage(contact.publicKey, content, currentUser.uid);
         if (!encrypted) throw new Error("Encryption returned null");
         encryptedContent = encrypted;
       } catch (e) {

@@ -39,8 +39,11 @@ async function generateAndStoreKeys(uid: string) {
   const publicKeyB64 = arrayBufferToBase64(publicKeySpki);
 
   // Export and store private key, now namespaced by UID
-  const privateKeyJwk = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
-  localStorage.setItem(`privateKey_${uid}`, JSON.stringify(privateKeyJwk));
+  // We check for localStorage existence for SSR safety.
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const privateKeyJwk = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
+    localStorage.setItem(`privateKey_${uid}`, JSON.stringify(privateKeyJwk));
+  }
   
   return { publicKeyB64 };
 }
@@ -64,7 +67,10 @@ export default function LoginPage() {
   }, [user, router]);
   
   const handleSignIn = async () => {
-    if (!auth || !firestore) return;
+    if (!auth || !firestore) {
+      toast({ variant: "destructive", title: "Firebase nicht initialisiert."});
+      return;
+    };
     
     if (password !== '66578') {
       toast({
@@ -91,13 +97,13 @@ export default function LoginPage() {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
+      // Regardless of whether user exists or not, we need an auth session.
+      const cred = await signInAnonymously(auth);
+
       if (userSnapshot.empty) {
-        // User does not exist, create a new one
-        const cred = await signInAnonymously(auth);
+        // User does not exist, create a new one with the UID from the new session.
         const newUserRef = doc(firestore, 'users', cred.user.uid);
-        
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
-        
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
@@ -111,18 +117,21 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
         
+        // This setDoc is the likely point of failure.
         await setDoc(newUserRef, newUser);
-        // Let the useUser hook handle navigation
         
-      } else {
-         // User exists, just sign in. The onAuthStateChanged listener will handle the session.
-         await signInAnonymously(auth);
-         toast({
-            title: "Angemeldet",
-            description: "Willkommen zurück!",
-        });
       }
+      
+      // If user exists, we just signed them in anonymously.
+      // The useUser hook will now detect the new auth state and navigate.
+       toast({
+          title: "Anmeldung erfolgreich",
+          description: "Willkommen!",
+      });
+
     } catch (error: any) {
+        console.error("Anmeldefehler:", error); // Log the original error for inspection
+
         // This is the correct error handling architecture.
         // It creates a rich, contextual error and emits it globally.
         const permissionError = new FirestorePermissionError({
@@ -131,8 +140,8 @@ export default function LoginPage() {
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
 
-        // Emit the error with the global error emitter.
         errorEmitter.emit('permission-error', permissionError);
+
     } finally {
         setIsSigningIn(false);
     } 
