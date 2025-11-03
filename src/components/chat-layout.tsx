@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Conversation, User as UserType, Message } from "@/lib/types";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion, arrayRemove, setDoc, deleteDoc } from "firebase/firestore";
-import { useFirestore, useMemoFirebase } from "@/firebase";
+import { useAuth, useFirestore, useMemoFirebase } from "@/firebase";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import type { User } from 'firebase/auth';
 import { encryptMessage } from "@/lib/crypto";
+import { signOut } from "firebase/auth";
 
 interface ChatLayoutProps {
   currentUser: User;
@@ -19,6 +20,7 @@ interface ChatLayoutProps {
 
 export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutProps) {
   const firestore = useFirestore();
+  const auth = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -356,6 +358,17 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
   }, [selectedConversationId, firestore, currentUser.uid]);
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+      toast({ title: 'Abgemeldet', description: 'Du wurdest erfolgreich abgemeldet.' });
+    } catch (error) {
+      console.error("Fehler beim Abmelden:", error);
+      toast({ variant: 'destructive', title: 'Fehler', description: 'Abmelden fehlgeschlagen.' });
+    }
+  };
+
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -381,6 +394,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
           onNavigateToContacts={navigateToContacts}
           onNavigateToStatus={navigateToStatus}
           onNavigateToProfile={navigateToProfile}
+          onLogout={handleLogout}
           currentUser={currentUser}
           allUsers={allUsers}
           onArchive={handleArchiveConversation}

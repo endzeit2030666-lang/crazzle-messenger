@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus, BellOff, FileArchive, FolderArchive } from "lucide-react";
+import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus, BellOff, FileArchive, FolderArchive, LogOut } from "lucide-react";
 import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,6 +19,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 
@@ -30,6 +31,7 @@ type ConversationListProps = {
   onNavigateToContacts: () => void;
   onNavigateToStatus: () => void;
   onNavigateToProfile: () => void;
+  onLogout: () => void;
   currentUser: User;
   allUsers: UserType[];
   onArchive: (conversationId: string, archive: boolean) => void;
@@ -43,6 +45,7 @@ export default function ConversationList({
   onNavigateToContacts,
   onNavigateToStatus,
   onNavigateToProfile,
+  onLogout,
   currentUser,
   allUsers,
   onArchive,
@@ -257,18 +260,24 @@ export default function ConversationList({
                 </Tooltip>
             </TooltipProvider>
 
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNavigateToSettings}>
-                            <MoreVertical className="w-5 h-5 text-white" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Einstellungen</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="w-5 h-5 text-white" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={onNavigateToSettings}>
+                      Einstellungen
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Abmelden</span>
+                  </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
           </div>
         </div>
         <div className="relative">
