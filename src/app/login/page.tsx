@@ -111,20 +111,7 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
 
-        // Use .catch() to handle the specific Firestore error
-        await setDoc(newUserRef, newUser).catch((serverError) => {
-           // Create the rich, contextual error and emit it.
-           const permissionError = new FirestorePermissionError({
-            path: newUserRef.path,
-            operation: 'create',
-            requestResourceData: newUser,
-          });
-          // This will be caught by the FirebaseErrorListener
-          errorEmitter.emit('permission-error', permissionError);
-          // We throw the original server error as well to stop execution
-          // and let the outer catch handle general state updates (like isSigningIn).
-          throw serverError;
-        });
+        await setDoc(newUserRef, newUser);
 
       } else {
         // User exists, just sign in
@@ -134,7 +121,14 @@ export default function LoginPage() {
         // This outer catch now handles general errors or the re-thrown Firestore error
         // after it has been properly emitted. Avoid showing a generic toast here
         // if the permissionError was already emitted.
-        if (error.name !== 'FirebaseError') {
+        if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/some_uid`, // Placeholder path
+                operation: 'create',
+                requestResourceData: { phoneNumber: trimmedPhoneNumber },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
              toast({
               variant: "destructive",
               title: "Anmeldung fehlgeschlagen",
