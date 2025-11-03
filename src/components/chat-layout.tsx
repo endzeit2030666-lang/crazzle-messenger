@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { Conversation, User as UserType, Message } from "@/lib/types";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
