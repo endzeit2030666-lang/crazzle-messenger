@@ -24,18 +24,18 @@ import type { User } from 'firebase/auth';
 import { decryptMessage } from '@/lib/crypto';
 
 
-const useDecryptedMessage = (message: MessageType, sender: UserType | undefined) => {
+const useDecryptedMessage = (message: MessageType, senderPublicKey: string | undefined, isCurrentUser: boolean) => {
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (message.type !== 'text' || !message.content) {
+    if (isCurrentUser || message.type !== 'text' || !message.content) {
       setIsLoading(false);
       setDecryptedContent(message.content);
       return;
     }
     
-    if (!sender?.publicKey) {
+    if (!senderPublicKey) {
         setIsLoading(false);
         setDecryptedContent("Public Key des Senders nicht gefunden.");
         return;
@@ -43,13 +43,13 @@ const useDecryptedMessage = (message: MessageType, sender: UserType | undefined)
 
     const decrypt = async () => {
       setIsLoading(true);
-      const decrypted = await decryptMessage(sender.publicKey!, message.content);
+      const decrypted = await decryptMessage(senderPublicKey, message.content);
       setDecryptedContent(decrypted);
       setIsLoading(false);
     };
 
     decrypt();
-  }, [message, sender]);
+  }, [message, senderPublicKey, isCurrentUser]);
 
   return { isLoading, decryptedContent };
 };
@@ -141,7 +141,7 @@ type MessageProps = {
   message: MessageType;
   onQuote: (message: MessageType) => void;
   onEdit: (message: MessageType) => void;
-  onDelete: (messageId: string, forEveryone: boolean) => void;
+  onDelete: (messageId: string) => void;
   onReact: (messageId: string, emoji: string) => void;
   onMessageRead: (messageId: string) => void;
   sender?: UserType;
@@ -184,31 +184,49 @@ const MediaMessage = ({ message }: { message: MessageType }) => {
 };
 
 export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender, currentUser }: MessageProps) {
+  const messageRef = useRef<HTMLDivElement>(null);
   const isCurrentUser = message.senderId === currentUser.uid;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const { toast } = useToast();
   
-  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, isCurrentUser ? currentUser as any : sender);
+  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender?.publicKey, isCurrentUser);
   
   useEffect(() => {
-    if (message.selfDestructDuration && message.senderId !== currentUser.uid && !message.readAt) {
-      onMessageRead(message.id);
+    if (!messageRef.current || isCurrentUser || message.readAt) {
+      return;
     }
-  }, [message, currentUser.uid, onMessageRead]);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          onMessageRead(message.id);
+          observer.unobserve(entry.target); // Stop observing once read
+        }
+      },
+      { threshold: 0.8 } // Mark as read when 80% of the message is visible
+    );
+
+    observer.observe(messageRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [message.id, isCurrentUser, message.readAt, onMessageRead]);
+
 
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (message.selfDestructDuration && message.readAt) {
-      const readAtTime = (message.readAt as any).toMillis ? (message.readAt as any).toMillis() : message.readAt;
+      const readAtTime = (message.readAt as any).toMillis ? (message.readAt as any).toMillis() : new Date(message.readAt as any).getTime();
       const destructTime = readAtTime + (message.selfDestructDuration * 1000);
       const remainingTime = destructTime - Date.now();
 
       if (remainingTime > 0) {
         timer = setTimeout(() => {
-          onDelete(message.id, false);
+          onDelete(message.id);
         }, remainingTime);
       } else {
-        onDelete(message.id, false);
+        onDelete(message.id);
       }
     }
     return () => {
@@ -225,16 +243,16 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   };
   
   const handleDelete = (forEveryone: boolean) => {
-      onDelete(message.id, forEveryone);
+      // The `forEveryone` logic needs to be handled by a cloud function for atomicity
+      // For now, we'll just delete the message from the client's view
+      onDelete(message.id);
   }
 
-  const StatusIcon = ({ status }: { status: MessageType['status']}) => {
-    switch (status) {
-      case 'sent': return <Check className="h-4 w-4 text-red-500" />;
-      case 'delivered': return <CheckCheck className="h-4 w-4 text-yellow-500" />;
-      case 'read': return <CheckCheck className="h-4 w-4 text-green-500" />;
-      default: return null;
-    }
+  const getStatusIcon = () => {
+    if (!isCurrentUser) return null;
+    if (message.readAt) return <CheckCheck className="h-4 w-4 text-green-400" />;
+    if (message.status === 'delivered') return <CheckCheck className="h-4 w-4" />;
+    return <Check className="h-4 w-4" />;
   };
 
   const handleReaction = (emoji: string) => {
@@ -260,11 +278,11 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   }
 
   return (
-    <div className={cn("group flex items-end gap-2", isCurrentUser ? "justify-end" : "justify-start")} onTouchEnd={handleSwipe}>
-       <div className={cn("relative", isCurrentUser ? "order-1" : "")}>
+    <div ref={messageRef} className={cn("group flex items-end gap-2", isCurrentUser ? "justify-end" : "justify-start")} onTouchEnd={handleSwipe}>
+       <div className={cn("relative opacity-0 group-hover:opacity-100 transition-opacity", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-100">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreHorizontal className="w-4 h-4" />
                 </Button>
             </DropdownMenuTrigger>
@@ -363,7 +381,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
           <span className={cn("text-white", isCurrentUser ? "text-primary-foreground/70" : "text-white")}>
             {message.timestamp}
           </span>
-          {isCurrentUser && <StatusIcon status={message.status} />}
+          {isCurrentUser && getStatusIcon()}
         </div>
         {showReactionPicker && (
             <div className="absolute bottom-full mb-2 z-10">

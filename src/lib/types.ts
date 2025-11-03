@@ -32,7 +32,7 @@ export type Message = {
   date: Timestamp | Date; // For sorting
   status: 'sent' | 'delivered' | 'read';
   selfDestructDuration?: number; // Duration in seconds
-  readAt: Timestamp | number | null; // Timestamp when the message was read
+  readAt: Timestamp | Date | null; // Timestamp when the message was read
   linkPreview?: LinkPreviewData;
   reactions: Reaction[];
   quotedMessage?: {

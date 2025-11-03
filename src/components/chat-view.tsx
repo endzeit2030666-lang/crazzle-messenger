@@ -62,7 +62,6 @@ export default function ChatView({
     currentUser,
 }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const scrollAnchorRef = useRef<HTMLDivElement>(null);
   
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
@@ -87,21 +86,20 @@ export default function ChatView({
     const q = query(messagesRef, orderBy('date', 'desc'), limit(MESSAGES_PER_PAGE));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-       if (isInitialLoading) { // Only for initial load and real-time updates of the first page
-            const messagesData = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                id: doc.id,
-                ...data,
-                date: data.date?.toDate(),
-                } as MessageType;
-            }).reverse(); // Reverse to show newest at the bottom
-            
-            setMessages(messagesData);
-            setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-            setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
+       const newMessagesData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            date: data.date?.toDate(),
+          } as MessageType;
+       });
+
+       if (isInitialLoading) {
+            setMessages(newMessagesData.reverse());
             setIsInitialLoading(false);
-        } else { // For real-time updates (new messages)
+       } else {
+            // This handles real-time updates. We check for new messages and append them.
              snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
                     const newMessage = {
@@ -109,11 +107,28 @@ export default function ChatView({
                         ...change.doc.data(),
                         date: change.doc.data().date?.toDate()
                     } as MessageType;
-                    // Only add if it's not already in the list to avoid duplicates on initial load
-                    setMessages(prev => prev.find(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
+                    // Only add if it's not already in the list to avoid duplicates
+                    if (!messages.some(m => m.id === newMessage.id)) {
+                         setMessages(prev => [...prev, newMessage]);
+                    }
+                }
+                if (change.type === "modified") {
+                    const modifiedMessage = {
+                        id: change.doc.id,
+                        ...change.doc.data(),
+                        date: change.doc.data().date?.toDate()
+                    } as MessageType;
+                     setMessages(prev => prev.map(m => m.id === modifiedMessage.id ? modifiedMessage : m));
+                }
+                 if (change.type === "removed") {
+                    setMessages(prev => prev.filter(m => m.id !== change.doc.id));
                 }
             });
-        }
+       }
+        
+        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
+
     }, (error) => {
         console.error("Error fetching messages:", error);
         toast({ variant: 'destructive', title: 'Fehler beim Laden der Nachrichten' });
@@ -141,7 +156,6 @@ export default function ChatView({
     const q = query(messagesRef, orderBy('date', 'desc'), startAfter(lastDoc), limit(MESSAGES_PER_PAGE));
     
     const prevScrollHeight = scrollAreaRef.current?.scrollHeight || 0;
-    const prevScrollTop = scrollAreaRef.current?.scrollTop || 0;
 
     const snapshot = await getDocs(q);
     const oldMessages = snapshot.docs.map(doc => ({
@@ -154,13 +168,14 @@ export default function ChatView({
     setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
     setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
     
-    // Restore scroll position to prevent jumping
     if (scrollAreaRef.current) {
-        // We need a slight delay for the DOM to update with the new messages
+        // A small delay to allow React to render the new messages before adjusting scroll
         setTimeout(() => {
-            const newScrollHeight = scrollAreaRef.current!.scrollHeight;
-            scrollAreaRef.current!.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
-        }, 0);
+            if (scrollAreaRef.current) {
+                const newScrollHeight = scrollAreaRef.current.scrollHeight;
+                scrollAreaRef.current.scrollTop = newScrollHeight - prevScrollHeight;
+            }
+        }, 50);
     }
     
     setIsLoadingMore(false);
@@ -226,9 +241,8 @@ export default function ChatView({
     });
   };
 
-  const onDeleteMessage = async (messageId: string, forEveryone: boolean) => {
+  const onDeleteMessage = async (messageId: string) => {
     if(!firestore) return;
-    // For now, we only support deleting for the current user (forEveryone=false equivalent)
     const messageRef = doc(firestore, "conversations", conversation.id, "messages", messageId);
     await deleteDoc(messageRef);
   };
@@ -380,9 +394,9 @@ export default function ChatView({
         </div>
       )}
 
-      <div ref={scrollAreaRef} className="flex-1 p-6 overflow-y-auto space-y-6">
+      <div ref={scrollAreaRef} className="flex-1 p-6 overflow-y-auto space-y-2">
         {hasMoreMessages && (
-          <div className="text-center">
+          <div className="text-center mb-4">
             <Button
               variant="outline"
               size="sm"
@@ -403,7 +417,7 @@ export default function ChatView({
             onDelete={onDeleteMessage}
             onReact={onReact}
             onMessageRead={onMessageRead}
-            sender={conversation.participants.find(p => p.id === message.senderId)}
+            sender={contact}
             currentUser={currentUser}
           />
         ))}
