@@ -14,9 +14,10 @@ import { encryptMessage } from "@/lib/crypto";
 
 interface ChatLayoutProps {
   currentUser: User;
+  setSendMessage: (fn: (content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number) => void) => void;
 }
 
-export default function ChatLayout({ currentUser }: ChatLayoutProps) {
+export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutProps) {
   const firestore = useFirestore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
@@ -26,6 +27,81 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
   const router = useRouter();
 
   const blockedUserIds = useMemo(() => new Set(currentUserData?.blockedUsers || []), [currentUserData]);
+  
+  const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
+    if (!selectedConversationId || !firestore || !selectedConversation) return;
+
+     if (isContactBlocked) {
+      toast({
+        variant: "destructive",
+        title: "Kontakt blockiert",
+        description: "Du kannst keine Nachrichten an einen blockierten Kontakt senden.",
+      });
+      return;
+    }
+
+    const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
+    if (!contact || !contact.publicKey) {
+      toast({ variant: "destructive", title: "Fehler", description: "Der öffentliche Schlüssel des Kontakts wurde nicht gefunden." });
+      return;
+    }
+
+    let encryptedContent = content;
+    if (type === 'text') {
+      const encrypted = await encryptMessage(contact.publicKey, content);
+      if (!encrypted) {
+          toast({ variant: "destructive", title: "Verschlüsselungsfehler", description: "Nachricht konnte nicht verschlüsselt werden." });
+          return;
+      }
+      encryptedContent = encrypted;
+    }
+    
+    const messagesRef = collection(firestore, "conversations", selectedConversationId, "messages");
+    
+    const newMessage: Omit<Message, 'id'> = {
+      senderId: currentUser.uid,
+      content: type === 'text' ? encryptedContent : '',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: serverTimestamp() as any, // Firestore will handle this
+      status: 'sent',
+      reactions: [],
+      type: type,
+      readAt: null,
+    };
+    
+    switch (type) {
+      case 'audio':
+        newMessage.audioUrl = content;
+        newMessage.audioDuration = duration;
+        break;
+      case 'image':
+        newMessage.imageUrl = content;
+        break;
+      case 'video':
+        newMessage.videoUrl = content;
+        break;
+    }
+
+    if (selfDestructDuration) {
+      newMessage.selfDestructDuration = selfDestructDuration;
+    }
+
+    try {
+        await addDoc(messagesRef, newMessage);
+    } catch(e) {
+        console.error("Error sending message: ", e);
+        toast({
+            variant: "destructive",
+            title: "Fehler beim Senden",
+            description: "Nachricht konnte nicht gesendet werden."
+        })
+    }
+  };
+  
+  useEffect(() => {
+    setSendMessage(handleSendMessage);
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedConversationId, firestore, isContactBlocked, currentUser.uid, selectedConversation]);
 
   useEffect(() => {
     if (!firestore || !currentUser) return;
@@ -97,77 +173,6 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const contactInSelectedConversation = selectedConversation?.participants.find(p => p.id !== currentUser.uid);
   const isContactBlocked = contactInSelectedConversation ? blockedUserIds.has(contactInSelectedConversation.id) : false;
-
-
-  const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
-    if (!selectedConversationId || !firestore || !selectedConversation) return;
-
-     if (isContactBlocked) {
-      toast({
-        variant: "destructive",
-        title: "Kontakt blockiert",
-        description: "Du kannst keine Nachrichten an einen blockierten Kontakt senden.",
-      });
-      return;
-    }
-
-    const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
-    if (!contact || !contact.publicKey) {
-      toast({ variant: "destructive", title: "Fehler", description: "Der öffentliche Schlüssel des Kontakts wurde nicht gefunden." });
-      return;
-    }
-
-    let encryptedContent = content;
-    if (type === 'text') {
-      const encrypted = await encryptMessage(contact.publicKey, content);
-      if (!encrypted) {
-          toast({ variant: "destructive", title: "Verschlüsselungsfehler", description: "Nachricht konnte nicht verschlüsselt werden." });
-          return;
-      }
-      encryptedContent = encrypted;
-    }
-    
-    const messagesRef = collection(firestore, "conversations", selectedConversationId, "messages");
-    
-    const newMessage: Omit<Message, 'id'> = {
-      senderId: currentUser.uid,
-      content: type === 'text' ? encryptedContent : '',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: serverTimestamp() as any, // Firestore will handle this
-      status: 'sent',
-      reactions: [],
-      type: type,
-      readAt: null,
-    };
-    
-    switch (type) {
-      case 'audio':
-        newMessage.audioUrl = content;
-        newMessage.audioDuration = duration;
-        break;
-      case 'image':
-        newMessage.imageUrl = content;
-        break;
-      case 'video':
-        newMessage.videoUrl = content;
-        break;
-    }
-
-    if (selfDestructDuration) {
-      newMessage.selfDestructDuration = selfDestructDuration;
-    }
-
-    try {
-        await addDoc(messagesRef, newMessage);
-    } catch(e) {
-        console.error("Error sending message: ", e);
-        toast({
-            variant: "destructive",
-            title: "Fehler beim Senden",
-            description: "Nachricht konnte nicht gesendet werden."
-        })
-    }
-  };
 
   const handleClearConversation = async (conversationId: string) => {
     if (!firestore) return;

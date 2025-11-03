@@ -174,14 +174,15 @@ const ReactionPicker = ({ onSelect, onPlusClick }: { onSelect: (emoji: string) =
 }
 
 const MediaMessage = ({ message }: { message: MessageType }) => {
-  if (message.type === 'image' && message.imageUrl) {
-    return <Image src={message.imageUrl} alt="Gesendetes Bild" width={300} height={300} className="rounded-lg mt-2" data-ai-hint="user generated" />;
-  }
-  if (message.type === 'video' && message.videoUrl) {
-    return <video src={message.videoUrl} controls className="rounded-lg mt-2 w-full max-w-sm" />;
-  }
-  return null;
+    if (message.type === 'image' && message.imageUrl) {
+        return <Image src={message.imageUrl} alt="Gesendetes Bild" width={300} height={300} className="rounded-lg mt-1 max-w-full h-auto" data-ai-hint="user generated" unoptimized/>;
+    }
+    if (message.type === 'video' && message.videoUrl) {
+        return <video src={message.videoUrl} controls className="rounded-lg mt-1 w-full max-w-sm" />;
+    }
+    return null;
 };
+
 
 export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender, currentUser }: MessageProps) {
   const messageRef = useRef<HTMLDivElement>(null);
@@ -273,9 +274,11 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
     content: decryptedContent || message.content,
   }), [message, decryptedContent])
 
-  if (!message.content && !message.audioUrl && !message.imageUrl && !message.videoUrl) {
-    return null;
+  const hasContent = message.content || message.audioUrl || message.imageUrl || message.videoUrl;
+  if (!hasContent && message.type === 'text') {
+    return null; // Don't render empty text messages that aren't media placeholders
   }
+
 
   return (
     <div ref={messageRef} className={cn("group flex items-end gap-2", isCurrentUser ? "justify-end" : "justify-start")} onTouchEnd={handleSwipe}>
@@ -323,7 +326,8 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
           "relative max-w-md lg:max-w-xl p-3 px-4 rounded-2xl shadow-sm",
           isCurrentUser
             ? "bg-primary text-primary-foreground rounded-br-none"
-            : "bg-secondary text-secondary-foreground rounded-bl-none"
+            : "bg-secondary text-secondary-foreground rounded-bl-none",
+          (message.type === 'image' || message.type === 'video') && "p-1" // Less padding for media
         )}
       >
         {message.quotedMessage && (
@@ -351,7 +355,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
         {message.linkPreview && (
           <LinkPreview {...message.linkPreview} />
         )}
-        <div className="flex items-center gap-2.5 mt-2 text-xs">
+        <div className={cn("flex items-center gap-2.5 text-xs", (message.type === 'image' || message.type === 'video') ? 'absolute bottom-2 right-2 bg-black/50 p-1 rounded' : 'mt-2')}>
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger>

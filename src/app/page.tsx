@@ -1,15 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/firebase';
 import ChatLayout from '@/components/chat-layout';
 import { Loader2 } from 'lucide-react';
+import type { Message } from '@/lib/types';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Use a ref to ensure the effect only runs once for a given media URL
+  const processedMediaUrlRef = useRef<string | null>(null);
+  
+  // This is a bit of a hack to get the sendMessage function from the layout
+  const sendMessageRef = useRef<(content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number) => void>();
+
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -22,12 +30,21 @@ export default function Home() {
     const mediaType = searchParams.get('mediaType');
     const chatId = searchParams.get('chatId');
 
-    if (mediaUrl && mediaType && chatId && user) {
-      // This is a navigation from the camera page.
-      // We'll let ChatLayout handle the sending.
-      // For now, we just need to ensure the correct chat is selected.
+    // Ensure we have all params, a user, the send function, and haven't processed this URL before
+    if (mediaUrl && mediaType && chatId && user && sendMessageRef.current && mediaUrl !== processedMediaUrlRef.current) {
+        processedMediaUrlRef.current = mediaUrl; // Mark as processed
+      
+        // Send the message using the function from ChatLayout
+        sendMessageRef.current(mediaUrl, mediaType as Message['type']);
+
+        // Clean up URL params after sending
+        const newParams = new URLSearchParams(window.location.search);
+        newParams.delete('mediaUrl');
+        newParams.delete('mediaType');
+        const newUrl = `${window.location.pathname}?${newParams.toString()}`;
+        router.replace(newUrl, { scroll: false });
     }
-  }, [searchParams, user]);
+  }, [searchParams, user, router]);
 
 
   if (isUserLoading || !user) {
@@ -40,7 +57,10 @@ export default function Home() {
 
   return (
     <main>
-      <ChatLayout currentUser={user} />
+      <ChatLayout 
+        currentUser={user}
+        setSendMessage={(fn) => { sendMessageRef.current = fn; }} 
+      />
     </main>
   );
 }
