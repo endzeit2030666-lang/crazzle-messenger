@@ -11,6 +11,37 @@ import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
+// Helper to convert ArrayBuffer to Base64
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+}
+
+// Helper to generate and export keys
+async function generateAndStoreKeys() {
+  const keyPair = await window.crypto.subtle.generateKey(
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    ['deriveKey', 'deriveBits']
+  );
+
+  // Export public key
+  const publicKeySpki = await window.crypto.subtle.exportKey('spki', keyPair.publicKey);
+  const publicKeyB64 = arrayBufferToBase64(publicKeySpki);
+
+  // Export and store private key
+  const privateKeyJwk = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
+  localStorage.setItem('privateKey', JSON.stringify(privateKeyJwk));
+  
+  return { publicKeyB64 };
+}
+
+
 export default function LoginPage() {
   const auth = useAuth();
   const firestore = useFirestore();
@@ -26,7 +57,8 @@ export default function LoginPage() {
   const handleAnonymousSignIn = async () => {
     if (!auth || !firestore) return;
     try {
-      // We are not awaiting the sign-in itself, but we need to handle the user document creation
+      const { publicKeyB64 } = await generateAndStoreKeys();
+      
       const cred = await signInAnonymously(auth);
       const userRef = doc(firestore, 'users', cred.user.uid);
       
@@ -38,6 +70,7 @@ export default function LoginPage() {
         name: randomName,
         avatar: randomAvatar,
         onlineStatus: 'online',
+        publicKey: publicKeyB64,
       }, { merge: true });
 
     } catch (error) {

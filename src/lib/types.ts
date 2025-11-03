@@ -51,7 +51,6 @@ export type Conversation = {
   type: 'private';
   participantIds: string[];
   participants: User[]; // This will be populated client-side
-  messages: Message[]; // This will be a subcollection
   lastMessage?: Message;
   isMuted?: boolean;
   createdAt?: Timestamp;
