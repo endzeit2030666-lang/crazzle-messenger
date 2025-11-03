@@ -173,6 +173,16 @@ const ReactionPicker = ({ onSelect, onPlusClick }: { onSelect: (emoji: string) =
   )
 }
 
+const MediaMessage = ({ message }: { message: MessageType }) => {
+  if (message.type === 'image' && message.imageUrl) {
+    return <Image src={message.imageUrl} alt="Gesendetes Bild" width={300} height={300} className="rounded-lg mt-2" data-ai-hint="user generated" />;
+  }
+  if (message.type === 'video' && message.videoUrl) {
+    return <video src={message.videoUrl} controls className="rounded-lg mt-2 w-full max-w-sm" />;
+  }
+  return null;
+};
+
 export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender, currentUser }: MessageProps) {
   const isCurrentUser = message.senderId === currentUser.uid;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -245,7 +255,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
     content: decryptedContent || message.content,
   }), [message, decryptedContent])
 
-  if (!message.content && !message.audioUrl) {
+  if (!message.content && !message.audioUrl && !message.imageUrl && !message.videoUrl) {
     return null;
   }
 
@@ -267,7 +277,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
                     <Smile className="mr-2 h-4 w-4" />
                     <span>Reagieren</span>
                 </DropdownMenuItem>
-                {message.type !== 'audio' && <DropdownMenuItem onClick={handleCopy}>
+                {message.type === 'text' && <DropdownMenuItem onClick={handleCopy}>
                     <Copy className="mr-2 h-4 w-4" />
                     <span>Kopieren</span>
                 </DropdownMenuItem>}
@@ -307,6 +317,8 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
         
         {message.type === 'audio' ? (
           <AudioMessage message={message} currentUser={currentUser} />
+        ) : message.type === 'image' || message.type === 'video' ? (
+          <MediaMessage message={message} />
         ) : (
           isDecrypting ? (
             <div className="flex items-center gap-2 text-sm">

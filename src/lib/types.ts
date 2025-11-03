@@ -41,9 +41,11 @@ export type Message = {
       senderName: string;
   };
   isEdited?: boolean;
-  type: 'text' | 'audio';
+  type: 'text' | 'audio' | 'image' | 'video';
   audioUrl?: string;
   audioDuration?: number;
+  imageUrl?: string;
+  videoUrl?: string;
 };
 
 export type Conversation = {

@@ -43,7 +43,8 @@ import { cn } from '@/lib/utils';
 import { EmojiPicker } from './emoji-picker';
 
 type MessageInputProps = {
-  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, selfDestructDuration?: number) => void;
+  chatId: string;
+  onSendMessage: (content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number) => void;
   quotedMessage?: Message['quotedMessage'];
   onClearQuote: () => void;
   isEditing: boolean;
@@ -53,6 +54,7 @@ type MessageInputProps = {
 };
 
 export default function MessageInput({
+  chatId,
   onSendMessage,
   quotedMessage,
   onClearQuote,
@@ -374,7 +376,7 @@ export default function MessageInput({
                 variant="ghost"
                 size="icon"
                 type="button"
-                onClick={() => router.push('/status/camera')}
+                onClick={() => router.push(`/status/camera?chatId=${chatId}`)}
                 className="shrink-0"
                 disabled={disabled}
               >

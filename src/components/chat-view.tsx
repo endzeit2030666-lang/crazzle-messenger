@@ -43,7 +43,7 @@ import type { User } from "firebase/auth";
 type ChatViewProps = {
   conversation: Conversation;
   contact?: UserType;
-  onSendMessage: (content: string, type?: 'text' | 'audio', duration?: number, selfDestructDuration?: number) => void;
+  onSendMessage: (content: string, type?: MessageType['type'], duration?: number, selfDestructDuration?: number) => void;
   onClearConversation: (conversationId: string) => void;
   onBack: () => void;
   isBlocked: boolean;
@@ -269,7 +269,7 @@ export default function ChatView({
       }
   };
   
-  const handleSendMessageSubmit = (content: string, type: 'text' | 'audio' = 'text', duration?: number, selfDestructDuration?: number) => {
+  const handleSendMessageSubmit = (content: string, type: MessageType['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
     if (editingMessage) {
       onEditMessage(editingMessage.id, content);
       setEditingMessage(null);
@@ -410,7 +410,8 @@ export default function ChatView({
       </div>
 
       <footer className="p-4 border-t border-border mt-auto">
-        <MessageInput 
+        <MessageInput
+          chatId={conversation.id}
           onSendMessage={handleSendMessageSubmit}
           quotedMessage={quotedMessage}
           onClearQuote={() => setQuotedMessage(undefined)}

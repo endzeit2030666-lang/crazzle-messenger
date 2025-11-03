@@ -1,7 +1,7 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Camera, Video, Zap, RefreshCw, X, FileImage, Send, Clock, Download, Trash2, Check } from 'lucide-react';
+import { Camera, Video, Zap, RefreshCw, X, FileImage, Send, Clock, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
@@ -10,6 +10,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { uploadMedia } from '@/firebase/storage';
+import { useUser } from '@/firebase';
 
 export default function CameraPage() {
   const router = useRouter();
@@ -22,13 +24,18 @@ export default function CameraPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<'photo' | 'video'>('photo');
   const [capturedMedia, setCapturedMedia] = useState<string | null>(null);
+  const [mediaBlob, setMediaBlob] = useState<Blob | null>(null);
   const [mediaType, setMediaType] = useState<'photo' | 'video'>('photo');
   const [caption, setCaption] = useState('');
   
   const [showDurationDialog, setShowDurationDialog] = useState(false);
   const [statusDuration, setStatusDuration] = useState('48h');
+  const [isUploading, setIsUploading] = useState(false);
+
 
   const { toast } = useToast();
+  const { user } = useUser();
+  const chatId = searchParams.get('chatId');
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -47,6 +54,7 @@ export default function CameraPage() {
         };
         mediaRecorder.current.onstop = () => {
           const blob = new Blob(recordedChunks.current, { type: 'video/webm' });
+          setMediaBlob(blob);
           setCapturedMedia(URL.createObjectURL(blob));
           setMediaType('video');
           recordedChunks.current = [];
@@ -78,7 +86,11 @@ export default function CameraPage() {
         const context = canvas.getContext('2d');
         if (context) {
              context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-             setCapturedMedia(canvas.toDataURL('image/jpeg'));
+             const dataUrl = canvas.toDataURL('image/jpeg');
+             setCapturedMedia(dataUrl);
+             canvas.toBlob((blob) => {
+                setMediaBlob(blob);
+             }, 'image/jpeg');
              setMediaType('photo');
         }
     }
@@ -114,29 +126,66 @@ export default function CameraPage() {
   const handlePostStatus = () => {
     setShowDurationDialog(false);
     toast({
-        title: "Status gepostet!",
+        title: "Status posten (simuliert)",
         description: `Dein Status wird für ${statusDuration === '48h' ? '48 Stunden' : 'immer'} sichtbar sein. Titel: "${caption}"`
     });
     router.push('/status');
   }
 
-  const handleSendToChat = () => {
-    toast({
-      title: "Medien gesendet!",
-      description: `Deine ${mediaType === 'photo' ? 'Foto' : 'Video'} wurde an den Chat gesendet. Titel: "${caption}"`,
-    });
-    // This assumes the camera was opened from a chat context, which we can get from URL params
-    const chatId = searchParams.get('chatId');
-    if (chatId) {
-      router.push(`/?chatId=${chatId}`);
-    } else {
-      router.push('/');
+  const handleSendToChat = useCallback(async () => {
+    if (!mediaBlob || !chatId || !user) {
+      toast({
+        variant: "destructive",
+        title: "Senden fehlgeschlagen",
+        description: "Es wurde kein Medium aufgenommen oder es wurde kein Chat ausgewählt.",
+      });
+      return;
     }
-  }
+
+    setIsUploading(true);
+
+    try {
+      const downloadURL = await uploadMedia(mediaBlob, `chats/${chatId}/${user.uid}_${Date.now()}`);
+      
+      // The parent component is responsible for creating the message in firestore
+      const params = new URLSearchParams(window.location.search);
+      params.set('mediaUrl', downloadURL);
+      params.set('mediaType', mediaType);
+      
+      // Navigate back to the chat, which will read the params and send the message.
+      // This is a workaround to pass data back. A better solution would be a global state manager.
+      if (chatId) {
+        router.push(`/?${params.toString()}`);
+      } else {
+         router.push('/');
+      }
+
+    } catch (error) {
+      console.error("Upload fehlgeschlagen:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload fehlgeschlagen",
+        description: "Die Mediendatei konnte nicht hochgeladen werden.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [mediaBlob, chatId, user, toast, router, mediaType]);
+
 
   const resetCapture = () => {
     setCapturedMedia(null);
+    setMediaBlob(null);
     setCaption('');
+  }
+
+  if (isUploading) {
+    return (
+        <div className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center text-white gap-4">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <p className="text-lg">Wird gesendet...</p>
+        </div>
+    )
   }
 
   if (capturedMedia) {
@@ -181,7 +230,7 @@ export default function CameraPage() {
                          <Button className="bg-accent text-accent-foreground" onClick={() => setShowDurationDialog(true)}>
                             Als Status posten <Clock className="w-4 h-4 ml-2" />
                         </Button>
-                        <Button className="bg-primary hover:bg-primary/90" size="icon" onClick={handleSendToChat}>
+                        <Button className="bg-primary hover:bg-primary/90" size="icon" onClick={handleSendToChat} disabled={!chatId}>
                             <Send className="w-5 h-5" />
                         </Button>
                     </div>
@@ -255,9 +304,7 @@ export default function CameraPage() {
                     <div className={cn("transition-all", isRecording ? "w-8 h-8 bg-red-500 rounded-md" : "w-16 h-16 bg-primary rounded-full")}></div>
                 )}
             </button>
-            <button onClick={stopRecording} disabled={!isRecording} className={cn("transition-opacity", isRecording ? "opacity-100" : "opacity-0")}>
-               <Check className="w-8 h-8 text-white bg-green-500 rounded-full p-1" />
-            </button>
+            <div className="w-12 h-12" /> {/* Placeholder to balance the flex layout */}
         </div>
       </footer>
     </div>

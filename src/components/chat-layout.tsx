@@ -85,7 +85,7 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const isContactBlocked = selectedConversation?.participants.some(p => p.id !== currentUser.uid && blockedUsers.has(p.id));
 
-  const handleSendMessage = async (content: string, type: 'text' | 'audio' = 'text', duration?: number, selfDestructDuration?: number) => {
+  const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
     if (!selectedConversationId || !firestore || !selectedConversation) return;
 
      if (isContactBlocked) {
@@ -117,7 +117,7 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
     
     const newMessage: Omit<Message, 'id'> = {
       senderId: currentUser.uid,
-      content: encryptedContent,
+      content: type === 'text' ? encryptedContent : '',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: serverTimestamp() as any, // Firestore will handle this
       status: 'sent',
@@ -125,11 +125,20 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
       type: type,
       readAt: null,
     };
-    if (type === 'audio') {
-      newMessage.audioUrl = content; // Keep original URL for audio
-      newMessage.audioDuration = duration;
-      newMessage.content = ''; // No encrypted text content for audio
+    
+    switch (type) {
+      case 'audio':
+        newMessage.audioUrl = content;
+        newMessage.audioDuration = duration;
+        break;
+      case 'image':
+        newMessage.imageUrl = content;
+        break;
+      case 'video':
+        newMessage.videoUrl = content;
+        break;
     }
+
     if (selfDestructDuration) {
       newMessage.selfDestructDuration = selfDestructDuration;
     }
