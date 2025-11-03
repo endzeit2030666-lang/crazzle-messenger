@@ -78,6 +78,7 @@ export default function ContactsPage() {
         participantIds: participantIds,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
+        lastMessage: null, // This field is crucial for consistency
       }, { merge: true });
 
       // After ensuring the conversation exists, navigate to it.
@@ -150,7 +151,7 @@ export default function ContactsPage() {
 
 
   const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (contact.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
     contact.phoneNumber?.includes(searchTerm)
   );
 
