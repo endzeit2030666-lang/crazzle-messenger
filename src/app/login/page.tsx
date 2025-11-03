@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser } from '@/firebase';
-import { signInAnonymously, getAuth, signInWithCustomToken } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -61,6 +61,11 @@ export default function LoginPage() {
       router.replace('/');
     }
   }, [user, router]);
+  
+  // A simple but deterministic way to create a "uid" from a phone number for this demo
+  const createUidFromPhoneNumber = (phone: string) => {
+    return `user_${phone.replace(/\+/g, '')}`;
+  }
 
   const handleSignIn = async () => {
     if (!auth || !firestore) return;
@@ -75,43 +80,38 @@ export default function LoginPage() {
     setIsSigningIn(true);
     
     try {
-      const usersRef = collection(firestore, 'users');
-      const q = query(usersRef, where("phoneNumber", "==", phoneNumber.trim()));
-      const querySnapshot = await getDocs(q);
+      // This is not a real UID, but a deterministic ID based on the phone number for this demo app.
+      const pseudoUid = createUidFromPhoneNumber(phoneNumber.trim());
+      
+      const userRef = doc(firestore, 'users', pseudoUid);
+      const userDoc = await getDoc(userRef);
 
-      if (!querySnapshot.empty) {
-        // User exists, sign them in
-        const existingUser = querySnapshot.docs[0].data() as UserType;
-        const cred = await signInAnonymously(auth); // Sign in to get a session
-        
-        // We don't need to update the doc unless we want to update 'lastSeen' etc.
-        // For now, just signing in is enough.
-        // The useUser hook will pick up the user and redirect.
-        
-        // We'll replace the anonymous user with our 'real' user data contextually in the app
-        // This is a simplified approach. A more robust way would involve custom tokens.
-         await setDoc(doc(firestore, 'users', cred.user.uid), existingUser, { merge: true });
+      const cred = await signInAnonymously(auth);
 
-
-      } else {
+      if (!userDoc.exists()) {
         // New user, create them
         const { publicKeyB64 } = await generateAndStoreKeys();
-        const cred = await signInAnonymously(auth);
-        const userRef = doc(firestore, 'users', cred.user.uid);
         
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
-
-        await setDoc(userRef, {
-          id: cred.user.uid,
+        
+        const newUser: UserType = {
+          id: cred.user.uid, // We use the real auth UID here now
           name: randomName,
           avatar: randomAvatar,
           onlineStatus: 'online',
           publicKey: publicKeyB64,
           phoneNumber: phoneNumber.trim(),
           readReceiptsEnabled: true,
-        }, { merge: true });
-      }
+        };
+
+        // Important: Create the user doc with the REAL auth UID
+        await setDoc(doc(firestore, 'users', cred.user.uid), newUser);
+
+      } 
+      // If userDoc exists, we just sign in anonymously. 
+      // The useUser hook will pick up the auth state and redirect.
+      // A more robust solution would link the phone number to the auth user.
 
     } catch (error) {
       console.error('Sign-in failed', error);
