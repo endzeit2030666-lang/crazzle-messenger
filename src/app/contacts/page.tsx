@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare, Phone, Video, Search, BookUser } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, onSnapshot, query, getDocs, doc, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, getDocs, where } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,7 +36,6 @@ export default function ContactsPage() {
     if (!currentUser || !firestore) return;
 
     setIsLoading(true);
-    // 1. Listen for changes in the user's contacts subcollection
     const contactsQuery = query(collection(firestore, 'users', currentUser.uid, 'contacts'));
     
     const unsubscribe = onSnapshot(contactsQuery, async (contactsSnapshot) => {
@@ -48,7 +47,6 @@ export default function ContactsPage() {
             return;
         }
 
-        // 2. Fetch the user documents for those contact IDs
         try {
             const usersQuery = query(collection(firestore, 'users'), where('id', 'in', contactIds));
             const usersSnapshot = await getDocs(usersQuery);

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon, BookUser } from "lucide-react";
-import type { Conversation, Message, User as UserType } from "@/lib/types";
+import { Search, MoreVertical, Users, CameraIcon, BookUser } from "lucide-react";
+import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -16,18 +16,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useRouter } from "next/navigation";
 import type { User } from "firebase/auth";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "./ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "./ui/label";
-import { Checkbox } from "./ui/checkbox";
-import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
-import { Users, Info } from 'lucide-react';
 
 
 type ConversationListProps = {
@@ -36,8 +26,7 @@ type ConversationListProps = {
   onConversationSelect: (id: string, type: 'private' | 'group') => void;
   onNavigateToSettings: () => void;
   onNavigateToContacts: () => void;
-  allUsers: UserType[];
-  onContactSelect: (contact: UserType) => void;
+  onNavigateToStatus: () => void;
   currentUser: User;
 };
 
@@ -47,18 +36,11 @@ export default function ConversationList({
   onConversationSelect,
   onNavigateToSettings,
   onNavigateToContacts,
-  allUsers,
-  onContactSelect,
+  onNavigateToStatus,
   currentUser
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [isAddContactOpen, setAddContactOpen] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<UserType[]>([]);
-  const [groupName, setGroupName] = useState("");
-
   const { toast } = useToast();
-  const router = useRouter();
-  const firestore = useFirestore();
 
   const filteredConversations = useMemo(() => {
     return conversations
@@ -76,46 +58,6 @@ export default function ConversationList({
       });
   }, [conversations, searchTerm, currentUser.uid]);
   
-  const handleCreateGroup = async () => {
-    if (!groupName.trim() || selectedUsers.length === 0 || !firestore) {
-      toast({
-        variant: "destructive",
-        title: "Fehler bei Gruppenerstellung",
-        description: "Bitte gib einen Gruppennamen an und wähle mindestens ein Mitglied aus.",
-      });
-      return;
-    }
-    
-    const participantIds = [...selectedUsers.map(u => u.id), currentUser.uid];
-
-    try {
-      await addDoc(collection(firestore, 'conversations'), {
-        name: groupName,
-        type: 'group',
-        participantIds,
-        admins: [currentUser.uid],
-        createdAt: serverTimestamp(),
-      });
-      
-      toast({
-        title: "Gruppe erstellt!",
-        description: `Die Gruppe "${groupName}" wurde erfolgreich erstellt.`,
-      });
-
-      setAddContactOpen(false);
-      setGroupName("");
-      setSelectedUsers([]);
-
-    } catch (error) {
-      console.error("Fehler beim Erstellen der Gruppe:", error);
-       toast({
-        variant: "destructive",
-        title: "Fehler",
-        description: "Gruppe konnte nicht erstellt werden.",
-      });
-    }
-
-  };
 
   const ConversationItem = ({ convo }: { convo: Conversation }) => {
     const isGroup = convo.type === 'group';
@@ -158,10 +100,7 @@ export default function ConversationList({
           <div className="flex-1 overflow-hidden pr-5">
             <div className="flex items-center justify-between">
               <h3 className={cn("font-semibold truncate", selectedConversationId === convo.id ? "" : "text-primary")}>{displayName}</h3>
-              <div className="flex items-center gap-2">
-                  {convo.isMuted && <Bell className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")} />}
-                  <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
-              </div>
+              <p className={cn("text-xs shrink-0", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-white/70")}>{lastMessage?.timestamp}</p>
             </div>
             <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
                 <>
@@ -170,34 +109,6 @@ export default function ConversationList({
                 </>
             </p>
           </div>
-        </div>
-        <div className="absolute right-1 top-1/2 -translate-y-1/2">
-          <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 z-10 opacity-100">
-                      <MoreVertical className="w-4 h-4" />
-                  </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-64">
-                <DropdownMenuItem onClick={() => toast({ title: 'Stummschalten noch nicht implementiert' })}>
-                  <Bell className="mr-2 h-4 w-4" />
-                  <span>Stummschalten</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/contacts')}>
-                  <Info className="mr-2 h-4 w-4" />
-                  <span>Kontaktinfo anzeigen</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast({ title: 'Archivieren noch nicht implementiert' })}>
-                  <Archive className="mr-2 h-4 w-4" />
-                  <span>Archivieren</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast({ title: 'Löschen noch nicht implementiert' })}>
-                  <XCircle className="mr-2 h-4 w-4" />
-                  <span>Löschen</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     );
@@ -216,12 +127,12 @@ export default function ConversationList({
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/status')}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNavigateToStatus}>
                             <CameraIcon className="w-5 h-5 text-white" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Status-Updates</p>
+                        <p>Status</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>

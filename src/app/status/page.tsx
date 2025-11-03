@@ -31,6 +31,7 @@ type Status = {
   viewed: boolean;
 };
 
+// This is a mock data generator. Replace with real status logic later.
 const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): Status[] => {
     const otherUsers = allUsers.filter(u => u.id !== currentUserId);
     return [
@@ -47,8 +48,8 @@ const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): 
         ],
         viewed: false,
       }] : []),
-      ...(otherUsers.length > 2 ? [{
-        userId: otherUsers[2].id,
+      ...(otherUsers.length > 1 ? [{
+        userId: otherUsers[1].id,
         stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
         viewed: true,
       }] : []),
@@ -87,7 +88,6 @@ export default function StatusPage() {
             const querySnapshot = await getDocs(usersQuery);
             const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
             setAllUsers(usersData);
-            // This is mock data generation, replace with real status logic later
             setStatuses(generateInitialStatusUpdates(currentUser.uid, usersData));
         } catch (error) {
             console.error("Fehler beim Laden der Benutzerdaten aus Firestore", error);
@@ -110,7 +110,6 @@ export default function StatusPage() {
   const handleViewStatus = (status: Status) => {
     setViewingStatus(status);
     setCurrentStoryIndex(0);
-    // Mark as viewed
     setStatuses(currentStatuses => currentStatuses.map(s => s.userId === status.userId ? { ...s, viewed: true } : s))
   }
   
@@ -135,8 +134,6 @@ export default function StatusPage() {
 
   const handleFileUpload = () => {
     setIsSheetOpen(false);
-    // Simulate picking a file by going to the camera page.
-    // In a real app, this would open a file picker.
     router.push('/status/camera?from=gallery');
   }
 
