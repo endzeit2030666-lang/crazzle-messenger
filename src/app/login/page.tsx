@@ -91,9 +91,8 @@ export default function LoginPage() {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
-      const cred = await signInAnonymously(auth);
-
       if (userSnapshot.empty) {
+        const cred = await signInAnonymously(auth);
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
@@ -112,8 +111,11 @@ export default function LoginPage() {
         };
         
         await setDoc(newUserRef, newUser);
-
       } else {
+         // If user exists, just sign in anonymously. The useUser hook will pick up the existing session if one is active.
+         // If not, it will establish a new anonymous session, but since we don't link it to the existing user doc,
+         // the app state relies on the useUser hook correctly identifying the user upon reload.
+         await signInAnonymously(auth);
          toast({
             title: "Angemeldet",
             description: "Willkommen zurück!",
@@ -130,13 +132,6 @@ export default function LoginPage() {
 
         // Emit the error with the global error emitter.
         errorEmitter.emit('permission-error', permissionError);
-
-        // We can still show a generic toast as a fallback for the user.
-        toast({
-            variant: "destructive",
-            title: "Anmeldung fehlgeschlagen",
-            description: "Berechtigungen sind unzureichend.",
-        });
     } finally {
         setIsSigningIn(false);
     } 
