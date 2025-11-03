@@ -68,15 +68,15 @@ export default function LoginPage() {
   
   const handleSignIn = async () => {
     if (!auth || !firestore) {
-      toast({ variant: "destructive", title: "Firebase nicht initialisiert."});
+      toast({ variant: 'destructive', title: 'Firebase nicht initialisiert.' });
       return;
-    };
-    
+    }
+
     if (password !== '66578') {
       toast({
-        variant: "destructive",
-        title: "Falsches Passwort",
-        description: "Das eingegebene Passwort ist nicht korrekt.",
+        variant: 'destructive',
+        title: 'Falsches Passwort',
+        description: 'Das eingegebene Passwort ist nicht korrekt.',
       });
       return;
     }
@@ -84,45 +84,48 @@ export default function LoginPage() {
     const trimmedPhoneNumber = phoneNumber.trim();
 
     if (!trimmedPhoneNumber) {
-        toast({
-            variant: "destructive",
-            title: "Telefonnummer erforderlich",
-            description: "Bitte gib eine Telefonnummer ein, um fortzufahren.",
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Telefonnummer erforderlich',
+        description: 'Bitte gib eine Telefonnummer ein, um fortzufahren.',
+      });
+      return;
     }
-    
+
     setIsSigningIn(true);
-    let newUserRef;
-    let newUser;
-    
+
     try {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
       if (userSnapshot.empty) {
         // --- NEW USER CREATION FLOW ---
+        // 1. Sign in anonymously and WAIT for the credential
         const cred = await signInAnonymously(auth);
         
+        // 2. Now that we are authenticated, generate keys and user data
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
-        newUser = {
-          id: cred.user.uid,
+        const newUser: Omit<UserType, 'id'> = {
           name: randomName,
           avatar: randomAvatar,
-          onlineStatus: 'online' as const,
+          onlineStatus: 'online',
           publicKey: publicKeyB64,
           phoneNumber: trimmedPhoneNumber,
           readReceiptsEnabled: true,
         };
         
-        newUserRef = doc(firestore, 'users', cred.user.uid);
-        await setDoc(newUserRef, newUser);
+        // 3. Create the document reference with the NEW, VALID UID
+        const newUserRef = doc(firestore, 'users', cred.user.uid);
+        
+        // 4. Set the document. The request is now authenticated.
+        await setDoc(newUserRef, { ...newUser, id: cred.user.uid });
 
       } else {
         // --- EXISTING USER SIGN-IN FLOW ---
+        // Just sign in, the user document already exists.
         await signInAnonymously(auth);
       }
       
@@ -130,25 +133,25 @@ export default function LoginPage() {
           title: "Anmeldung erfolgreich",
           description: "Willkommen!",
       });
+      // The onAuthStateChanged listener will handle the redirect automatically.
 
     } catch (error: any) {
-        if (error.code === 'permission-denied') {
-          // This is the correct error handling architecture.
-          // It creates a rich, contextual error and emits it globally.
-          const permissionError = new FirestorePermissionError({
-            path: newUserRef?.path || `users/unknown_uid`,
+        // This catch block now correctly handles any real errors during the process.
+        console.error("Anmeldefehler:", error);
+        
+        // This is a fallback for unexpected permission errors.
+        const permissionError = new FirestorePermissionError({
+            path: `users/unknown_user_during_signin`,
             operation: 'create',
-            requestResourceData: newUser || { phoneNumber: trimmedPhoneNumber },
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        } else {
-           console.error("Anmeldefehler:", error);
-           toast({
-               variant: "destructive",
-               title: "Anmeldung fehlgeschlagen",
-               description: error.message || "Ein unerwarteter Fehler ist aufgetreten.",
-           });
-        }
+            requestResourceData: { phoneNumber: trimmedPhoneNumber },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
+        toast({
+            variant: "destructive",
+            title: "Anmeldung fehlgeschlagen",
+            description: error.message || "Ein unerwarteter Fehler ist aufgetreten.",
+        });
     } finally {
         setIsSigningIn(false);
     } 
