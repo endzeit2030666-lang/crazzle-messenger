@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { ShieldCheck, Phone, Video, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare } from "lucide-react";
+import { ShieldCheck, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -221,24 +221,6 @@ export default function ChatView({
 
   }, [firestore, conversation.id, hasMoreMessages, isLoadingMore, lastDoc]);
   
-  const handleCall = (type: 'audio' | 'video') => {
-    if (isBlocked || !contact) {
-        toast({
-            variant: "destructive",
-            title: "Aktion nicht möglich",
-            description: "Du kannst einen blockierten Kontakt nicht anrufen.",
-        });
-        return;
-    }
-    const params = new URLSearchParams({
-        type: type,
-        contactId: contact.id,
-        contactName: contact.name,
-        contactAvatar: contact.avatar,
-    });
-    router.push(`/call?${params.toString()}`);
-  }
-
   const handleBlockContact = () => {
     if (!contact) return;
     onBlockContact(contact.id);
@@ -351,33 +333,6 @@ export default function ChatView({
           {getHeaderInfo()}
         </div>
         <div className="flex items-center gap-2">
-            {!isGroup && (
-                <>
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleCall('audio')}>
-                                <Phone className="w-5 h-5 text-white" />
-                                <span className="sr-only">Sprachanruf</span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Sprachanruf</p></TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleCall('video')}>
-                                <Video className="w-5 h-5 text-white" />
-                                <span className="sr-only">Videoanruf</span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Videoanruf</p></TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-                </>
-            )}
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">

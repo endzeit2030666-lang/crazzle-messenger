@@ -38,6 +38,16 @@
           "items": {
             "type": "string"
           }
+        },
+        "onlineStatus": {
+          "type": "string",
+          "description": "The user's online status.",
+          "enum": ["online", "offline", "away"]
+        },
+        "lastSeen": {
+            "type": "string",
+            "description": "The last time the user was seen online.",
+            "format": "date-time"
         }
       },
       "required": [
@@ -45,50 +55,6 @@
         "username",
         "publicKey",
         "registrationDate"
-      ]
-    },
-    "Contact": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Contact",
-      "type": "object",
-      "description": "Represents a contact in a user's contact list.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the contact entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Contact). The user who owns this contact."
-        },
-        "contactUserId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Contact). The user who is the contact."
-        },
-        "displayName": {
-          "type": "string",
-          "description": "The name displayed for the contact."
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The contact's phone number."
-        },
-        "publicKey": {
-          "type": "string",
-          "description": "The contact's public key."
-        },
-        "verificationStatus": {
-          "type": "string",
-          "description": "The verification status of the contact (e.g., verified, unverified).",
-          "format": "string"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "contactUserId",
-        "displayName",
-        "publicKey"
       ]
     },
     "Message": {
@@ -264,26 +230,6 @@
             {
               "name": "userId",
               "description": "The unique identifier of the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/contacts/{contactId}",
-        "definition": {
-          "entityName": "Contact",
-          "schema": {
-            "$ref": "#/backend/entities/Contact"
-          },
-          "description": "Stores contact information for a specific user. The 'userId' field within each contact document ensures authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the contact."
-            },
-            {
-              "name": "contactId",
-              "description": "The unique identifier of the contact."
             }
           ]
         }
