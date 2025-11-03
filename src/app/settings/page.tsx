@@ -27,7 +27,8 @@ import {
 import { Label } from '@/components/ui/label';
 import type { User as UserType } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
-import { doc, updateDoc, arrayRemove, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, getDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 
 const SettingsToggleItem = ({ icon, label, checked, onCheckedChange, disabled = false }: { icon: React.ElementType; label: string; checked: boolean; onCheckedChange: (checked: boolean) => void; disabled?: boolean }) => (

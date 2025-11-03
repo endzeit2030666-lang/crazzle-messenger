@@ -352,5 +352,3 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     </div>
   );
 }
-
-    
