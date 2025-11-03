@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Search, MoreVertical, Users, CameraIcon, BookUser, BellOff, FileArchive, FolderArchive, LogOut, Settings } from "lucide-react";
 import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/logo";
 import type { User } from "firebase/auth";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,37 +48,14 @@ export default function ConversationList({
   onArchive,
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [conversations, setConversations] = useState(initialConversations);
   const [showArchived, setShowArchived] = useState(false);
-  const firestore = useFirestore();
 
-  useEffect(() => {
-    if (!firestore || !currentUser) return;
-    
-    const unreadCountsMap = new Map<string, number>();
-
-    const unsubscribes = initialConversations.map(convo => {
-        const messagesRef = collection(firestore, 'conversations', convo.id, 'messages');
-        const q = query(messagesRef, where('senderId', '!=', currentUser.uid));
-
-        return onSnapshot(q, (snapshot) => {
-            const unreadCount = snapshot.docs.filter(doc => doc.data().status !== 'read').length;
-            unreadCountsMap.set(convo.id, unreadCount);
-            
-            setConversations(prevConvos => 
-                prevConvos.map(p => 
-                    p.id === convo.id ? { ...p, unreadCount } : p
-                )
-            );
-        });
+  const conversations = useMemo(() => {
+    return initialConversations.map(convo => {
+      const unreadCount = convo.lastMessage?.senderId !== currentUser.uid && convo.lastMessage?.status !== 'read' ? 1 : 0;
+      return { ...convo, unreadCount: unreadCount > 0 ? (convo.unreadCount || 0) + 1 : convo.unreadCount };
     });
-
-    setConversations(initialConversations);
-
-    return () => {
-        unsubscribes.forEach(unsub => unsub());
-    };
-}, [initialConversations, firestore, currentUser]);
+  }, [initialConversations, currentUser.uid]);
 
 
   const { activeConversations, archivedConversations } = useMemo(() => {
@@ -127,7 +102,7 @@ export default function ConversationList({
       : convo.participants.find(p => p.id === lastMessage?.senderId)?.name?.split(' ')[0];
 
     const handleSelect = () => {
-      onConversationSelect(convo.id);
+      handleConversationSelected(convo.id);
     }
     
     const displayName = isGroup ? convo.name : contact?.name;
@@ -309,5 +284,3 @@ export default function ConversationList({
     </aside>
   );
 }
-
-    

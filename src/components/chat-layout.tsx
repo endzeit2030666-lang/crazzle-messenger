@@ -137,7 +137,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
 
     try {
-        await addDoc(messagesRef, { ...newMessage, date: serverTimestamp() });
+        const docRef = await addDoc(messagesRef, { ...newMessage, date: serverTimestamp() });
         const convoRef = doc(firestore, "conversations", selectedConversationId);
         
         let lastMessageText = "Neue Nachricht";
@@ -152,11 +152,10 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
         
         await updateDoc(convoRef, {
             lastMessage: {
+                ...newMessage,
+                id: docRef.id,
                 content: lastMessageText,
                 date: serverTimestamp(),
-                senderId: currentUser.uid,
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                type: type,
             },
             // Remove current user from typing array after sending a message
             typing: arrayRemove(currentUser.uid)
@@ -387,6 +386,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   }, [selectedConversationId, firestore, currentUser.uid]);
 
   const handleLogout = async () => {
+    if (!auth) return;
     try {
       await signOut(auth);
       router.push('/login');
