@@ -84,7 +84,7 @@ export default function LoginPage() {
         avatar: randomAvatar,
         onlineStatus: 'online',
         publicKey: publicKeyB64,
-        phoneNumber: phoneNumber,
+        phoneNumber: phoneNumber.trim(),
       }, { merge: true });
 
     } catch (error) {

@@ -15,13 +15,10 @@ type Contact = {
   id: string;
   displayName: string;
   phoneNumber?: string;
-  avatar?: string; // We might not have this stored, but good to have
+  avatar?: string;
+  name: string; 
 };
 
-type FullContact = Contact & {
-    name: string; // From the main user document
-    // any other fields from the main user document
-};
 
 export default function ContactsPage() {
   const router = useRouter();
@@ -29,57 +26,52 @@ export default function ContactsPage() {
   const firestore = useFirestore();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [allUsers, setAllUsers] = useState<any[]>([]);
-  const [fullContacts, setFullContacts] = useState<FullContact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!currentUser || !firestore) return;
 
-    // Fetch all users to resolve contact details
-    const usersUnsubscribe = onSnapshot(collection(firestore, 'users'), (snapshot) => {
-        setAllUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
-    // Fetch user's contacts
     const contactsQuery = query(collection(firestore, 'users', currentUser.uid, 'contacts'));
-    const contactsUnsubscribe = onSnapshot(contactsQuery, (snapshot) => {
-      const contactsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Contact));
-      setContacts(contactsData);
+    const unsubscribe = onSnapshot(contactsQuery, async (snapshot) => {
+      setIsLoadingContacts(true);
+      const contactsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const enrichedContacts = await Promise.all(
+        contactsData.map(async (contact) => {
+          const userQuery = query(collection(firestore, 'users'), where('__name__', '==', contact.id));
+          const userSnapshot = await getDocs(userQuery);
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            return {
+              ...contact,
+              id: contact.id,
+              name: userData.name,
+              avatar: userData.avatar,
+              phoneNumber: userData.phoneNumber,
+              displayName: userData.name,
+            } as Contact;
+          }
+          return null;
+        })
+      );
+      
+      setContacts(enrichedContacts.filter(Boolean) as Contact[]);
       setIsLoadingContacts(false);
     });
 
-    return () => {
-      usersUnsubscribe();
-      contactsUnsubscribe();
-    };
+    return () => unsubscribe();
   }, [currentUser, firestore]);
-
-  useEffect(() => {
-    if (contacts.length > 0 && allUsers.length > 0) {
-      const enrichedContacts = contacts.map(contact => {
-        const userDetail = allUsers.find(u => u.id === contact.id);
-        return {
-          ...contact,
-          ...userDetail
-        };
-      }).filter(c => c.name); // Filter out any contacts that couldn't be enriched
-      setFullContacts(enrichedContacts);
-    }
-  }, [contacts, allUsers]);
 
   const handleGoBack = () => {
     router.push('/');
   };
   
   const handleStartChat = (contactId: string) => {
-    // This logic should ideally be centralized, for now we just navigate
-    // The main page will handle finding/creating the conversation
      router.push(`/?contactId=${contactId}`);
   }
   
-  const handleCall = (contact: FullContact, type: 'audio' | 'video') => {
+  const handleCall = (contact: Contact, type: 'audio' | 'video') => {
     const params = new URLSearchParams({
         type: type,
         contactId: contact.id,
@@ -89,7 +81,7 @@ export default function ContactsPage() {
     router.push(`/call?${params.toString()}`);
   }
 
-  const filteredContacts = fullContacts.filter(contact => 
+  const filteredContacts = contacts.filter(contact => 
     contact.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     contact.phoneNumber?.includes(searchTerm)
   );
