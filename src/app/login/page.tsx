@@ -93,6 +93,7 @@ export default function LoginPage() {
     }
 
     setIsSigningIn(true);
+    let newUserRef; // Declare here to be accessible in catch block
 
     try {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
@@ -118,7 +119,7 @@ export default function LoginPage() {
         };
         
         // 3. Create the document reference with the NEW, VALID UID
-        const newUserRef = doc(firestore, 'users', cred.user.uid);
+        newUserRef = doc(firestore, 'users', cred.user.uid);
         
         // 4. Set the document. The request is now authenticated.
         await setDoc(newUserRef, { ...newUser, id: cred.user.uid });
@@ -136,22 +137,15 @@ export default function LoginPage() {
       // The onAuthStateChanged listener will handle the redirect automatically.
 
     } catch (error: any) {
-        // This catch block now correctly handles any real errors during the process.
-        console.error("Anmeldefehler:", error);
-        
-        // This is a fallback for unexpected permission errors.
+        // This is the correct error handling architecture.
+        // It creates a rich, contextual error and emits it globally.
         const permissionError = new FirestorePermissionError({
-            path: `users/unknown_user_during_signin`,
-            operation: 'create',
-            requestResourceData: { phoneNumber: trimmedPhoneNumber },
+          path: newUserRef?.path || `users/unknown_uid`,
+          operation: 'create',
+          requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
         errorEmitter.emit('permission-error', permissionError);
 
-        toast({
-            variant: "destructive",
-            title: "Anmeldung fehlgeschlagen",
-            description: error.message || "Ein unerwarteter Fehler ist aufgetreten.",
-        });
     } finally {
         setIsSigningIn(false);
     } 
