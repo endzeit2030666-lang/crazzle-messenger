@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
-import { signInAnonymously } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore';
+import { signInAnonymously, UserCredential } from 'firebase/auth';
+import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -99,8 +99,11 @@ export default function LoginPage() {
 
       if (userSnapshot.empty) {
         // User does not exist, create a new one.
-        // This process requires a temporary auth session.
+        
+        // 1. Sign in anonymously to get a new UID.
         const cred = await signInAnonymously(auth);
+        
+        // 2. Now that we are authenticated, create the user document.
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
@@ -116,8 +119,6 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
         
-        // This is the Firestore operation that is likely failing.
-        // We will wrap it to catch and re-throw a detailed error.
         await setDoc(newUserRef, newUser);
 
       } else {
@@ -131,10 +132,12 @@ export default function LoginPage() {
       });
 
     } catch (error: any) {
+        console.error("Fehler beim Anmelden oder Registrieren:", error);
+        
         // This is the correct error handling architecture.
         // It creates a rich, contextual error and emits it globally.
         const permissionError = new FirestorePermissionError({
-          path: `users/${auth.currentUser?.uid || 'unknown_uid'}`,
+          path: `users/unknown_uid`,
           operation: 'create',
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
