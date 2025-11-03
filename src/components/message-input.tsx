@@ -20,6 +20,7 @@ import {
   MessageSquareQuote,
   Pencil,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,8 @@ import {
 import type { Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { EmojiPicker } from './emoji-picker';
+import { useUser } from '@/firebase';
+import { uploadMedia } from '@/firebase/storage';
 
 type MessageInputProps = {
   chatId: string;
@@ -77,9 +80,13 @@ export default function MessageInput({
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
 
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
+  const { user } = useUser();
   
   useEffect(() => {
     return () => {
@@ -232,19 +239,43 @@ export default function MessageInput({
       }
     }
   };
-  
+
+  const handleAttachmentClick = (type: 'image' | 'video') => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = `${type}/*`;
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploading(true);
+    try {
+      const mediaType = file.type.startsWith('image') ? 'image' : 'video';
+      const path = `chats/${chatId}/${user.uid}_${Date.now()}_${file.name}`;
+      const downloadURL = await uploadMedia(file, path);
+      onSendMessage(downloadURL, mediaType, undefined, selfDestructDuration);
+      setSelfDestructDuration(undefined);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Upload fehlgeschlagen',
+        description: 'Deine Datei konnte nicht hochgeladen werden.',
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if(fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleFeatureNotImplemented = (featureName: string) => {
     toast({
       title: `${featureName}`,
       description: 'Diese Funktion ist noch nicht implementiert.',
-    });
-  };
-
-  const handleAttachmentClick = (label: string, formats?: string) => {
-    toast({
-      title: `${label} auswählen`,
-      description: `Dies würde den Dateimanager öffnen, um eine Datei auszuwählen. (${formats || 'Alle'})`,
     });
   };
 
@@ -277,15 +308,17 @@ export default function MessageInput({
     icon: Icon,
     label,
     formats,
+    onClick,
   }: {
     icon: React.ElementType;
     label: string;
     formats?: string;
+    onClick: () => void;
   }) => (
     <Button
       variant="ghost"
       className="w-full justify-start h-auto py-3"
-      onClick={() => handleAttachmentClick(label, formats)}
+      onClick={onClick}
     >
       <div className="flex items-center gap-4">
         <Icon className="h-6 w-6 text-primary" />
@@ -305,6 +338,15 @@ export default function MessageInput({
     { label: 'In 8 Stunden', duration: 28800 },
     { label: 'In 24 Stunden', duration: 86400 },
   ];
+
+  if (isUploading) {
+    return (
+      <div className="flex items-center justify-center p-4 bg-background rounded-lg gap-4">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Datei wird hochgeladen...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
@@ -345,6 +387,7 @@ export default function MessageInput({
           </Alert>
         )}
         <div className={cn("flex items-end gap-2 p-2 bg-background", !quotedMessage && !isEditing ? "rounded-lg" : "rounded-b-lg")}>
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
           {isRecording ? (
             <div className="flex-1 flex items-center gap-2">
               <Button
@@ -401,31 +444,37 @@ export default function MessageInput({
                     <AttachmentButton
                       icon={ImageIcon}
                       label="Bild aus Galerie"
+                      onClick={() => handleAttachmentClick('image')}
                     />
                     <AttachmentButton
                       icon={Video}
                       label="Video aus Galerie"
+                      onClick={() => handleAttachmentClick('video')}
                     />
                     <hr className="my-2 border-border" />
                     <AttachmentButton
                       icon={FileText}
                       label="Dokument"
                       formats=".pdf, .doc, .xls, .ppt, .txt..."
+                      onClick={() => handleFeatureNotImplemented("Dokumenten-Upload")}
                     />
                     <AttachmentButton
                       icon={Music}
                       label="Audio"
                       formats=".mp3, .wav, .aac, .ogg..."
+                       onClick={() => handleFeatureNotImplemented("Audio-Upload")}
                     />
                     <AttachmentButton
                       icon={FileArchive}
                       label="Komprimiert"
                       formats=".zip, .rar, .7z"
+                       onClick={() => handleFeatureNotImplemented("Archiv-Upload")}
                     />
                     <AttachmentButton
                       icon={FileCode}
                       label="Andere"
                       formats=".html, .csv, .apk..."
+                       onClick={() => handleFeatureNotImplemented("Datei-Upload")}
                     />
                   </div>
                 </PopoverContent>
@@ -533,3 +582,5 @@ export default function MessageInput({
     </div>
   );
 }
+
+    
