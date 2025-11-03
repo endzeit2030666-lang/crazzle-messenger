@@ -477,7 +477,7 @@ export default function MessageInput({
                         className="shrink-0"
                         disabled={disabled}
                       >
-                        <Mic className="h-5 w-5 text-primary" />
+                        <Mic className="h-5 w-5 text-white" />
                         <span className="sr-only">Sprachnachricht aufnehmen</span>
                       </Button>
                     </TooltipTrigger>
@@ -495,7 +495,7 @@ export default function MessageInput({
                       size="icon"
                       type="button"
                       className={cn("shrink-0", 
-                        selfDestructDuration ? "text-destructive" : "text-primary"
+                        selfDestructDuration ? "text-destructive" : "text-white"
                       )}
                       disabled={disabled}
                     >
