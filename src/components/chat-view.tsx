@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { ShieldCheck, Phone, Video, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users } from "lucide-react";
+import { ShieldCheck, Phone, Video, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ type ChatViewProps = {
   onBlockContact: (contactId: string) => void;
   onUnblockContact: (contactId: string) => void;
   onBack: () => void;
+  onSetTyping: (isTyping: boolean) => void;
   isBlocked: boolean;
   currentUser: User;
 };
@@ -60,6 +61,7 @@ export default function ChatView({
     onBlockContact,
     onUnblockContact,
     onBack,
+    onSetTyping,
     isBlocked,
     currentUser,
 }: ChatViewProps) {
@@ -88,6 +90,12 @@ export default function ChatView({
     !isGroup ? conversation.participants.find(p => p.id !== currentUser.uid) : undefined,
     [conversation.participants, currentUser.uid, isGroup]
   );
+  
+  const typingUsers = useMemo(() => {
+    if (!conversation.typing) return [];
+    return conversation.participants.filter(p => conversation.typing.includes(p.id) && p.id !== currentUser.uid);
+  }, [conversation.typing, conversation.participants, currentUser.uid]);
+
 
   const headerDetails = useMemo(() => {
     if (isGroup) {
@@ -103,6 +111,29 @@ export default function ChatView({
       info: contact?.onlineStatus || "offline"
     };
   }, [conversation, contact, isGroup]);
+  
+  const getHeaderInfo = () => {
+    if (typingUsers.length > 0) {
+        if (typingUsers.length === 1) {
+            return `${typingUsers[0].name.split(' ')[0]} tippt...`;
+        }
+        return `mehrere tippen...`;
+    }
+     if (isGroup) {
+      return (
+        <div className="flex items-center text-sm text-white">
+            <Users className="w-4 h-4 mr-2 text-primary" />
+            {headerDetails.info}
+        </div>
+      )
+    }
+    return (
+       <div className="flex items-center text-sm text-white">
+            <div className={cn("w-2.5 h-2.5 mr-2 rounded-full", contact?.onlineStatus === 'online' ? 'bg-green-500' : 'bg-red-500')} />
+            {headerDetails.info}
+        </div>
+    )
+  }
 
 
   const processMessages = (docs: QueryDocumentSnapshot<DocumentData>[]) => {
@@ -317,14 +348,7 @@ export default function ChatView({
         </Avatar>
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
-           <div className="flex items-center text-sm text-white">
-             {isGroup ? (
-                <Users className="w-4 h-4 mr-2 text-primary" />
-             ) : (
-                <div className={cn("w-2.5 h-2.5 mr-2 rounded-full", contact?.onlineStatus === 'online' ? 'bg-green-500' : 'bg-red-500')} />
-             )}
-             {headerDetails.info}
-          </div>
+          {getHeaderInfo()}
         </div>
         <div className="flex items-center gap-2">
             {!isGroup && (
@@ -412,27 +436,36 @@ export default function ChatView({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        {messages.map((message, index) => (
-           <div key={message.id || index} id={`message-${message.id}`}>
-            <Message
-                message={message}
-                onQuote={handleQuote}
-                onEdit={handleEdit}
-                onDelete={onDeleteMessage}
-                onReact={onReact}
-                onMessageRead={onMessageRead}
-                sender={isGroup ? conversation.participants.find(p => p.id === message.senderId) : contact}
-                currentUser={currentUser}
-                isGroup={isGroup}
-            />
-           </div>
-        ))}
+        {messages.length === 0 && !isInitialLoading ? (
+            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                <MessageSquare className="w-16 h-16 mb-4 text-primary" />
+                <h3 className="text-xl font-bold text-white">Keine Nachrichten</h3>
+                <p>Beginne die Konversation, indem du eine Nachricht sendest.</p>
+            </div>
+        ) : (
+             messages.map((message, index) => (
+               <div key={message.id || index} id={`message-${message.id}`}>
+                <Message
+                    message={message}
+                    onQuote={handleQuote}
+                    onEdit={handleEdit}
+                    onDelete={onDeleteMessage}
+                    onReact={onReact}
+                    onMessageRead={onMessageRead}
+                    sender={isGroup ? conversation.participants.find(p => p.id === message.senderId) : contact}
+                    currentUser={currentUser}
+                    isGroup={isGroup}
+                />
+               </div>
+            ))
+        )}
       </div>
 
       <footer className="p-4 border-t border-border mt-auto">
         <MessageInput
           chatId={conversation.id}
           onSendMessage={handleSendMessageSubmit}
+          onSetTyping={onSetTyping}
           quotedMessage={quotedMessage}
           onClearQuote={() => setQuotedMessage(undefined)}
           isEditing={!!editingMessage}
@@ -483,3 +516,5 @@ export default function ChatView({
     </div>
   );
 }
+
+    

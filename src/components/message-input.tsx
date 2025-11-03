@@ -48,6 +48,7 @@ import { uploadMedia } from '@/firebase/storage';
 type MessageInputProps = {
   chatId: string;
   onSendMessage: (content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number) => void;
+  onSetTyping: (isTyping: boolean) => void;
   quotedMessage?: Message['quotedMessage'];
   onClearQuote: () => void;
   isEditing: boolean;
@@ -59,6 +60,7 @@ type MessageInputProps = {
 export default function MessageInput({
   chatId,
   onSendMessage,
+  onSetTyping,
   quotedMessage,
   onClearQuote,
   isEditing,
@@ -82,6 +84,9 @@ export default function MessageInput({
 
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -92,6 +97,9 @@ export default function MessageInput({
     return () => {
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
       }
     };
   }, []);
@@ -205,6 +213,16 @@ export default function MessageInput({
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
+    
+    onSetTyping(true);
+    if(typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+        onSetTyping(false);
+    }, 2000);
+
+
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
@@ -218,6 +236,8 @@ export default function MessageInput({
       setText('');
       setAnalysis(null);
       setSelfDestructDuration(undefined);
+      onSetTyping(false);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -271,7 +291,7 @@ export default function MessageInput({
 
     setIsUploading(true);
     try {
-      const mediaType = file.type.startsWith('image') ? 'image' : 'video';
+      const mediaType = file.type.startsWith('image') ? 'image' : (file.type.startsWith('video') ? 'video' : 'document');
       const path = `chats/${chatId}/${user.uid}_${Date.now()}_${file.name}`;
       const downloadURL = await uploadMedia(file, path);
       onSendMessage(downloadURL, mediaType, undefined, selfDestructDuration);
@@ -474,25 +494,25 @@ export default function MessageInput({
                       icon={FileText}
                       label="Dokument"
                       formats=".pdf, .doc, .xls, .ppt, .txt..."
-                      onClick={() => handleFeatureNotImplemented("Dokumenten-Upload")}
+                      onClick={() => handleAttachmentClick('document')}
                     />
                     <AttachmentButton
                       icon={Music}
                       label="Audio"
                       formats=".mp3, .wav, .aac, .ogg..."
-                       onClick={() => handleFeatureNotImplemented("Audio-Upload")}
+                       onClick={() => handleAttachmentClick('audio')}
                     />
                     <AttachmentButton
                       icon={FileArchive}
                       label="Komprimiert"
                       formats=".zip, .rar, .7z"
-                       onClick={() => handleFeatureNotImplemented("Archiv-Upload")}
+                       onClick={() => handleAttachmentClick('archive')}
                     />
                     <AttachmentButton
                       icon={FileCode}
                       label="Andere"
                       formats=".html, .csv, .apk..."
-                       onClick={() => handleFeatureNotImplemented("Datei-Upload")}
+                       onClick={() => handleAttachmentClick('other')}
                     />
                   </div>
                 </PopoverContent>
@@ -600,3 +620,5 @@ export default function MessageInput({
     </div>
   );
 }
+
+    

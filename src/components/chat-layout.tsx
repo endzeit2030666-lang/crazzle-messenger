@@ -139,7 +139,9 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
                 senderId: currentUser.uid,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 type: type,
-            }
+            },
+            // Remove current user from typing array after sending a message
+            typing: arrayRemove(currentUser.uid)
         });
     } catch (e) {
         console.error("Failed to send message:", e);
@@ -260,6 +262,21 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
       router.push(`/?chatId=${id}`);
     }
   }, [router]);
+  
+  const handleSetTyping = useCallback(async (isTyping: boolean) => {
+    if (!selectedConversationId || !firestore) return;
+    const convoRef = doc(firestore, 'conversations', selectedConversationId);
+    if (isTyping) {
+        await updateDoc(convoRef, {
+            typing: arrayUnion(currentUser.uid)
+        });
+    } else {
+         await updateDoc(convoRef, {
+            typing: arrayRemove(currentUser.uid)
+        });
+    }
+  }, [selectedConversationId, firestore, currentUser.uid]);
+
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -298,6 +315,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             onClearConversation={handleClearConversation}
             onBlockContact={handleBlockContact}
             onUnblockContact={handleUnblockContact}
+            onSetTyping={handleSetTyping}
             onBack={() => {
               setSelectedConversationId(null);
               router.push('/');
@@ -315,3 +333,5 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     </div>
   );
 }
+
+    

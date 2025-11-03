@@ -5,6 +5,7 @@ export type User = {
   name: string;
   avatar: string;
   onlineStatus: 'online' | 'offline' | 'away';
+  lastSeen?: Timestamp | Date;
   publicKey?: string;
   phoneNumber?: string;
   bio?: string;
@@ -43,11 +44,13 @@ export type Message = {
       senderName: string;
   };
   isEdited?: boolean;
-  type: 'text' | 'audio' | 'image' | 'video' | 'system';
+  type: 'text' | 'audio' | 'image' | 'video' | 'document' | 'system';
   audioUrl?: string;
   audioDuration?: number;
   imageUrl?: string;
   videoUrl?: string;
+  fileUrl?: string;
+  fileName?: string;
 };
 
 export type Conversation = {
@@ -58,9 +61,12 @@ export type Conversation = {
   lastMessage?: Message;
   isMuted?: boolean;
   createdAt: Timestamp;
+  typing?: string[];
   // Group-specific fields
   name?: string;
   avatar?: string;
   admins?: string[];
   createdBy: string;
 };
+
+    
