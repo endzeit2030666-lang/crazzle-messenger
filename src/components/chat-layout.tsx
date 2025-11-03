@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import type { Conversation, User as UserType, Message } from "@/lib/types";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, onSnapshot, orderBy, writeBatch, updateDoc, arrayUnion, arrayRemove, setDoc } from "firebase/firestore";
 import { useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import ConversationList from "@/components/conversation-list";
 import ChatView from "@/components/chat-view";
@@ -22,19 +22,26 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-    const [selectedConversationType, setSelectedConversationType] = useState<'private' | 'group' | null>(null);
+  const [selectedConversationType, setSelectedConversationType] = useState<'private' | 'group' | null>(null);
   const [currentUserData, setCurrentUserData] = useState<UserType | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
-  const selectedConversation = conversations.find(c => c.id === selectedConversationId);
-  const contactInSelectedConversation = selectedConversation?.type === 'private'
+  const selectedConversation = useMemo(() => 
+    conversations.find(c => c.id === selectedConversationId),
+    [conversations, selectedConversationId]
+  );
+  
+  const contactInSelectedConversation = useMemo(() => 
+    selectedConversation?.type === 'private'
     ? selectedConversation?.participants.find(p => p.id !== currentUser.uid)
-    : undefined;
+    : undefined,
+    [selectedConversation, currentUser.uid]
+  );
   
   const blockedUserIds = useMemo(() => new Set(currentUserData?.blockedUsers || []), [currentUserData]);
   const isContactBlocked = contactInSelectedConversation ? blockedUserIds.has(contactInSelectedConversation.id) : false;
-  
+
   const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
     if (!selectedConversationId || !firestore || !selectedConversation) return;
 
@@ -47,16 +54,13 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
       return;
     }
 
-    const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
-    
-    if (selectedConversation.type === 'private' && (!contact || !contact.publicKey)) {
-      toast({ variant: "destructive", title: "Fehler", description: "Der öffentliche Schlüssel des Kontakts wurde nicht gefunden." });
-      return;
-    }
-
     let encryptedContent = content;
-    // Only encrypt text messages for private chats for now
-    if (type === 'text' && selectedConversation.type === 'private' && contact?.publicKey) {
+    if (type === 'text' && selectedConversation.type === 'private') {
+      const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
+      if (!contact || !contact.publicKey) {
+        toast({ variant: "destructive", title: "Fehler", description: "Der öffentliche Schlüssel des Kontakts wurde nicht gefunden." });
+        return;
+      }
       const encrypted = await encryptMessage(contact.publicKey, content);
       if (!encrypted) {
           toast({ variant: "destructive", title: "Verschlüsselungsfehler", description: "Nachricht konnte nicht verschlüsselt werden." });
@@ -237,6 +241,16 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
 
   const handleConversationSelect = async (contact: UserType) => {
     if (!firestore || !currentUser) return;
+
+    // Add to contacts subcollection
+    const contactRef = doc(firestore, 'users', currentUser.uid, 'contacts', contact.id);
+    await setDoc(contactRef, {
+        contactUserId: contact.id,
+        displayName: contact.name,
+        publicKey: contact.publicKey
+    }, { merge: true });
+    
+    // Find or create conversation
     const conversationsRef = collection(firestore, "conversations");
     const q = query(
       conversationsRef,

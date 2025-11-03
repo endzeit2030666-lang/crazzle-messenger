@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon, UserPlus, Users } from "lucide-react";
+import { Search, Archive, Bell, MoreVertical, XCircle, CameraIcon, UserPlus, Users, BookUser } from "lucide-react";
 import type { Conversation, Message, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -206,7 +206,7 @@ export default function ConversationList({
             <Logo className="w-8 h-8" />
             <h1 className="font-headline text-2xl font-bold text-primary">Crazzle</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -216,6 +216,19 @@ export default function ConversationList({
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Status-Updates</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/contacts')}>
+                            <BookUser className="w-5 h-5 text-white" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Telefonbuch</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
