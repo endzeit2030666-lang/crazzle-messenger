@@ -94,6 +94,12 @@ export default function ContactsPage() {
 
         // Emit the error with the global error emitter
         errorEmitter.emit('permission-error', permissionError);
+        // Also show a user-facing toast
+        toast({
+            variant: "destructive",
+            title: "Fehler bei der Chaterstellung",
+            description: "Sie haben nicht die Berechtigung, diesen Chat zu erstellen.",
+        });
       });
   }
   
