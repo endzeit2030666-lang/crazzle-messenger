@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
@@ -91,12 +91,9 @@ export default function LoginPage() {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
-      // Regardless of user existence, we perform an anonymous sign-in to get a session.
-      // The onAuthStateChanged listener in the provider will eventually reflect this new user state.
-      const cred = await signInAnonymously(auth);
-      
       if (userSnapshot.empty) {
-        // User does not exist, create a new one with the UID from the anonymous auth.
+        // User does not exist, create a new one.
+        const cred = await signInAnonymously(auth);
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
@@ -114,23 +111,36 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
 
-        // Create the document for the new user.
-        // This will be allowed because we are now authenticated anonymously.
-        await setDoc(newUserRef, newUser);
-      }
-      // If the user already exists, we don't need to do anything.
-      // The `signInAnonymously` call gives us a temporary session, and the
-      // onAuthStateChanged listener will eventually log the user out of this
-      // temporary session and into their "real" (simulated) one.
-      // For our app's logic, the redirect in the useEffect is sufficient.
-
-    } catch (error: any) {
-        console.error("Anmeldung fehlgeschlagen:", error);
-        toast({
-          variant: "destructive",
-          title: "Anmeldung fehlgeschlagen",
-          description: error.message || "Es konnte kein Account erstellt oder gefunden werden.",
+        // Use .catch() to handle the specific Firestore error
+        await setDoc(newUserRef, newUser).catch((serverError) => {
+           // Create the rich, contextual error and emit it.
+           const permissionError = new FirestorePermissionError({
+            path: newUserRef.path,
+            operation: 'create',
+            requestResourceData: newUser,
+          });
+          // This will be caught by the FirebaseErrorListener
+          errorEmitter.emit('permission-error', permissionError);
+          // We throw the original server error as well to stop execution
+          // and let the outer catch handle general state updates (like isSigningIn).
+          throw serverError;
         });
+
+      } else {
+        // User exists, just sign in
+        await signInAnonymously(auth); 
+      }
+    } catch (error: any) {
+        // This outer catch now handles general errors or the re-thrown Firestore error
+        // after it has been properly emitted. Avoid showing a generic toast here
+        // if the permissionError was already emitted.
+        if (error.name !== 'FirebaseError') {
+             toast({
+              variant: "destructive",
+              title: "Anmeldung fehlgeschlagen",
+              description: error.message || "Es ist ein unerwarteter Fehler aufgetreten.",
+            });
+        }
     } finally {
         setIsSigningIn(false);
     } 
