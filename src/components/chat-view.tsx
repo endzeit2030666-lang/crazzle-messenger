@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { ShieldCheck, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare, Bell, Archive } from "lucide-react";
+import { ShieldCheck, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users, MessageSquare, Bell, Archive, UserPlus, LogOut } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase";
-import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData, arrayUnion } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData, arrayUnion, arrayRemove } from "firebase/firestore";
 import type { User } from "firebase/auth";
 
 
@@ -83,6 +83,7 @@ export default function ChatView({
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showLeaveGroupDialog, setShowLeaveGroupDialog] = useState(false);
   const [quotedMessage, setQuotedMessage] = useState<MessageType['quotedMessage'] | undefined>(undefined);
   const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
 
@@ -91,6 +92,7 @@ export default function ChatView({
   const firestore = useFirestore();
 
   const isGroup = useMemo(() => conversation.type === 'group', [conversation.type]);
+  const isAdmin = useMemo(() => conversation.admins?.includes(currentUser.uid), [conversation.admins, currentUser.uid]);
   
   const contact = useMemo(() => 
     !isGroup ? conversation.participants.find(p => p.id !== currentUser.uid) : undefined,
@@ -262,6 +264,21 @@ export default function ChatView({
     if (!contact) return;
     onUnblockContact(contact.id);
   }
+
+  const handleLeaveGroup = async () => {
+    if (!firestore) return;
+    setShowLeaveGroupDialog(false);
+    const convoRef = doc(firestore, "conversations", conversation.id);
+    try {
+        await updateDoc(convoRef, {
+            participantIds: arrayRemove(currentUser.uid)
+        });
+        toast({ title: "Du hast die Gruppe verlassen." });
+        onBack();
+    } catch(e) {
+        toast({ variant: 'destructive', title: "Fehler", description: "Du konntest die Gruppe nicht verlassen."});
+    }
+  }
   
   const handleQuote = (message: MessageType) => {
     const sender = conversation.participants.find(p => p.id === message.senderId);
@@ -389,8 +406,8 @@ export default function ChatView({
                     </DropdownMenuItem>
                   )}
                   {isGroup && (
-                     <DropdownMenuItem>
-                        <XCircle className="mr-2 h-4 w-4" />
+                     <DropdownMenuItem onClick={() => setShowLeaveGroupDialog(true)} className="text-destructive focus:text-destructive">
+                        <LogOut className="mr-2 h-4 w-4" />
                         <span>Gruppe verlassen</span>
                     </DropdownMenuItem>
                   )}
@@ -508,7 +525,24 @@ export default function ChatView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <AlertDialog open={showLeaveGroupDialog} onOpenChange={setShowLeaveGroupDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Gruppe "{headerDetails.name}" verlassen?</AlertDialogTitle>
+            <AlertDialogDescription>
+             Du wirst keine neuen Nachrichten mehr aus dieser Gruppe erhalten.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveGroup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Verlassen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
 }
+
+    

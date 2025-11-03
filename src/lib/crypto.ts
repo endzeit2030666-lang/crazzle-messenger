@@ -111,12 +111,15 @@ export async function decryptMessage(
   senderPublicKeyB64: string,
   ciphertextB64: string
 ): Promise<string | null> {
+  if (!senderPublicKeyB64 || !ciphertextB64) {
+    return ciphertextB64; // Return original content if no key/cipher is provided (e.g., system messages)
+  }
   const privateKey = await getPrivateKey();
   const publicKey = await importPublicKey(senderPublicKeyB64);
 
   if (!privateKey || !publicKey) {
     console.error('Could not retrieve keys for decryption.');
-    return null;
+    return "🔓 Schlüssel zum Entschlüsseln fehlen.";
   }
 
   try {
@@ -138,3 +141,5 @@ export async function decryptMessage(
     return "🔓 Entschlüsselung fehlgeschlagen";
   }
 }
+
+    

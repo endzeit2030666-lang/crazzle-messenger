@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Check, Plus, Loader2, Users, User, Search } from 'lucide-react';
+import { Check, Plus, Loader2, Users, User as UserIcon, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { addDoc, collection, serverTimestamp, getDocs, query, where, writeBatch, doc } from 'firebase/firestore';
@@ -53,7 +53,7 @@ export default function NewChatDialog({
   const handleUserClick = async (user: UserType) => {
     // Check if a private conversation already exists
     const existingConvo = existingConversations.find(c =>
-      c.type === 'private' && c.participantIds.includes(user.id)
+      c.type === 'private' && c.participantIds.length === 2 && c.participantIds.includes(user.id) && c.participantIds.includes(currentUser.uid)
     );
 
     if (existingConvo) {
@@ -128,6 +128,7 @@ export default function NewChatDialog({
     setGroupName('');
     setSelectedMembers(new Set([currentUser.uid]));
     setIsCreating(false);
+    setActiveTab('private');
   }
 
   return (
@@ -142,7 +143,7 @@ export default function NewChatDialog({
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full p-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="private"><User className="w-4 h-4 mr-2"/>Privat</TabsTrigger>
+            <TabsTrigger value="private"><UserIcon className="w-4 h-4 mr-2"/>Privat</TabsTrigger>
             <TabsTrigger value="group"><Users className="w-4 h-4 mr-2"/>Gruppe</TabsTrigger>
           </TabsList>
           <div className="relative mt-4">
@@ -180,6 +181,7 @@ export default function NewChatDialog({
               value={groupName}
               onChange={e => setGroupName(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground px-1">Mitglieder auswählen:</p>
             <ScrollArea className="h-56">
               <div className="pr-4 space-y-2">
                 {filteredUsers.map(user => (
@@ -188,7 +190,7 @@ export default function NewChatDialog({
                     onClick={() => handleToggleMember(user.id)}
                     className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted"
                   >
-                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", selectedMembers.has(user.id) ? "bg-primary border-primary" : "border-muted-foreground")}>
+                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", selectedMembers.has(user.id) ? "bg-primary border-primary" : "border-muted-foreground")}>
                         {selectedMembers.has(user.id) && <Check className="w-3 h-3 text-primary-foreground" />}
                     </div>
                     <Avatar className="h-10 w-10">
@@ -202,7 +204,7 @@ export default function NewChatDialog({
             </ScrollArea>
             <Button onClick={handleCreateGroup} disabled={isCreating} className="w-full">
               {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Plus className="w-4 h-4 mr-2" />}
-              Gruppe erstellen ({selectedMembers.size -1} Mitglieder)
+              Gruppe erstellen ({selectedMembers.size > 1 ? `${selectedMembers.size - 1} Mitglieder` : '0 Mitglieder'})
             </Button>
           </TabsContent>
         </Tabs>
@@ -210,3 +212,5 @@ export default function NewChatDialog({
     </Dialog>
   );
 }
+
+    
