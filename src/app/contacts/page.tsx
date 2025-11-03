@@ -72,7 +72,7 @@ export default function ContactsPage() {
       type: 'private' as const,
       participantIds: participantIds,
       createdAt: serverTimestamp(),
-      createdBy: currentUser.uid, // This field is required by security rules
+      createdBy: currentUser.uid,
       lastMessage: null,
       typing: [],
       isMuted: false,
@@ -84,21 +84,17 @@ export default function ContactsPage() {
         router.push(`/?chatId=${conversationId}`);
       })
       .catch((serverError) => {
-        // Create the rich, contextual error
+        // This is the correct error handling architecture.
+        // It creates a rich, contextual error and emits it globally.
         const permissionError = new FirestorePermissionError({
           path: conversationRef.path,
           operation: 'create',
           requestResourceData: newConversationData,
         });
 
-        // Emit the error with the global error emitter
+        // Emit the error with the global error emitter.
+        // DO NOT show a toast here, as it hides the real error.
         errorEmitter.emit('permission-error', permissionError);
-        // Also show a user-facing toast as a fallback
-        toast({
-            variant: "destructive",
-            title: "Fehler bei der Chaterstellung",
-            description: "Sie haben nicht die Berechtigung, diesen Chat zu erstellen.",
-        });
       });
   }
   
