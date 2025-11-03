@@ -92,9 +92,10 @@ export default function LoginPage() {
       const userSnapshot = await getDocs(usersQuery);
 
       if (!userSnapshot.empty) {
+        // User exists, just sign in anonymously. The onAuthStateChanged listener will handle redirect.
         await signInAnonymously(auth);
-        router.push('/');
       } else {
+        // User does not exist, create a new user.
         const cred = await signInAnonymously(auth);
         const newUserRef = doc(firestore, 'users', cred.user.uid);
         
@@ -113,7 +114,7 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
 
-        // This is a create operation, so we don't use merge: true
+        // Create the document for the new user.
         await setDoc(newUserRef, newUser);
         // The onAuthStateChanged listener in the provider will handle the redirect.
       }
@@ -128,7 +129,7 @@ export default function LoginPage() {
         // Emit the error with the global error emitter.
         // DO NOT show a toast or console.error here for permission errors.
         errorEmitter.emit('permission-error', permissionError);
-
+    } finally {
         setIsSigningIn(false);
     } 
   };
