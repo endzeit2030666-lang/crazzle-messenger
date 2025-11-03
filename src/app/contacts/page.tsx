@@ -47,7 +47,7 @@ export default function ContactsPage() {
     // Fetch existing conversations to avoid creating duplicates
     const convosQuery = query(collection(firestore, 'conversations'), where('participantIds', 'array-contains', currentUser.uid));
     const unsubscribeConvos = onSnapshot(convosQuery, (convoSnapshot) => {
-        const convosData = convoSnapshot.docs.map(doc => doc.data() as Conversation);
+        const convosData = convoSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Conversation));
         setExistingConversations(convosData);
     });
 
