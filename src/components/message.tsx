@@ -23,6 +23,7 @@ import { Slider } from './ui/slider';
 import type { User } from 'firebase/auth';
 import { decryptMessage } from '@/lib/crypto';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { EmojiPicker } from './emoji-picker';
 
 
 const useDecryptedMessage = (message: MessageType, sender: UserType | undefined, isCurrentUser: boolean, isGroup: boolean) => {
@@ -194,6 +195,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   const messageRef = useRef<HTMLDivElement>(null);
   const isCurrentUser = message.senderId === currentUser.uid;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
   const { toast } = useToast();
   
   const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender, isCurrentUser, isGroup);
@@ -269,6 +271,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   const handleReaction = (emoji: string) => {
     onReact(message.id, emoji);
     setShowReactionPicker(false);
+    setShowFullEmojiPicker(false);
   }
   
   const handleSwipe = (e: React.TouchEvent) => {
@@ -404,9 +407,23 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
         </div>
         {showReactionPicker && (
             <div className="absolute bottom-full mb-2 z-10">
-                <ReactionPicker onSelect={handleReaction} onPlusClick={() => toast({title: "Vollständiger Emoji-Picker nicht implementiert"})}/>
+                <ReactionPicker 
+                  onSelect={handleReaction} 
+                  onPlusClick={() => {
+                    setShowReactionPicker(false);
+                    setShowFullEmojiPicker(true);
+                  }}
+                />
             </div>
         )}
+         {showFullEmojiPicker && (
+            <div className="absolute bottom-full mb-2 z-10" style={{width: '350px'}}>
+              <EmojiPicker
+                onEmojiSelect={handleReaction}
+                onClose={() => setShowFullEmojiPicker(false)}
+              />
+            </div>
+          )}
         {message.reactions.length > 0 && (
             <div className="absolute -bottom-3 right-2 flex items-center gap-1 bg-background border border-border p-0.5 rounded-full text-xs">
                 <TooltipProvider>
