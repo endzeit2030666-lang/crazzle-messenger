@@ -293,10 +293,10 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
          </Avatar>
        )}
        <div className={cn("flex items-end gap-2", isCurrentUser ? "flex-row-reverse" : "flex-row")}>
-       <div className={cn("relative opacity-0 group-hover:opacity-100 transition-opacity", isCurrentUser ? "order-1" : "")}>
+       <div className={cn("relative transition-opacity", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-50 hover:opacity-100 focus:opacity-100">
                     <MoreHorizontal className="w-4 h-4" />
                 </Button>
             </DropdownMenuTrigger>
