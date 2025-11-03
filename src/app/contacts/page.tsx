@@ -61,7 +61,7 @@ export default function ContactsPage() {
     router.push('/');
   };
 
-  const handleStartChat = async (contact: Contact) => {
+  const handleStartChat = (contact: Contact) => {
     if (!currentUser || !firestore) return;
   
     const participantIds = [currentUser.uid, contact.id].sort();
@@ -79,17 +79,22 @@ export default function ContactsPage() {
       isMuted: false,
     };
 
-    try {
-        await setDoc(conversationRef, newConversationData);
+    // Use a non-blocking write and catch permission errors
+    setDoc(conversationRef, newConversationData)
+      .then(() => {
         router.push(`/?chatId=${conversationId}`);
-    } catch(e) {
-        console.error("Fehler beim Erstellen des Chats:", e);
-        toast({ 
-            variant: 'destructive', 
-            title: "Fehler", 
-            description: "Der Chat konnte nicht erstellt werden." 
+      })
+      .catch((serverError) => {
+        // Create the rich, contextual error
+        const permissionError = new FirestorePermissionError({
+          path: conversationRef.path,
+          operation: 'create',
+          requestResourceData: newConversationData,
         });
-    }
+
+        // Emit the error with the global error emitter
+        errorEmitter.emit('permission-error', permissionError);
+      });
   }
   
   const handleSaveContact = async () => {
