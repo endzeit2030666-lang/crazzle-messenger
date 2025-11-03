@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { signInAnonymously, UserCredential } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -28,6 +28,9 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
 
 // Helper to generate and export keys
 async function generateAndStoreKeys(uid: string) {
+  if (typeof window === 'undefined' || !window.crypto) {
+    throw new Error('Crypto API is not available in this environment.');
+  }
   const keyPair = await window.crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
@@ -39,8 +42,7 @@ async function generateAndStoreKeys(uid: string) {
   const publicKeyB64 = arrayBufferToBase64(publicKeySpki);
 
   // Export and store private key, now namespaced by UID
-  // We check for localStorage existence for SSR safety.
-  if (typeof window !== 'undefined' && window.localStorage) {
+  if (typeof window.localStorage !== 'undefined') {
     const privateKeyJwk = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
     localStorage.setItem(`privateKey_${uid}`, JSON.stringify(privateKeyJwk));
   }
@@ -95,22 +97,21 @@ export default function LoginPage() {
     setIsSigningIn(true);
     
     try {
-      // Step 1: Sign in with Firebase Auth first to ensure we have a valid `auth` object.
+      // Step 1: Check if a user with this phone number already exists
+      const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
+      const userSnapshot = await getDocs(usersQuery);
+
+      // Step 2: Sign in with Firebase Auth first to ensure we have a valid `auth` object.
       // This is the critical step to prevent the "auth: null" error.
       const cred = await signInAnonymously(auth);
       const uid = cred.user.uid;
 
-      // Step 2: Now that we are authenticated, check if a user document already exists.
-      const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
-      const userSnapshot = await getDocs(usersQuery);
+      // Step 3: ALWAYS generate and store keys on sign-in to ensure they exist on the device.
+      const { publicKeyB64 } = await generateAndStoreKeys(uid);
 
       if (userSnapshot.empty) {
         // --- NEW USER CREATION FLOW ---
         // The user does not exist, so we create a new document for them.
-        
-        // Generate crypto keys
-        const { publicKeyB64 } = await generateAndStoreKeys(uid);
-        
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
@@ -124,11 +125,10 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
         
-        // Create the document reference with the NEW, VALID UID
         const newUserRef = doc(firestore, 'users', uid);
         
-        // Set the document. The request is now authenticated.
         await setDoc(newUserRef, newUser);
+
         toast({
           title: "Willkommen!",
           description: "Dein neues Konto wurde erfolgreich erstellt.",
@@ -136,8 +136,15 @@ export default function LoginPage() {
 
       } else {
         // --- EXISTING USER SIGN-IN FLOW ---
-        // The user already exists. We don't need to create a document.
-        // We've already signed in, so the onAuthStateChanged listener will handle the redirect.
+        // The user already exists. We need to update their public key in Firestore.
+        const existingUserDoc = userSnapshot.docs[0];
+        const userDocRef = doc(firestore, 'users', existingUserDoc.id);
+
+        await updateDoc(userDocRef, {
+            publicKey: publicKeyB64,
+            id: uid // IMPORTANT: Update the UID in case the anonymous user ID changed.
+        });
+        
          toast({
           title: "Anmeldung erfolgreich",
           description: "Willkommen zurück!",
@@ -154,7 +161,7 @@ export default function LoginPage() {
         // if the rules are wrong for other reasons.
         const permissionError = new FirestorePermissionError({
           path: `users/${auth.currentUser?.uid || 'unknown_uid'}`,
-          operation: 'create',
+          operation: 'create', // This might be create or update
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
         errorEmitter.emit('permission-error', permissionError);
