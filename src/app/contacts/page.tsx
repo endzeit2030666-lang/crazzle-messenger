@@ -117,15 +117,22 @@ export default function ContactsPage() {
       
       const foundUser = userSnapshot.docs[0].data() as UserType;
       
-      // 2. Check if contact already exists
-      const userContacts = contacts.map(c => c.id);
-      if(userContacts.includes(foundUser.id)){
+      // 2. Check if user is trying to add themselves
+      if (foundUser.id === currentUser.uid) {
+        toast({ variant: 'destructive', title: 'Fehler', description: 'Du kannst dich nicht selbst als Kontakt hinzufügen.' });
+        setIsSavingContact(false);
+        return;
+      }
+
+      // 3. Check if contact already exists
+      const contactExists = contacts.some(contact => contact.id === foundUser.id);
+      if(contactExists){
         toast({ variant: 'destructive', title: 'Kontakt existiert bereits' });
         setIsSavingContact(false);
         return;
       }
 
-      // 3. Add to current user's contacts subcollection
+      // 4. Add to current user's contacts subcollection
       const contactRef = collection(firestore, 'users', currentUser.uid, 'contacts');
       await addDoc(contactRef, {
         id: foundUser.id,
