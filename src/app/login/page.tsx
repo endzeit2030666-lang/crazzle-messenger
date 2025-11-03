@@ -93,6 +93,8 @@ export default function LoginPage() {
     }
     
     setIsSigningIn(true);
+    let newUserRef;
+    let newUser;
     
     try {
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
@@ -100,33 +102,27 @@ export default function LoginPage() {
 
       if (userSnapshot.empty) {
         // --- NEW USER CREATION FLOW ---
-
-        // 1. Sign in anonymously to get a new user credential from Firebase Auth.
         const cred = await signInAnonymously(auth);
         
-        // 2. Prepare the new user data.
         const { publicKeyB64 } = await generateAndStoreKeys(cred.user.uid);
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
-        const newUser: UserType = {
+        newUser = {
           id: cred.user.uid,
           name: randomName,
           avatar: randomAvatar,
-          onlineStatus: 'online',
+          onlineStatus: 'online' as const,
           publicKey: publicKeyB64,
           phoneNumber: trimmedPhoneNumber,
           readReceiptsEnabled: true,
         };
         
-        // 3. Create the user document in Firestore using the UID from the credential.
-        // This request is now guaranteed to be authenticated.
-        const newUserRef = doc(firestore, 'users', cred.user.uid);
+        newUserRef = doc(firestore, 'users', cred.user.uid);
         await setDoc(newUserRef, newUser);
 
       } else {
         // --- EXISTING USER SIGN-IN FLOW ---
-        // Just sign them in. The onAuthStateChanged listener will handle the redirect.
         await signInAnonymously(auth);
       }
       
@@ -136,16 +132,23 @@ export default function LoginPage() {
       });
 
     } catch (error: any) {
-        console.error("Anmeldefehler:", error);
-
-        // This will now catch any real errors during the process.
-        // It's kept simple to avoid swallowing important information again.
-        toast({
-            variant: "destructive",
-            title: "Anmeldung fehlgeschlagen",
-            description: error.message || "Ein unerwarteter Fehler ist aufgetreten.",
-        });
-
+        if (error.code === 'permission-denied') {
+          // This is the correct error handling architecture.
+          // It creates a rich, contextual error and emits it globally.
+          const permissionError = new FirestorePermissionError({
+            path: newUserRef?.path || `users/unknown_uid`,
+            operation: 'create',
+            requestResourceData: newUser || { phoneNumber: trimmedPhoneNumber },
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        } else {
+           console.error("Anmeldefehler:", error);
+           toast({
+               variant: "destructive",
+               title: "Anmeldung fehlgeschlagen",
+               description: error.message || "Ein unerwarteter Fehler ist aufgetreten.",
+           });
+        }
     } finally {
         setIsSigningIn(false);
     } 
