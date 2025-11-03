@@ -34,7 +34,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { useRouter } from "next/navigation";
+
 
 type ChatViewProps = {
   conversation: Conversation;
@@ -70,6 +72,8 @@ export default function ChatView({
   const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
 
   const { toast } = useToast();
+  const router = useRouter();
+
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -78,18 +82,21 @@ export default function ChatView({
   }, [conversation.messages]);
   
   const handleCall = (type: 'audio' | 'video') => {
-    if (isBlocked) {
+    if (isBlocked || !contact) {
         toast({
             variant: "destructive",
-            title: "Kontakt blockiert",
+            title: "Aktion nicht möglich",
             description: "Du kannst einen blockierten Kontakt nicht anrufen.",
         });
         return;
     }
-    toast({
-        title: `${type === 'audio' ? 'Sprachanruf' : 'Videoanruf'} wird gestartet...`,
-        description: "Diese Funktion dient zu Demonstrationszwecken."
-    })
+    const params = new URLSearchParams({
+        type: type,
+        contactId: contact.id,
+        contactName: contact.name,
+        contactAvatar: contact.avatar,
+    });
+    router.push(`/call?${params.toString()}`);
   }
 
   const handleBlockContact = () => {
@@ -188,7 +195,7 @@ export default function ChatView({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="opacity-100">
                   <MoreVertical className="w-5 h-5 text-white" />
                   <span className="sr-only">Weitere Optionen</span>
                 </Button>
