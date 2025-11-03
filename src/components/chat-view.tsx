@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle, Trash2, Pencil } from "lucide-react";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle, Trash2, Pencil, Loader2 } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { useFirestore } from "@/firebase";
-import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch, limit, getDocs, startAfter, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 import type { User } from "firebase/auth";
 
 
@@ -50,6 +50,8 @@ type ChatViewProps = {
   currentUser: User;
 };
 
+const MESSAGES_PER_PAGE = 30;
+
 export default function ChatView({ 
     conversation, 
     contact, 
@@ -60,7 +62,14 @@ export default function ChatView({
     currentUser,
 }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollAnchorRef = useRef<HTMLDivElement>(null);
+  
   const [messages, setMessages] = useState<MessageType[]>([]);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
   const [isVerificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -75,29 +84,87 @@ export default function ChatView({
   useEffect(() => {
     if (!firestore || !conversation.id) return;
     const messagesRef = collection(firestore, 'conversations', conversation.id, 'messages');
-    const q = query(messagesRef, orderBy('date', 'asc'));
+    const q = query(messagesRef, orderBy('date', 'desc'), limit(MESSAGES_PER_PAGE));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messagesData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          date: data.date?.toDate(), // Convert Firestore Timestamp to JS Date
-        } as MessageType;
-      });
-      setMessages(messagesData);
+       if (isInitialLoading) { // Only for initial load and real-time updates of the first page
+            const messagesData = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                id: doc.id,
+                ...data,
+                date: data.date?.toDate(),
+                } as MessageType;
+            }).reverse(); // Reverse to show newest at the bottom
+            
+            setMessages(messagesData);
+            setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+            setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
+            setIsInitialLoading(false);
+        } else { // For real-time updates (new messages)
+             snapshot.docChanges().forEach((change) => {
+                if (change.type === "added") {
+                    const newMessage = {
+                        id: change.doc.id,
+                        ...change.doc.data(),
+                        date: change.doc.data().date?.toDate()
+                    } as MessageType;
+                    // Only add if it's not already in the list to avoid duplicates on initial load
+                    setMessages(prev => prev.find(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
+                }
+            });
+        }
+    }, (error) => {
+        console.error("Error fetching messages:", error);
+        toast({ variant: 'destructive', title: 'Fehler beim Laden der Nachrichten' });
+        setIsInitialLoading(false);
     });
 
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firestore, conversation.id]);
 
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    if (scrollAreaRef.current && !isLoadingMore) {
+        // We scroll to the bottom only when new messages are added, not when loading more
+        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages.length, isLoadingMore]);
+
+
+  const loadMoreMessages = async () => {
+    if (!firestore || !lastDoc || !hasMoreMessages || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    const messagesRef = collection(firestore, 'conversations', conversation.id, 'messages');
+    const q = query(messagesRef, orderBy('date', 'desc'), startAfter(lastDoc), limit(MESSAGES_PER_PAGE));
+    
+    const prevScrollHeight = scrollAreaRef.current?.scrollHeight || 0;
+    const prevScrollTop = scrollAreaRef.current?.scrollTop || 0;
+
+    const snapshot = await getDocs(q);
+    const oldMessages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: doc.data().date?.toDate(),
+    } as MessageType)).reverse();
+
+    setMessages(prev => [...oldMessages, ...prev]);
+    setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+    setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
+    
+    // Restore scroll position to prevent jumping
+    if (scrollAreaRef.current) {
+        // We need a slight delay for the DOM to update with the new messages
+        setTimeout(() => {
+            const newScrollHeight = scrollAreaRef.current!.scrollHeight;
+            scrollAreaRef.current!.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+        }, 0);
+    }
+    
+    setIsLoadingMore(false);
+  };
   
   const handleCall = (type: 'audio' | 'video') => {
     if (isBlocked || !contact) {
@@ -218,6 +285,14 @@ export default function ChatView({
       info: contact?.onlineStatus || "offline"
   };
 
+  if (isInitialLoading && messages.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!contact) {
       return (
           <div className="flex-1 flex items-center justify-center text-muted-foreground bg-muted/20">
@@ -306,6 +381,19 @@ export default function ChatView({
       )}
 
       <div ref={scrollAreaRef} className="flex-1 p-6 overflow-y-auto space-y-6">
+        {hasMoreMessages && (
+          <div className="text-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadMoreMessages}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Ältere Nachrichten laden
+            </Button>
+          </div>
+        )}
         {messages.map((message) => (
           <Message 
             key={message.id} 
