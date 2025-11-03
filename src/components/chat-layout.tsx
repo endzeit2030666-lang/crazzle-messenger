@@ -59,7 +59,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     // Link detection
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = content.match(urlRegex);
-    if (urls && urls.length > 0) {
+    if (type === 'text' && urls && urls.length > 0) {
         linkPreview = {
             url: urls[0],
             title: `Vorschau für ${urls[0]}`,
@@ -67,7 +67,6 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             image: `https://picsum.photos/seed/${urls[0]}/400/225`
         }
     }
-
 
     if (type === 'text' && selectedConversation.type === 'private') {
       const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
@@ -88,11 +87,10 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     
     const messagesRef = collection(firestore, "conversations", selectedConversationId, "messages");
     
-    const newMessage: Omit<Message, 'id'> = {
+    const newMessage: Omit<Message, 'id' | 'date'> = {
       senderId: currentUser.uid,
       content: encryptedContent,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: serverTimestamp() as any,
       status: 'sent',
       reactions: [],
       type: type,
@@ -122,7 +120,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
 
     try {
-        await addDoc(messagesRef, newMessage);
+        await addDoc(messagesRef, { ...newMessage, date: serverTimestamp() });
         const convoRef = doc(firestore, "conversations", selectedConversationId);
         
         let lastMessageText = "Neue Nachricht";
@@ -300,11 +298,11 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
             onClearConversation={handleClearConversation}
             onBlockContact={handleBlockContact}
             onUnblockContact={handleUnblockContact}
-            isBlocked={isContactBlocked}
             onBack={() => {
               setSelectedConversationId(null);
               router.push('/');
             }}
+            isBlocked={isContactBlocked}
             currentUser={currentUser}
           />
         ) : (

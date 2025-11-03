@@ -25,33 +25,34 @@ import { decryptMessage } from '@/lib/crypto';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 
-const useDecryptedMessage = (message: MessageType, senderPublicKey: string | undefined, isCurrentUser: boolean, isGroup: boolean) => {
-  const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+const useDecryptedMessage = (message: MessageType, sender: UserType | undefined, isCurrentUser: boolean, isGroup: boolean) => {
+  const [decryptedContent, setDecryptedContent] = useState<string | null>(message.content);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (isGroup || isCurrentUser || message.type !== 'text' || !message.content) {
-      setIsLoading(false);
+    // No decryption needed for non-text, group chats, own messages, or if content is empty
+    if (message.type !== 'text' || isGroup || isCurrentUser || !message.content) {
       setDecryptedContent(message.content);
+      setIsLoading(false);
       return;
     }
     
-    // Public key is not available for old messages before the feature was added
-    if (!senderPublicKey) {
+    // Public key is not available for old messages before the feature was added or for missing sender
+    if (!sender?.publicKey) {
         setIsLoading(false);
-        setDecryptedContent(message.content); // Show encrypted content as fallback
+        setDecryptedContent("🔒 Nachricht kann nicht entschlüsselt werden (fehlender Schlüssel).");
         return;
     }
 
     const decrypt = async () => {
       setIsLoading(true);
-      const decrypted = await decryptMessage(senderPublicKey, message.content);
+      const decrypted = await decryptMessage(sender.publicKey!, message.content);
       setDecryptedContent(decrypted);
       setIsLoading(false);
     };
 
     decrypt();
-  }, [message, senderPublicKey, isCurrentUser, isGroup]);
+  }, [message.content, message.type, sender?.publicKey, isCurrentUser, isGroup]);
 
   return { isLoading, decryptedContent };
 };
@@ -68,8 +69,10 @@ const AudioMessage = ({ message, currentUser }: { message: MessageType, currentU
     if (!audio) return;
 
     const updateProgress = () => {
-      setProgress((audio.currentTime / audio.duration) * 100);
-      setCurrentTime(audio.currentTime);
+      if (audio.duration) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+        setCurrentTime(audio.currentTime);
+      }
     };
 
     const handleEnded = () => {
@@ -106,7 +109,7 @@ const AudioMessage = ({ message, currentUser }: { message: MessageType, currentU
   };
 
   const handleSliderChange = (value: number[]) => {
-    if (audioRef.current) {
+    if (audioRef.current && audioRef.current.duration) {
         const newTime = (value[0] / 100) * audioRef.current.duration;
         audioRef.current.currentTime = newTime;
         setProgress(value[0]);
@@ -127,7 +130,7 @@ const AudioMessage = ({ message, currentUser }: { message: MessageType, currentU
           onValueChange={handleSliderChange}
           max={100}
           step={1}
-          className={cn("[&>div>span]:bg-white", isCurrentUser ? "[&>div>span]:bg-white" : "[&>div>span]:bg-primary")}
+          className={cn(isCurrentUser ? "[&>div>span]:bg-white" : "[&>div>span]:bg-primary")}
         />
         <div className="text-xs flex justify-between">
            <span>{formatTime(currentTime)}</span>
@@ -193,7 +196,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const { toast } = useToast();
   
-  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender?.publicKey, isCurrentUser, isGroup);
+  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender, isCurrentUser, isGroup);
   
   useEffect(() => {
     if (!messageRef.current || isCurrentUser || message.readAt) {
@@ -246,7 +249,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
     }
   };
   
-  const handleDelete = (forEveryone: boolean) => {
+  const handleDelete = () => {
       onDelete(message.id);
   }
 
@@ -274,8 +277,8 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
     content: decryptedContent || message.content,
   }), [message, decryptedContent])
 
-  const hasContent = message.content || message.audioUrl || message.imageUrl || message.videoUrl;
-  if (!hasContent && message.type === 'text') {
+  const hasContent = message.audioUrl || message.imageUrl || message.videoUrl || (decryptedContent && decryptedContent.trim() !== '');
+  if (!hasContent) {
     return null;
   }
 
@@ -305,10 +308,12 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
                     <Smile className="mr-2 h-4 w-4" />
                     <span>Reagieren</span>
                 </DropdownMenuItem>
-                {message.type === 'text' && <DropdownMenuItem onClick={handleCopy}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    <span>Kopieren</span>
-                </DropdownMenuItem>}
+                {message.type === 'text' && decryptedContent && (
+                    <DropdownMenuItem onClick={handleCopy}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        <span>Kopieren</span>
+                    </DropdownMenuItem>
+                )}
                 {isCurrentUser && message.type === 'text' && (
                     <DropdownMenuItem onClick={() => onEdit(editableMessage)}>
                         <Pencil className="mr-2 h-4 w-4" />
@@ -316,15 +321,11 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
                     </DropdownMenuItem>
                 )}
                  {isCurrentUser && (
-                    <DropdownMenuItem onClick={() => handleDelete(true)} className="text-destructive focus:text-destructive">
+                    <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Für alle löschen</span>
+                        <span>Löschen</span>
                     </DropdownMenuItem>
                 )}
-                 <DropdownMenuItem onClick={() => handleDelete(false)} className="text-destructive focus:text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Für mich löschen</span>
-                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
        </div>
@@ -334,7 +335,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
           isCurrentUser
             ? "bg-primary text-primary-foreground rounded-br-none"
             : "bg-secondary text-secondary-foreground rounded-bl-none",
-          (message.type === 'image' || message.type === 'video') && "p-1"
+          (message.type === 'image' || message.type === 'video') && "p-1 bg-transparent"
         )}
       >
         {isGroup && !isCurrentUser && <p className="text-xs font-bold mb-1 text-primary">{sender?.name}</p>}

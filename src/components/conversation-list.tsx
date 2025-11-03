@@ -43,16 +43,18 @@ export default function ConversationList({
   const filteredConversations = useMemo(() => {
     return conversations
       .filter(convo => {
+        if (!searchTerm) return true;
+        const lowerCaseSearch = searchTerm.toLowerCase();
         if (convo.type === 'group') {
-          return convo.name?.toLowerCase().includes(searchTerm.toLowerCase());
+          return convo.name?.toLowerCase().includes(lowerCaseSearch);
         }
         const contact = convo.participants.find(p => p.id !== currentUser.uid);
-        return contact?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+        return contact?.name?.toLowerCase().includes(lowerCaseSearch);
       })
       .sort((a, b) => {
-        const timeA = a.lastMessage?.date?.toMillis() || a.createdAt?.toMillis() || 0;
-        const timeB = b.lastMessage?.date?.toMillis() || b.createdAt?.toMillis() || 0;
-        return timeB - timeA;
+        const timeA = a.lastMessage?.date as any;
+        const timeB = b.lastMessage?.date as any;
+        return (timeB?.toMillis() || 0) - (timeA?.toMillis() || 0);
       });
   }, [conversations, searchTerm, currentUser.uid]);
   
@@ -79,6 +81,26 @@ export default function ConversationList({
     
     const displayName = isGroup ? convo.name : contact?.name;
     const displayAvatar = isGroup ? convo.avatar || `https://picsum.photos/seed/${convo.id}/100` : contact?.avatar;
+
+    let lastMessageDisplay = "Noch keine Nachrichten";
+    if (lastMessage) {
+        switch(lastMessage.type) {
+            case 'text':
+                lastMessageDisplay = lastMessage.content;
+                break;
+            case 'image':
+                lastMessageDisplay = "📷 Bild";
+                break;
+            case 'video':
+                lastMessageDisplay = "📹 Video";
+                break;
+            case 'audio':
+                lastMessageDisplay = "🎤 Sprachnachricht";
+                break;
+            default:
+                lastMessageDisplay = "Neue Nachricht";
+        }
+    }
 
 
     return (
@@ -107,8 +129,8 @@ export default function ConversationList({
             </div>
             <p className={cn("text-sm truncate", selectedConversationId === convo.id ? "text-primary-foreground/90" : "text-white")}>
                 <>
-                  {lastMessageSenderName && `${lastMessageSenderName}: `}
-                  {lastMessage?.content || (lastMessage?.type !== 'text' ? `${lastMessage?.type} gesendet` : 'Noch keine Nachrichten')}
+                  {lastMessage && lastMessageSenderName && `${lastMessageSenderName}: `}
+                  {lastMessageDisplay}
                 </>
             </p>
           </div>

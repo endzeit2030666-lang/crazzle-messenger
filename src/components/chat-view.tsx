@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { ShieldCheck, Phone, Video, MoreVertical, BellOff, ArrowLeft, XCircle, Trash2, Loader2, Info, Users } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -64,6 +64,7 @@ export default function ChatView({
     currentUser,
 }: ChatViewProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const topMessageRef = useRef<HTMLDivElement>(null);
   
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
@@ -104,29 +105,43 @@ export default function ChatView({
   }, [conversation, contact, isGroup]);
 
 
+  const processMessages = (docs: QueryDocumentSnapshot<DocumentData>[]) => {
+    return docs.map(doc => {
+      const data = doc.data();
+      const sender = conversation.participants.find(p => p.id === data.senderId);
+      return {
+        id: doc.id,
+        ...data,
+        senderName: sender?.name || 'Unbekannt',
+        date: data.date?.toDate(),
+      } as MessageType;
+    });
+  };
+
+  // Initial fetch and real-time updates for new messages
   useEffect(() => {
     if (!firestore || !conversation.id) return;
     setIsInitialLoading(true);
+
     const messagesRef = collection(firestore, 'conversations', conversation.id, 'messages');
     const q = query(messagesRef, orderBy('date', 'desc'), limit(MESSAGES_PER_PAGE));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-       const newMessagesData = snapshot.docs.map(doc => {
-          const data = doc.data();
-          const sender = conversation.participants.find(p => p.id === data.senderId);
-          return {
-            id: doc.id,
-            ...data,
-            senderName: sender?.name || 'Unbekannt',
-            date: data.date?.toDate(),
-          } as MessageType;
-       });
-
-       setMessages(newMessagesData.reverse());
-       setIsInitialLoading(false);
-       setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-       setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
-
+       const newMessagesData = processMessages(snapshot.docs).reverse();
+       
+       if (isInitialLoading) {
+         setMessages(newMessagesData);
+         setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+         setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
+         setIsInitialLoading(false);
+       } else {
+          // This handles real-time updates after initial load
+          setMessages(currentMessages => {
+            const messageMap = new Map(currentMessages.map(m => [m.id, m]));
+            newMessagesData.forEach(m => messageMap.set(m.id, m));
+            return Array.from(messageMap.values()).sort((a,b) => (a.date as any) - (b.date as any));
+          });
+       }
     }, (error) => {
         console.error("Error fetching messages:", error);
         toast({ variant: 'destructive', title: 'Fehler beim Laden der Nachrichten' });
@@ -134,92 +149,46 @@ export default function ChatView({
     });
 
     return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firestore, conversation.id]);
-
-  useEffect(() => {
-     if (!firestore || !conversation.id || isInitialLoading) return;
-     
-     const messagesRef = collection(firestore, 'conversations', conversation.id, 'messages');
-     const q = query(messagesRef, orderBy('date', 'desc'), limit(1));
-     
-     const unsubscribe = onSnapshot(q, (snapshot) => {
-         snapshot.docChanges().forEach((change) => {
-            if (change.type === "added") {
-                const sender = conversation.participants.find(p => p.id === change.doc.data().senderId);
-                const newMessage = {
-                    id: change.doc.id,
-                    ...change.doc.data(),
-                    senderName: sender?.name || 'Unbekannt',
-                    date: change.doc.data().date?.toDate()
-                } as MessageType;
-                
-                if (!messages.some(m => m.id === newMessage.id)) {
-                     setMessages(prev => [...prev, newMessage]);
-                }
-            }
-             if (change.type === "modified") {
-                const sender = conversation.participants.find(p => p.id === change.doc.data().senderId);
-                const modifiedMessage = {
-                    id: change.doc.id,
-                    ...change.doc.data(),
-                    senderName: sender?.name || 'Unbekannt',
-                    date: change.doc.data().date?.toDate()
-                } as MessageType;
-                 setMessages(prev => prev.map(m => m.id === modifiedMessage.id ? modifiedMessage : m));
-            }
-             if (change.type === "removed") {
-                setMessages(prev => prev.filter(m => m.id !== change.doc.id));
-            }
-        });
-     });
-
-     return () => unsubscribe();
-
-  }, [firestore, conversation.id, isInitialLoading, conversation.participants, messages]);
-
 
   useEffect(() => {
     if (scrollAreaRef.current && !isLoadingMore) {
         scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
-  }, [messages.length, isLoadingMore]);
+  }, [messages.length, isLoadingMore, isInitialLoading]);
 
 
-  const loadMoreMessages = async () => {
+  const loadMoreMessages = useCallback(async () => {
     if (!firestore || !lastDoc || !hasMoreMessages || isLoadingMore) return;
 
     setIsLoadingMore(true);
     const messagesRef = collection(firestore, 'conversations', conversation.id, 'messages');
     const q = query(messagesRef, orderBy('date', 'desc'), startAfter(lastDoc), limit(MESSAGES_PER_PAGE));
     
-    const prevScrollHeight = scrollAreaRef.current?.scrollHeight || 0;
-
     const snapshot = await getDocs(q);
-    const oldMessages = snapshot.docs.map(doc => {
-        const sender = conversation.participants.find(p => p.id === doc.data().senderId);
-        return {
-          id: doc.id,
-          ...doc.data(),
-          senderName: sender?.name || 'Unbekannt',
-          date: doc.data().date?.toDate(),
-        } as MessageType
-    }).reverse();
+    if (snapshot.empty) {
+      setHasMoreMessages(false);
+      setIsLoadingMore(false);
+      return;
+    }
+
+    const oldMessages = processMessages(snapshot.docs).reverse();
+    
+    const firstOldMessageId = oldMessages[0]?.id;
 
     setMessages(prev => [...oldMessages, ...prev]);
     setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
     setHasMoreMessages(snapshot.docs.length === MESSAGES_PER_PAGE);
     
-    if (scrollAreaRef.current) {
-        setTimeout(() => {
-            if (scrollAreaRef.current) {
-                const newScrollHeight = scrollAreaRef.current.scrollHeight;
-                scrollAreaRef.current.scrollTop = newScrollHeight - prevScrollHeight;
-            }
-        }, 50);
-    }
-    
-    setIsLoadingMore(false);
-  };
+    // Maintain scroll position
+    setTimeout(() => {
+       const el = document.getElementById(`message-${firstOldMessageId}`);
+       el?.scrollIntoView({ block: 'start', behavior: 'auto' });
+       setIsLoadingMore(false);
+    }, 100);
+
+  }, [firestore, conversation.id, hasMoreMessages, isLoadingMore, lastDoc]);
   
   const handleCall = (type: 'audio' | 'video') => {
     if (isBlocked || !contact) {
@@ -438,32 +407,25 @@ export default function ChatView({
       )}
 
       <div ref={scrollAreaRef} onScroll={(e) => e.currentTarget.scrollTop === 0 && loadMoreMessages()} className="flex-1 p-6 overflow-y-auto space-y-2">
-        {hasMoreMessages && (
-          <div className="text-center mb-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadMoreMessages}
-              disabled={isLoadingMore}
-            >
-              {isLoadingMore ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Ältere Nachrichten laden
-            </Button>
+        {isLoadingMore && (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        {messages.map((message) => (
-          <Message 
-            key={message.id} 
-            message={message}
-            onQuote={handleQuote}
-            onEdit={handleEdit}
-            onDelete={onDeleteMessage}
-            onReact={onReact}
-            onMessageRead={onMessageRead}
-            sender={isGroup ? conversation.participants.find(p => p.id === message.senderId) : contact}
-            currentUser={currentUser}
-            isGroup={isGroup}
-          />
+        {messages.map((message, index) => (
+           <div key={message.id || index} id={`message-${message.id}`}>
+            <Message
+                message={message}
+                onQuote={handleQuote}
+                onEdit={handleEdit}
+                onDelete={onDeleteMessage}
+                onReact={onReact}
+                onMessageRead={onMessageRead}
+                sender={isGroup ? conversation.participants.find(p => p.id === message.senderId) : contact}
+                currentUser={currentUser}
+                isGroup={isGroup}
+            />
+           </div>
         ))}
       </div>
 

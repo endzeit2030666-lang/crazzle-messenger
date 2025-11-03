@@ -13,13 +13,7 @@ import Image from 'next/image';
 import type { User as UserType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-type Contact = {
-  id: string;
-  displayName: string;
-  phoneNumber?: string;
-  avatar?: string;
-  name: string; 
-};
+type Contact = UserType;
 
 
 export default function ContactsPage() {
@@ -48,17 +42,12 @@ export default function ContactsPage() {
         }
 
         try {
-            const usersQuery = query(collection(firestore, 'users'), where('id', 'in', contactIds));
+            // Firestore 'in' query is limited to 30 elements.
+            // For a larger contact list, this would need batching.
+            const usersQuery = query(collection(firestore, 'users'), where('id', 'in', contactIds.slice(0, 30)));
             const usersSnapshot = await getDocs(usersQuery);
             const enrichedContacts = usersSnapshot.docs.map(doc => {
-                const userData = doc.data() as UserType;
-                return {
-                    id: userData.id,
-                    name: userData.name,
-                    displayName: userData.name,
-                    avatar: userData.avatar,
-                    phoneNumber: userData.phoneNumber,
-                } as Contact;
+                return doc.data() as Contact;
             });
             setContacts(enrichedContacts);
         } catch (error) {
@@ -81,7 +70,7 @@ export default function ContactsPage() {
   };
   
   const handleStartChat = (contactId: string) => {
-     router.push(`/?contactId=${contactId}`);
+     router.push(`/?chatId=${contactId}`);
   }
   
   const handleCall = (contact: Contact, type: 'audio' | 'video') => {
@@ -95,7 +84,7 @@ export default function ContactsPage() {
   }
 
   const filteredContacts = contacts.filter(contact => 
-    contact.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     contact.phoneNumber?.includes(searchTerm)
   );
 
@@ -136,12 +125,12 @@ export default function ContactsPage() {
               <div key={contact.id} className="flex items-center p-3 rounded-lg hover:bg-muted transition-colors">
                 <Avatar className="w-12 h-12 mr-4">
                   <AvatarImage asChild>
-                    <Image src={contact.avatar || ''} alt={contact.displayName} width={48} height={48} data-ai-hint="person portrait" />
+                    <Image src={contact.avatar || ''} alt={contact.name} width={48} height={48} data-ai-hint="person portrait" />
                   </AvatarImage>
-                  <AvatarFallback className="text-primary bg-muted-foreground/20">{contact.displayName.charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="text-primary bg-muted-foreground/20">{contact.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h2 className="font-semibold text-lg text-primary">{contact.displayName}</h2>
+                  <h2 className="font-semibold text-lg text-primary">{contact.name}</h2>
                   <p className="text-sm text-muted-foreground">{contact.phoneNumber || "Keine Nummer"}</p>
                 </div>
                 <div className="flex items-center gap-2">

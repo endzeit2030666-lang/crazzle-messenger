@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
-import type { User } from '@/lib/types';
+import type { User as UserType } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, updateDoc, arrayRemove, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -51,11 +51,16 @@ export default function SettingsPage() {
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   
-  const [blockedUsers, setBlockedUsers] = useState<User[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<UserType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!currentUser || !firestore) return;
+    if (isUserLoading) return;
+    if (!currentUser) {
+        router.push('/login');
+        return;
+    }
+    if (!firestore) return;
     
     setIsLoading(true);
     const fetchBlockedUsers = async () => {
@@ -68,9 +73,10 @@ export default function SettingsPage() {
                 const blockedIds = userData.blockedUsers || [];
                 
                 if (blockedIds.length > 0) {
-                    const usersQuery = query(collection(firestore, 'users'), where('id', 'in', blockedIds));
+                    // Firestore 'in' query is limited to 30 elements.
+                    const usersQuery = query(collection(firestore, 'users'), where('id', 'in', blockedIds.slice(0, 30)));
                     const usersSnapshot = await getDocs(usersQuery);
-                    const blockedUsersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+                    const blockedUsersData = usersSnapshot.docs.map(doc => doc.data() as UserType);
                     setBlockedUsers(blockedUsersData);
                 } else {
                     setBlockedUsers([]);
@@ -85,7 +91,7 @@ export default function SettingsPage() {
     };
     
     fetchBlockedUsers();
-  }, [currentUser, firestore, toast]);
+  }, [currentUser, firestore, toast, isUserLoading, router]);
 
   const unblockContact = async (contactId: string) => {
     if (!currentUser || !firestore) return;

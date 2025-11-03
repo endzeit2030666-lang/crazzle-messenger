@@ -34,26 +34,38 @@ type Status = {
 // This is a mock data generator. Replace with real status logic later.
 const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): Status[] => {
     const otherUsers = allUsers.filter(u => u.id !== currentUserId);
-    return [
-      {
-        userId: currentUserId,
-        stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
-        viewed: true,
-      },
-      ...(otherUsers.length > 0 ? [{
+    const currentUserData = allUsers.find(u => u.id === currentUserId);
+    
+    let statuses: Status[] = [];
+
+    if (currentUserData) {
+        statuses.push({
+             userId: currentUserId,
+             stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
+             viewed: true,
+        });
+    }
+
+    if (otherUsers.length > 0) {
+      statuses.push({
         userId: otherUsers[0].id,
         stories: [
             { imageUrl: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
             { imageUrl: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
         ],
         viewed: false,
-      }] : []),
-      ...(otherUsers.length > 1 ? [{
+      });
+    }
+
+    if (otherUsers.length > 1) {
+      statuses.push({
         userId: otherUsers[1].id,
         stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
         viewed: true,
-      }] : []),
-    ]
+      });
+    }
+    
+    return statuses;
 };
 
 
