@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare, Search, BookUser, Plus } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { collection, onSnapshot, query, addDoc, where, getDocs, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -61,39 +61,43 @@ export default function ContactsPage() {
     router.push('/');
   };
 
-  const handleStartChat = async (contact: Contact) => {
+  const handleStartChat = (contact: Contact) => {
     if (!currentUser || !firestore) return;
     
-    // Generate a consistent, unique ID for the private chat
     const participantIds = [currentUser.uid, contact.id].sort();
     const conversationId = participantIds.join('-');
   
-    try {
-      const conversationRef = doc(firestore, 'conversations', conversationId);
-  
-      // Create conversation with ALL required fields
-      await setDoc(conversationRef, {
-        type: 'private',
-        participantIds: participantIds,
-        createdAt: serverTimestamp(),
-        createdBy: currentUser.uid, // THIS WAS THE MISSING PIECE
-        lastMessage: null,
-        typing: [],
-        archivedBy: [],
-        isMuted: false,
-      }, { merge: true });
-  
-      // After ensuring the conversation exists, navigate to it.
-      router.push(`/?chatId=${conversationId}`);
-  
-    } catch (e) {
-      console.error("Fehler beim Erstellen oder Abrufen des Chats:", e);
-      toast({ 
-        variant: 'destructive', 
-        title: "Fehler", 
-        description: "Der Chat konnte nicht erstellt werden." 
+    const conversationRef = doc(firestore, 'conversations', conversationId);
+    
+    const newConversationData = {
+      type: 'private' as const,
+      participantIds: participantIds,
+      createdAt: serverTimestamp(),
+      createdBy: currentUser.uid,
+      lastMessage: null,
+      typing: [],
+      archivedBy: [],
+      isMuted: false,
+    };
+
+    setDoc(conversationRef, newConversationData, { merge: true })
+      .then(() => {
+        router.push(`/?chatId=${conversationId}`);
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: conversationRef.path,
+            operation: 'create',
+            requestResourceData: newConversationData
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        // Optional: show a user-friendly toast, but the dev error is now in the console
+        toast({ 
+            variant: 'destructive', 
+            title: "Fehler", 
+            description: "Der Chat konnte nicht erstellt werden. Fehlende Berechtigungen." 
+        });
       });
-    }
   }
   
   const handleSaveContact = async () => {
