@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useAuth, useUser, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { signInAnonymously, UserCredential } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -95,17 +95,22 @@ export default function LoginPage() {
     setIsSigningIn(true);
     
     try {
+      // Step 1: Sign in with Firebase Auth first to ensure we have a valid `auth` object.
+      // This is the critical step to prevent the "auth: null" error.
+      const cred = await signInAnonymously(auth);
+      const uid = cred.user.uid;
+
+      // Step 2: Now that we are authenticated, check if a user document already exists.
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
       if (userSnapshot.empty) {
         // --- NEW USER CREATION FLOW ---
-        // 1. Sign in anonymously and WAIT for the credential
-        const cred = await signInAnonymously(auth);
-        const uid = cred.user.uid;
+        // The user does not exist, so we create a new document for them.
         
-        // 2. Now that we are authenticated, generate keys and user data
+        // Generate crypto keys
         const { publicKeyB64 } = await generateAndStoreKeys(uid);
+        
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
@@ -119,33 +124,36 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
         
-        // 3. Create the document reference with the NEW, VALID UID
+        // Create the document reference with the NEW, VALID UID
         const newUserRef = doc(firestore, 'users', uid);
         
-        // 4. Set the document. The request is now authenticated.
+        // Set the document. The request is now authenticated.
         await setDoc(newUserRef, newUser);
+        toast({
+          title: "Willkommen!",
+          description: "Dein neues Konto wurde erfolgreich erstellt.",
+        });
 
       } else {
         // --- EXISTING USER SIGN-IN FLOW ---
-        // Just sign in, the user document already exists. We don't need to do anything else,
-        // the onAuthStateChanged listener will handle the redirect.
-        await signInAnonymously(auth);
+        // The user already exists. We don't need to create a document.
+        // We've already signed in, so the onAuthStateChanged listener will handle the redirect.
+         toast({
+          title: "Anmeldung erfolgreich",
+          description: "Willkommen zurück!",
+        });
       }
       
-      // If we reach here, either the doc was created or sign-in was initiated.
       // The onAuthStateChanged listener in the provider will handle redirecting to '/'
-      toast({
-          title: "Anmeldung erfolgreich",
-          description: "Willkommen!",
-      });
+      // for both new and existing users.
 
     } catch (error: any) {
         console.error("Sign-in or user creation error:", error);
         
-        // This is the correct error handling architecture.
-        // It creates a rich, contextual error and emits it globally.
+        // This will now catch any other potential errors, including permission errors
+        // if the rules are wrong for other reasons.
         const permissionError = new FirestorePermissionError({
-          path: `users/unknown_uid`, // Use a placeholder path as UID might not be available
+          path: `users/${auth.currentUser?.uid || 'unknown_uid'}`,
           operation: 'create',
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
