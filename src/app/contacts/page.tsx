@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -63,7 +64,7 @@ export default function ContactsPage() {
 
   const handleStartChat = (contact: Contact) => {
     if (!currentUser || !firestore) return;
-    
+  
     const participantIds = [currentUser.uid, contact.id].sort();
     const conversationId = participantIds.join('-');
   
