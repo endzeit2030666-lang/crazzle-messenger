@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Camera, Type, FileImage } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { currentUser, users } from '@/lib/data';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -16,51 +15,94 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useToast } from '@/hooks/use-toast';
+import { useUser, useFirestore } from '@/firebase';
+import type { User } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 
+
+type Story = { 
+  imageUrl: string; 
+  timestamp: string;
+};
 
 type Status = {
   userId: string;
-  stories: { imageUrl: string; timestamp: string }[];
+  stories: Story[];
   viewed: boolean;
 };
 
-const initialStatusUpdates: Status[] = [
+// Mock data, will be replaced with Firestore data later
+const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): Status[] => [
   {
-    userId: currentUser.id,
+    userId: currentUserId,
     stories: [{ imageUrl: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
     viewed: true,
   },
-  {
-    userId: users[0].id,
+  ...(allUsers.length > 0 ? [{
+    userId: allUsers[0].id,
     stories: [
         { imageUrl: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
         { imageUrl: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
     ],
     viewed: false,
-  },
-  {
-    userId: users[2].id,
+  }] : []),
+  ...(allUsers.length > 2 ? [{
+    userId: allUsers[2].id,
     stories: [{ imageUrl: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
     viewed: true,
-  },
+  }] : []),
 ];
 
 
 export default function StatusPage() {
   const router = useRouter();
-  const [statuses, setStatuses] = useState(initialStatusUpdates);
+  const { toast } = useToast();
+  const { user: currentUser, isUserLoading } = useUser();
+  
+  const [statuses, setStatuses] = useState<Status[]>([]);
   const [viewingStatus, setViewingStatus] = useState<Status | null>(null);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { toast } = useToast();
 
-  const myStatus = statuses.find(s => s.userId === currentUser.id);
-  const recentUpdates = statuses.filter(s => s.userId !== currentUser.id && !s.viewed);
-  const viewedUpdates = statuses.filter(s => s.userId !== currentUser.id && s.viewed);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [currentUserData, setCurrentUserData] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const getUserById = (id: string) => {
-    if (id === currentUser.id) return currentUser;
-    return users.find(u => u.id === id);
+  useEffect(() => {
+    if (isUserLoading) return;
+    if (!currentUser) {
+        router.push('/login');
+        return;
+    }
+
+    try {
+        const usersJson = sessionStorage.getItem('allUsers');
+        if (usersJson) {
+            const parsedUsers = JSON.parse(usersJson) as User[];
+            setAllUsers(parsedUsers);
+            const self = parsedUsers.find(u => u.id === currentUser.uid);
+            setCurrentUserData(self || null);
+            setStatuses(generateInitialStatusUpdates(currentUser.uid, parsedUsers));
+        } else {
+            // Fallback if sessionStorage is empty, though less likely in normal flow
+            toast({ title: "Lade Benutzerdaten...", description: "Bitte warte einen Moment." });
+            // In a real app, you might fetch from Firestore here as a fallback
+        }
+    } catch (error) {
+        console.error("Fehler beim Laden der Benutzerdaten aus dem Session Storage", error);
+        toast({ variant: 'destructive', title: "Fehler", description: "Konnte Benutzerdaten nicht laden." });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [currentUser, isUserLoading, router, toast]);
+
+  const myStatus = statuses.find(s => s.userId === currentUser?.uid);
+  const recentUpdates = statuses.filter(s => s.userId !== currentUser?.uid && !s.viewed);
+  const viewedUpdates = statuses.filter(s => s.userId !== currentUser?.uid && s.viewed);
+
+  const getUserById = (id: string): User | undefined => {
+    if (id === currentUserData?.id) return currentUserData;
+    return allUsers.find(u => u.id === id);
   };
   
   const handleViewStatus = (status: Status) => {
@@ -96,6 +138,14 @@ export default function StatusPage() {
     router.push('/status/camera?from=gallery');
   }
 
+
+  if (isLoading || isUserLoading || !currentUserData) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   if (viewingStatus) {
     const user = getUserById(viewingStatus.userId);
@@ -148,8 +198,8 @@ export default function StatusPage() {
             >
               <div className="relative">
                 <Avatar className="w-14 h-14">
-                  <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                  <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={currentUserData.avatar} alt={currentUserData.name} />
+                  <AvatarFallback>{currentUserData.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="absolute bottom-0 right-0 bg-primary rounded-full p-0.5 border-2 border-background">
                   <Plus className="w-4 h-4 text-primary-foreground" />
