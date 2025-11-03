@@ -34,41 +34,6 @@ type Status = {
   viewed: boolean;
 };
 
-// This is a mock data generator. Replace with real status logic later.
-const generateInitialStatusUpdates = (currentUserId: string, allUsers: User[]): Status[] => {
-    const otherUsers = allUsers.filter(u => u.id !== currentUserId);
-    
-    let statuses: Status[] = [];
-
-    // Don't create a default status for the current user
-    // statuses.push({
-    //      userId: currentUserId,
-    //      stories: [{ type: 'image', content: 'https://picsum.photos/seed/91/540/960', timestamp: 'Gerade eben' }],
-    //      viewed: true,
-    // });
-
-    if (otherUsers.length > 0) {
-      statuses.push({
-        userId: otherUsers[0].id,
-        stories: [
-            { type: 'image', content: 'https://picsum.photos/seed/92/540/960', timestamp: 'Vor 2 Stunden' },
-            { type: 'image', content: 'https://picsum.photos/seed/93/540/960', timestamp: 'Vor 1 Stunde' }
-        ],
-        viewed: false,
-      });
-    }
-
-    if (otherUsers.length > 1) {
-      statuses.push({
-        userId: otherUsers[1].id,
-        stories: [{ type: 'image', content: 'https://picsum.photos/seed/94/540/960', timestamp: 'Vor 8 Stunden' }],
-        viewed: true,
-      });
-    }
-    
-    return statuses;
-};
-
 
 export default function StatusPage() {
   const router = useRouter();
@@ -102,7 +67,7 @@ export default function StatusPage() {
             const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
             setAllUsers(usersData);
             
-            let initialStatuses = generateInitialStatusUpdates(currentUser.uid, usersData);
+            let initialStatuses: Status[] = [];
 
             const newStoryJSON = sessionStorage.getItem('newStatusStory');
             if (newStoryJSON) {
@@ -142,7 +107,7 @@ export default function StatusPage() {
     return allUsers.find(u => u.id === id);
   };
   
-  const handleViewStatus = (status: Status) => {
+  const handleViewStatus = (status: Status | null) => {
     if (!status || status.stories.length === 0) {
       setIsSheetOpen(true);
       return;
@@ -246,18 +211,14 @@ export default function StatusPage() {
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <div
             className="flex items-center gap-4 cursor-pointer"
-            onClick={() => handleViewStatus(myStatus || { userId: currentUser!.uid, stories: [], viewed: true })}
+            onClick={() => handleViewStatus(myStatus)}
             >
             <div className="relative">
                  <div className={cn("relative p-0.5 rounded-full", myLastStory ? "border-2 border-primary" : "")}>
                     <Avatar className="w-14 h-14">
-                        {myLastStory && (myLastStory.type === 'image' || myLastStory.type === 'video') ? (
-                            <AvatarImage src={myLastStory.content} alt="Mein Status" className="object-cover" />
-                        ) : (
-                            <AvatarImage src={currentUserData?.avatar} alt="Mein Status" className="object-cover" />
-                        )}
-                        <AvatarFallback className={cn("text-primary", myLastStory && myLastStory.type === 'text' ? myLastStory.bgColor : 'bg-muted/20')}>
-                           {!myLastStory && (currentUserData?.name ? currentUserData.name.charAt(0) : <Plus className="w-6 h-6" />)}
+                        <AvatarImage src={currentUserData?.avatar} alt="Mein Status" className="object-cover" />
+                        <AvatarFallback className='bg-muted/20'>
+                           {currentUserData?.name ? currentUserData.name.charAt(0) : <Plus className="w-6 h-6" />}
                         </AvatarFallback>
                     </Avatar>
                 </div>

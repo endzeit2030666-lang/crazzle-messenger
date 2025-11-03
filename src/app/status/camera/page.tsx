@@ -26,7 +26,7 @@ export default function CameraPage() {
   const [mode, setMode] = useState<'photo' | 'video'>('photo');
   const [capturedMedia, setCapturedMedia] = useState<string | null>(null);
   const [mediaBlob, setMediaBlob] = useState<Blob | null>(null);
-  const [mediaType, setMediaType] = useState<'photo' | 'video'>('photo');
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [caption, setCaption] = useState('');
   
   const [showDurationDialog, setShowDurationDialog] = useState(false);
@@ -95,7 +95,7 @@ export default function CameraPage() {
         if (file.type.startsWith('video')) {
             setMediaType('video');
         } else {
-            setMediaType('photo');
+            setMediaType('image');
         }
     } else {
         router.back();
@@ -115,7 +115,7 @@ export default function CameraPage() {
              canvas.toBlob((blob) => {
                 setMediaBlob(blob);
              }, 'image/jpeg');
-             setMediaType('photo');
+             setMediaType('image');
         }
     }
   };
@@ -245,7 +245,7 @@ export default function CameraPage() {
             </header>
             
             <div className="flex-1 flex items-center justify-center">
-                 {mediaType === 'photo' ? (
+                 {mediaType === 'image' ? (
                      <Image src={capturedMedia} layout="fill" objectFit="contain" alt="Captured media" data-ai-hint="captured media"/>
                  ) : (
                     <video src={capturedMedia} className="w-full h-full object-contain" autoPlay loop controls />
