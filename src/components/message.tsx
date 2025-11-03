@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile, Play, Pause, Loader2 } from "lucide-react";
+import { Check, CheckCheck, Clock, Copy, CornerUpRight, MoreHorizontal, Pencil, Shield, Trash2, Smile, Play, Pause, Loader2, Users } from "lucide-react";
 import type { Message as MessageType, User as UserType } from "@/lib/types";
 import {
   Tooltip,
@@ -22,14 +22,16 @@ import { Button } from '@/components/ui/button';
 import { Slider } from './ui/slider';
 import type { User } from 'firebase/auth';
 import { decryptMessage } from '@/lib/crypto';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 
-const useDecryptedMessage = (message: MessageType, senderPublicKey: string | undefined, isCurrentUser: boolean) => {
+const useDecryptedMessage = (message: MessageType, senderPublicKey: string | undefined, isCurrentUser: boolean, isGroup: boolean) => {
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isCurrentUser || message.type !== 'text' || !message.content) {
+    // For group chats, messages are currently sent in plaintext.
+    if (isGroup || isCurrentUser || message.type !== 'text' || !message.content) {
       setIsLoading(false);
       setDecryptedContent(message.content);
       return;
@@ -49,7 +51,7 @@ const useDecryptedMessage = (message: MessageType, senderPublicKey: string | und
     };
 
     decrypt();
-  }, [message, senderPublicKey, isCurrentUser]);
+  }, [message, senderPublicKey, isCurrentUser, isGroup]);
 
   return { isLoading, decryptedContent };
 };
@@ -146,6 +148,7 @@ type MessageProps = {
   onMessageRead: (messageId: string) => void;
   sender?: UserType;
   currentUser: User;
+  isGroup: boolean;
 };
 
 
@@ -184,13 +187,13 @@ const MediaMessage = ({ message }: { message: MessageType }) => {
 };
 
 
-export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender, currentUser }: MessageProps) {
+export default function Message({ message, onQuote, onEdit, onDelete, onReact, onMessageRead, sender, currentUser, isGroup }: MessageProps) {
   const messageRef = useRef<HTMLDivElement>(null);
   const isCurrentUser = message.senderId === currentUser.uid;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const { toast } = useToast();
   
-  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender?.publicKey, isCurrentUser);
+  const { isLoading: isDecrypting, decryptedContent } = useDecryptedMessage(message, sender?.publicKey, isCurrentUser, isGroup);
   
   useEffect(() => {
     if (!messageRef.current || isCurrentUser || message.readAt) {
@@ -281,7 +284,14 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
 
 
   return (
-    <div ref={messageRef} className={cn("group flex items-end gap-2", isCurrentUser ? "justify-end" : "justify-start")} onTouchEnd={handleSwipe}>
+    <div ref={messageRef} className={cn("group flex items-start gap-3", isCurrentUser ? "justify-end" : "justify-start")} onTouchEnd={handleSwipe}>
+       {isGroup && !isCurrentUser && sender && (
+         <Avatar className="w-8 h-8">
+            <AvatarImage src={sender.avatar} />
+            <AvatarFallback>{sender.name?.charAt(0)}</AvatarFallback>
+         </Avatar>
+       )}
+       <div className={cn("flex items-end gap-2", isCurrentUser ? "justify-end" : "justify-start")}>
        <div className={cn("relative opacity-0 group-hover:opacity-100 transition-opacity", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -330,6 +340,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
           (message.type === 'image' || message.type === 'video') && "p-1" // Less padding for media
         )}
       >
+        {isGroup && !isCurrentUser && <p className="text-xs font-bold mb-1 text-primary">{sender?.name}</p>}
         {message.quotedMessage && (
            <a href={`#message-${message.quotedMessage.id}`} className="block bg-black/10 p-2 rounded-md mb-2 text-sm opacity-80 hover:opacity-100 transition-opacity">
                 <p className="font-semibold text-xs">{message.quotedMessage.senderName}</p>
@@ -359,10 +370,10 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger>
-                <Shield className="h-3 w-3" />
+                 {isGroup ? <Users className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
               </TooltipTrigger>
               <TooltipContent>
-                <p>Ende-zu-Ende-verschlüsselt</p>
+                <p>{isGroup ? 'Unverschlüsselte Gruppennachricht' : 'Ende-zu-Ende-verschlüsselt'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -413,6 +424,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
                 <span className="pr-1 text-white">{message.reactions.length}</span>
             </div>
         )}
+      </div>
       </div>
     </div>
   );

@@ -38,7 +38,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const handleSendMessage = async (content: string, type: Message['type'] = 'text', duration?: number, selfDestructDuration?: number) => {
     if (!selectedConversationId || !firestore || !selectedConversation) return;
 
-     if (isContactBlocked) {
+     if (selectedConversation.type === 'private' && isContactBlocked) {
       toast({
         variant: "destructive",
         title: "Kontakt blockiert",
@@ -48,7 +48,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
     }
 
     const contact = selectedConversation.participants.find(p => p.id !== currentUser.uid);
-    // TODO: Handle group message encryption
+    
     if (selectedConversation.type === 'private' && (!contact || !contact.publicKey)) {
       toast({ variant: "destructive", title: "Fehler", description: "Der öffentliche Schlüssel des Kontakts wurde nicht gefunden." });
       return;
@@ -301,7 +301,6 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
           <ChatView
             key={selectedConversation.id}
             conversation={selectedConversation}
-            contact={contactInSelectedConversation}
             onSendMessage={handleSendMessage}
             onClearConversation={handleClearConversation}
             onBlockContact={handleBlockContact}

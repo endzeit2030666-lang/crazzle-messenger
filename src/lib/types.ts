@@ -27,6 +27,7 @@ export type Reaction = {
 export type Message = {
   id: string;
   senderId: string;
+  senderName?: string; // For group chats
   content: string;
   timestamp: string; // Keep for display
   date: Timestamp | Date; // For sorting

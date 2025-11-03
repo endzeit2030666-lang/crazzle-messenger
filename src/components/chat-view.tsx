@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
-import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle, Trash2, Pencil, Loader2 } from "lucide-react";
+import { useRef, useEffect, useState, useMemo } from "react";
+import { ShieldCheck, Circle, Phone, Video, MoreVertical, BellOff, ArrowLeft, X, XCircle, Trash2, Pencil, Loader2, Info } from "lucide-react";
 import type { Conversation, User as UserType, Message as MessageType } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,6 @@ import type { User } from "firebase/auth";
 
 type ChatViewProps = {
   conversation: Conversation;
-  contact?: UserType;
   onSendMessage: (content: string, type?: MessageType['type'], duration?: number, selfDestructDuration?: number) => void;
   onClearConversation: (conversationId: string) => void;
   onBlockContact: (contactId: string) => void;
@@ -56,7 +55,6 @@ const MESSAGES_PER_PAGE = 30;
 
 export default function ChatView({ 
     conversation, 
-    contact, 
     onSendMessage,
     onClearConversation,
     onBlockContact,
@@ -83,6 +81,28 @@ export default function ChatView({
   const router = useRouter();
   const firestore = useFirestore();
 
+  const isGroup = useMemo(() => conversation.type === 'group', [conversation.type]);
+  
+  const contact = useMemo(() => 
+    !isGroup ? conversation.participants.find(p => p.id !== currentUser.uid) : undefined,
+    [conversation.participants, currentUser.uid, isGroup]
+  );
+
+  const headerDetails = useMemo(() => {
+    if (isGroup) {
+      return {
+        name: conversation.name || 'Gruppenchat',
+        avatar: conversation.avatar || `https://picsum.photos/seed/${conversation.id}/100`,
+        info: `${conversation.participants.length} Mitglieder`
+      }
+    }
+    return {
+      name: contact?.name || "Unbekannt",
+      avatar: contact?.avatar || "",
+      info: contact?.onlineStatus || "offline"
+    };
+  }, [conversation, contact, isGroup]);
+
 
   useEffect(() => {
     if (!firestore || !conversation.id) return;
@@ -92,9 +112,11 @@ export default function ChatView({
     const unsubscribe = onSnapshot(q, (snapshot) => {
        const newMessagesData = snapshot.docs.map(doc => {
           const data = doc.data();
+          const sender = conversation.participants.find(p => p.id === data.senderId);
           return {
             id: doc.id,
             ...data,
+            senderName: sender?.name || 'Unbekannt',
             date: data.date?.toDate(),
           } as MessageType;
        });
@@ -106,9 +128,11 @@ export default function ChatView({
             // This handles real-time updates. We check for new messages and append them.
              snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
+                    const sender = conversation.participants.find(p => p.id === change.doc.data().senderId);
                     const newMessage = {
                         id: change.doc.id,
                         ...change.doc.data(),
+                        senderName: sender?.name || 'Unbekannt',
                         date: change.doc.data().date?.toDate()
                     } as MessageType;
                     // Only add if it's not already in the list to avoid duplicates
@@ -117,9 +141,11 @@ export default function ChatView({
                     }
                 }
                 if (change.type === "modified") {
+                    const sender = conversation.participants.find(p => p.id === change.doc.data().senderId);
                     const modifiedMessage = {
                         id: change.doc.id,
                         ...change.doc.data(),
+                        senderName: sender?.name || 'Unbekannt',
                         date: change.doc.data().date?.toDate()
                     } as MessageType;
                      setMessages(prev => prev.map(m => m.id === modifiedMessage.id ? modifiedMessage : m));
@@ -141,7 +167,7 @@ export default function ChatView({
 
     return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firestore, conversation.id]);
+  }, [firestore, conversation.id, conversation.participants]);
 
 
   useEffect(() => {
@@ -162,11 +188,15 @@ export default function ChatView({
     const prevScrollHeight = scrollAreaRef.current?.scrollHeight || 0;
 
     const snapshot = await getDocs(q);
-    const oldMessages = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      date: doc.data().date?.toDate(),
-    } as MessageType)).reverse();
+    const oldMessages = snapshot.docs.map(doc => {
+        const sender = conversation.participants.find(p => p.id === doc.data().senderId);
+        return {
+          id: doc.id,
+          ...doc.data(),
+          senderName: sender?.name || 'Unbekannt',
+          date: doc.data().date?.toDate(),
+        } as MessageType
+    }).reverse();
 
     setMessages(prev => [...oldMessages, ...prev]);
     setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
@@ -295,12 +325,6 @@ export default function ChatView({
     }
   };
 
-  const headerDetails = {
-      name: contact?.name || "Unbekannt",
-      avatar: contact?.avatar || "",
-      info: contact?.onlineStatus || "offline"
-  };
-
   if (isInitialLoading && messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -309,7 +333,7 @@ export default function ChatView({
     );
   }
 
-  if (!contact) {
+  if (!isGroup && !contact) {
       return (
           <div className="flex-1 flex items-center justify-center text-muted-foreground bg-muted/20">
             Wähle eine Konversation, um mit dem Chatten zu beginnen.
@@ -332,32 +356,41 @@ export default function ChatView({
         <div className="flex-1">
           <h2 className="font-headline text-lg font-semibold text-primary">{headerDetails.name}</h2>
            <div className="flex items-center text-sm text-white">
-             <Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact.onlineStatus === 'online' ? 'text-green-500' : 'text-red-500')} /> {contact.onlineStatus}
+             {isGroup ? (
+                <Users className="w-4 h-4 mr-2 text-green-500" />
+             ) : (
+                <Circle className={cn("w-2.5 h-2.5 mr-2 fill-current", contact?.onlineStatus === 'online' ? 'text-green-500' : 'text-red-500')} />
+             )}
+             {headerDetails.info}
           </div>
         </div>
         <div className="flex items-center gap-2">
-            <TooltipProvider>
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                         <Button variant="ghost" size="icon" onClick={() => handleCall('audio')}>
-                            <Phone className="w-5 h-5 text-white" />
-                            <span className="sr-only">Sprachanruf</span>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Sprachanruf</p></TooltipContent>
-                 </Tooltip>
-             </TooltipProvider>
-              <TooltipProvider>
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => handleCall('video')}>
-                            <Video className="w-5 h-5 text-white" />
-                            <span className="sr-only">Videoanruf</span>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Videoanruf</p></TooltipContent>
-                 </Tooltip>
-             </TooltipProvider>
+            {!isGroup && (
+                <>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleCall('audio')}>
+                                <Phone className="w-5 h-5 text-white" />
+                                <span className="sr-only">Sprachanruf</span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Sprachanruf</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleCall('video')}>
+                                <Video className="w-5 h-5 text-white" />
+                                <span className="sr-only">Videoanruf</span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Videoanruf</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+                </>
+            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -367,10 +400,17 @@ export default function ChatView({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setVerificationDialogOpen(true)}>
-                    <ShieldCheck className="mr-2 h-4 w-4" />
-                    <span>Kontakt verifizieren</span>
-                  </DropdownMenuItem>
+                  {isGroup ? (
+                      <DropdownMenuItem>
+                        <Info className="mr-2 h-4 w-4" />
+                        <span>Gruppeninfo</span>
+                      </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={() => contact && setVerificationDialogOpen(true)}>
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      <span>Kontakt verifizieren</span>
+                    </DropdownMenuItem>
+                  )}
                  <DropdownMenuItem>
                   <BellOff className="mr-2 h-4 w-4" />
                   <span>Benachrichtigungen stummschalten</span>
@@ -380,10 +420,18 @@ export default function ChatView({
                     <Trash2 className="mr-2 h-4 w-4" />
                     <span>Chat leeren</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowBlockDialog(true)}>
-                    <XCircle className="mr-2 h-4 w-4" />
-                    <span>Kontakt blockieren</span>
-                  </DropdownMenuItem>
+                  {!isGroup && (
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setShowBlockDialog(true)}>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        <span>Kontakt blockieren</span>
+                    </DropdownMenuItem>
+                  )}
+                  {isGroup && (
+                     <DropdownMenuItem className="text-destructive focus:text-destructive">
+                        <XCircle className="mr-2 h-4 w-4" />
+                        <span>Gruppe verlassen</span>
+                    </DropdownMenuItem>
+                  )}
               </DropdownMenuContent>
             </DropdownMenu>
         </div>
@@ -419,8 +467,9 @@ export default function ChatView({
             onDelete={onDeleteMessage}
             onReact={onReact}
             onMessageRead={onMessageRead}
-            sender={contact}
+            sender={isGroup ? conversation.participants.find(p => p.id === message.senderId) : contact}
             currentUser={currentUser}
+            isGroup={isGroup}
           />
         ))}
       </div>
@@ -434,17 +483,17 @@ export default function ChatView({
           isEditing={!!editingMessage}
           editingMessage={editingMessage}
           onStopEditing={() => setEditingMessage(null)}
-          disabled={isBlocked}
+          disabled={!isGroup && isBlocked}
         />
       </footer>
 
-      <ContactVerificationDialog
+      {contact && <ContactVerificationDialog
         open={isVerificationDialogOpen}
         onOpenChange={setVerificationDialogOpen}
         contact={contact}
         >
           <span className='hidden'></span>
-      </ContactVerificationDialog>
+      </ContactVerificationDialog>}
 
       <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
         <AlertDialogContent>
