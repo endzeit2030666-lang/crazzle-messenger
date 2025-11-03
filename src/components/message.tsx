@@ -296,7 +296,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
        <div className={cn("relative transition-opacity", isCurrentUser ? "order-1" : "")}>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-50 hover:opacity-100 focus:opacity-100">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-white">
                     <MoreHorizontal className="w-4 h-4" />
                 </Button>
             </DropdownMenuTrigger>
@@ -392,7 +392,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
 
           {message.isEdited && <span className={cn("italic", isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground")}>Bearbeitet</span>}
 
-          <span className={cn(isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground")}>
+          <span className={cn(isCurrentUser ? "text-primary-foreground/70" : "text-white")}>
             {message.timestamp}
           </span>
           {getStatusIcon()}
