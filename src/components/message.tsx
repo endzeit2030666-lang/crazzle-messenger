@@ -255,9 +255,15 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, o
 
   const getStatusIcon = () => {
     if (!isCurrentUser) return null;
-    if (message.readAt) return <CheckCheck className="h-4 w-4 text-green-400" />;
-    if (message.status === 'delivered') return <CheckCheck className="h-4 w-4" />;
-    return <Check className="h-4 w-4" />;
+    switch (message.status) {
+      case 'read':
+        return <CheckCheck className="h-4 w-4 text-green-400" />;
+      case 'delivered':
+        return <CheckCheck className="h-4 w-4 text-muted-foreground" />;
+      case 'sent':
+      default:
+        return <Check className="h-4 w-4 text-muted-foreground" />;
+    }
   };
 
   const handleReaction = (emoji: string) => {

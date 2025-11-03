@@ -293,8 +293,8 @@ export default function ChatView({
       if(!firestore || !currentUser) return;
       const messageRef = doc(firestore, "conversations", conversation.id, "messages", messageId);
       const messageToUpdate = messages.find(m => m.id === messageId);
-      if (messageToUpdate && messageToUpdate.senderId !== currentUser.uid && !messageToUpdate.readAt) {
-          await updateDoc(messageRef, { readAt: serverTimestamp() });
+      if (messageToUpdate && messageToUpdate.senderId !== currentUser.uid && messageToUpdate.status !== 'read') {
+          await updateDoc(messageRef, { status: 'read', readAt: serverTimestamp() });
       }
   };
   
@@ -471,5 +471,3 @@ export default function ChatView({
     </div>
   );
 }
-
-    
