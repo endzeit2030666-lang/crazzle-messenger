@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus, BellOff, FileArchive, FolderArchive, LogOut } from "lucide-react";
+import { Search, MoreVertical, Users, CameraIcon, BookUser, MessageSquarePlus, BellOff, FileArchive, FolderArchive, LogOut, Settings } from "lucide-react";
 import type { Conversation, User as UserType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -268,7 +268,8 @@ export default function ConversationList({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={onNavigateToSettings}>
-                      Einstellungen
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Einstellungen</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">
