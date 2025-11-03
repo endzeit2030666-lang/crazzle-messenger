@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare, Search, BookUser, Plus } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, onSnapshot, query, addDoc, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, where, getDocs, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,34 +64,24 @@ export default function ContactsPage() {
   const handleStartChat = async (contact: Contact) => {
     if (!currentUser || !firestore) return;
     
-    // Sort IDs to ensure the query is consistent regardless of who initiates.
+    // Generate a consistent, unique ID for the private chat
     const participantIds = [currentUser.uid, contact.id].sort();
-
-    // Check if a private conversation already exists with these two participants.
-    const convosQuery = query(
-      collection(firestore, 'conversations'),
-      where('type', '==', 'private'),
-      where('participantIds', '==', participantIds)
-    );
+    const conversationId = participantIds.join('-');
 
     try {
-      const convoSnapshot = await getDocs(convosQuery);
-      
-      if (!convoSnapshot.empty) {
-        // Conversation already exists, navigate to it.
-        const existingConvo = convoSnapshot.docs[0];
-        router.push(`/?chatId=${existingConvo.id}`);
-        return;
-      }
+      const conversationRef = doc(firestore, 'conversations', conversationId);
 
-      // Create a new private conversation if it doesn't exist.
-      const newConvoRef = await addDoc(collection(firestore, 'conversations'), {
+      // Use setDoc with merge:true. This will create the doc if it doesn't exist,
+      // or do nothing if it already exists (since we're not changing any fields here).
+      await setDoc(conversationRef, {
         type: 'private',
-        participantIds: participantIds, // Use the sorted array
+        participantIds: participantIds,
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
-      });
-      router.push(`/?chatId=${newConvoRef.id}`);
+      }, { merge: true });
+
+      // After ensuring the conversation exists, navigate to it.
+      router.push(`/?chatId=${conversationId}`);
 
     } catch (e) {
       console.error("Fehler beim Erstellen oder Abrufen des Chats:", e);
