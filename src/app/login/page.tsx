@@ -117,7 +117,6 @@ export default function LoginPage() {
           id: newSessionUid, // The document ID is the new session UID
           name: randomName,
           avatar: randomAvatar,
-          onlineStatus: 'online',
           publicKey: publicKeyB64,
           phoneNumber: trimmedPhoneNumber,
         };

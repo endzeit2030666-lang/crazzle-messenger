@@ -116,7 +116,7 @@ export default function ChatView({
     return {
       name: contact?.name || "Unbekannt",
       avatar: contact?.avatar || "",
-      info: contact?.onlineStatus || "offline"
+      info: 'Privater Chat'
     };
   }, [conversation, contact, isGroup]);
   
@@ -137,7 +137,6 @@ export default function ChatView({
     }
     return (
        <div className="flex items-center text-sm text-white">
-            <div className={cn("w-2.5 h-2.5 mr-2 rounded-full", contact?.onlineStatus === 'online' ? 'bg-green-500' : 'bg-red-500')} />
             {headerDetails.info}
         </div>
     )

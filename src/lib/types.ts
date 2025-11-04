@@ -4,8 +4,6 @@ export type User = {
   id: string;
   name: string;
   avatar: string;
-  onlineStatus: 'online' | 'offline' | 'away';
-  lastSeen?: Timestamp | Date;
   publicKey?: string;
   phoneNumber?: string;
   bio?: string;
