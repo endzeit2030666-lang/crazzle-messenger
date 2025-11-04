@@ -125,7 +125,15 @@ export default function LoginPage() {
         
         // Create the new user document with the new session UID.
         const newUserRef = doc(firestore, 'users', newSessionUid);
-        await setDoc(newUserRef, newUser);
+        // Using setDoc directly as this is a new user
+        setDoc(newUserRef, newUser).catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: newUserRef.path,
+                operation: 'create',
+                requestResourceData: newUser,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
         toast({
           title: "Willkommen!",
@@ -140,12 +148,21 @@ export default function LoginPage() {
         // Reference the *existing* document to update it.
         const userDocRef = doc(firestore, 'users', existingUserId);
 
-        // Update the existing document with the new public key and link it to the new session ID.
-        // Using setDoc with merge is safer than updateDoc as it won't fail if the doc is unexpectedly missing.
-        await setDoc(userDocRef, {
+        // Use setDoc with merge to update the existing document.
+        // This links the new auth session (newSessionUid) to the existing profile
+        // and updates the public key.
+        // This is safer than updateDoc as it won't fail if the doc is unexpectedly missing.
+        setDoc(userDocRef, {
             id: newSessionUid, // Link the existing profile to the new auth session UID
             publicKey: publicKeyB64, // Update the public key
-        }, { merge: true });
+        }, { merge: true }).catch((serverError) => {
+             const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'update',
+                requestResourceData: { id: newSessionUid, publicKey: publicKeyB64 },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
         
          toast({
           title: "Anmeldung erfolgreich",
@@ -159,12 +176,9 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Sign-in or user creation error:", error);
         
-        // This is a fallback error handler.
-        // With the corrected logic, we don't expect a permission error here anymore,
-        // but it's good practice to keep it.
         const permissionError = new FirestorePermissionError({
-          path: `users/some_path`, // This path will be wrong, but we need the error to fire
-          operation: 'create', // This might be create or update
+          path: `users/unknown_uid`,
+          operation: 'create',
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
         errorEmitter.emit('permission-error', permissionError);
