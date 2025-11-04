@@ -97,26 +97,24 @@ export default function LoginPage() {
     setIsSigningIn(true);
     
     try {
-      // Step 1: Sign in with Firebase Auth first to ensure we have a valid `auth` object.
-      // This is the critical step to prevent the "auth: null" error.
+      // Step 1: Always sign in anonymously first to get a new session UID.
       const cred = await signInAnonymously(auth);
-      const uid = cred.user.uid;
+      const newSessionUid = cred.user.uid;
 
-      // Step 2: ALWAYS generate and store keys on sign-in to ensure they exist on the device.
-      const { publicKeyB64 } = await generateAndStoreKeys(uid);
+      // Step 2: Always generate and store keys for the new session.
+      const { publicKeyB64 } = await generateAndStoreKeys(newSessionUid);
 
-      // Step 3: Check if a user with this phone number already exists
+      // Step 3: Check if a user with this phone number already exists.
       const usersQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', trimmedPhoneNumber));
       const userSnapshot = await getDocs(usersQuery);
 
       if (userSnapshot.empty) {
         // --- NEW USER CREATION FLOW ---
-        // The user does not exist, so we create a new document for them.
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
         const newUser: UserType = {
-          id: uid,
+          id: newSessionUid, // The document ID is the new session UID
           name: randomName,
           avatar: randomAvatar,
           onlineStatus: 'online',
@@ -125,8 +123,8 @@ export default function LoginPage() {
           readReceiptsEnabled: true,
         };
         
-        const newUserRef = doc(firestore, 'users', uid);
-        
+        // Create the new user document with the new session UID.
+        const newUserRef = doc(firestore, 'users', newSessionUid);
         await setDoc(newUserRef, newUser);
 
         toast({
@@ -136,13 +134,18 @@ export default function LoginPage() {
 
       } else {
         // --- EXISTING USER SIGN-IN FLOW ---
-        // The user already exists. We need to update their public key in Firestore.
         const existingUserDoc = userSnapshot.docs[0];
-        const userDocRef = doc(firestore, 'users', existingUserDoc.id);
+        const existingUserId = existingUserDoc.id;
+        
+        // Reference the *existing* document to update it.
+        const userDocRef = doc(firestore, 'users', existingUserId);
 
-        await updateDoc(userDocRef, {
-            publicKey: publicKeyB64,
-        });
+        // Update the existing document with the new public key and link it to the new session ID.
+        // Using setDoc with merge is safer than updateDoc as it won't fail if the doc is unexpectedly missing.
+        await setDoc(userDocRef, {
+            id: newSessionUid, // Link the existing profile to the new auth session UID
+            publicKey: publicKeyB64, // Update the public key
+        }, { merge: true });
         
          toast({
           title: "Anmeldung erfolgreich",
@@ -156,6 +159,9 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Sign-in or user creation error:", error);
         
+        // This is a fallback error handler.
+        // With the corrected logic, we don't expect a permission error here anymore,
+        // but it's good practice to keep it.
         const permissionError = new FirestorePermissionError({
           path: `users/some_path`, // This path will be wrong, but we need the error to fire
           operation: 'create', // This might be create or update
