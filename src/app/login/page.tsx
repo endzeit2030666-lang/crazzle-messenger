@@ -125,7 +125,6 @@ export default function LoginPage() {
         
         // Create the new user document with the new session UID.
         const newUserRef = doc(firestore, 'users', newSessionUid);
-        // Using setDoc directly as this is a new user
         setDoc(newUserRef, newUser).catch((serverError) => {
             const permissionError = new FirestorePermissionError({
                 path: newUserRef.path,
@@ -176,6 +175,7 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Sign-in or user creation error:", error);
         
+        // This is a fallback error emission. The .catch blocks on setDoc should handle specific cases.
         const permissionError = new FirestorePermissionError({
           path: `users/unknown_uid`,
           operation: 'create',
