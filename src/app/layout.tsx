@@ -6,7 +6,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 export const metadata: Metadata = {
   title: 'Crazzle',
   description: 'Sicherer E2E Messenger',
-  viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'
+  viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
 };
 
 export default function RootLayout({
