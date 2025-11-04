@@ -244,24 +244,6 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, r
       onDelete(message.id);
   }
 
-  const getStatusIcon = () => {
-    if (!isCurrentUser || isGroup) return null;
-    
-    // Show disabled checks if the recipient has read receipts disabled
-    if (recipient?.readReceiptsEnabled === false) {
-        return <CheckCheck className="h-4 w-4 text-muted-foreground" />;
-    }
-    switch (message.status) {
-      case 'read':
-        return <CheckCheck className="h-4 w-4 text-green-400" />;
-      case 'delivered':
-        return <CheckCheck className="h-4 w-4 text-muted-foreground" />;
-      case 'sent':
-      default:
-        return <Check className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
   const handleReaction = (emoji: string) => {
     onReact(message.id, emoji);
     setShowReactionPicker(false);
@@ -397,7 +379,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, r
           <span className={cn(isCurrentUser ? "text-primary-foreground/70" : "text-white")}>
             {message.timestamp}
           </span>
-          {getStatusIcon()}
+          {isCurrentUser && <Check className="h-4 w-4 text-muted-foreground" />}
         </div>
         {showReactionPicker && (
             <div className="absolute bottom-full mb-2 z-10">

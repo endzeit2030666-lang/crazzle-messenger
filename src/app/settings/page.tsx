@@ -49,7 +49,6 @@ export default function SettingsPage() {
   const { user: currentUser, isUserLoading } = useUser();
   
   const [userData, setUserData] = useState<UserType | null>(null);
-  const [readReceipts, setReadReceipts] = useState(true);
   const [notificationsMuted, setNotificationsMuted] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   
@@ -70,7 +69,6 @@ export default function SettingsPage() {
         if (doc.exists()) {
             const data = doc.data() as UserType;
             setUserData(data);
-            setReadReceipts(data.readReceiptsEnabled ?? true);
 
             const blockedIds = data.blockedUsers || [];
             if (blockedIds.length > 0) {
@@ -92,22 +90,6 @@ export default function SettingsPage() {
 
     return () => unsubscribe();
   }, [currentUser, firestore, isUserLoading, router, toast]);
-
-  const handleReadReceiptsChange = async (checked: boolean) => {
-    if (!currentUser || !firestore) return;
-    setReadReceipts(checked);
-    const userDocRef = doc(firestore, 'users', currentUser.uid);
-    try {
-        await updateDoc(userDocRef, { readReceiptsEnabled: checked });
-        toast({
-            title: "Lesebestätigungen " + (checked ? "aktiviert" : "deaktiviert"),
-        });
-    } catch(e) {
-        console.error(e);
-        toast({variant: 'destructive', title: 'Fehler beim Speichern der Einstellung'});
-        setReadReceipts(!checked); // Revert on error
-    }
-  }
 
   const unblockContact = async (contactId: string) => {
     if (!currentUser || !firestore) return;
@@ -158,13 +140,6 @@ export default function SettingsPage() {
       <main className="flex-1 overflow-y-auto p-4 space-y-2">
         
         <div className="bg-muted/50 rounded-lg">
-          <SettingsToggleItem 
-            icon={Shield} 
-            label="Lesebestätigungen"
-            checked={readReceipts}
-            onCheckedChange={handleReadReceiptsChange}
-          />
-          <div className="border-t border-border mx-4"></div>
            <button onClick={() => setShowBlockDialog(true)} className="w-full flex items-center p-4 rounded-lg hover:bg-muted transition-colors">
               <div className="p-2 bg-muted rounded-full mr-4">
                 <UserX className="w-5 h-5 text-primary" />

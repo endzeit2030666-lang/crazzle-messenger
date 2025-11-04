@@ -188,34 +188,6 @@ export default function ChatView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firestore, conversation.id]);
 
-  // Effect to mark messages as 'delivered' or 'read'
-  useEffect(() => {
-      if (!firestore || messages.length === 0 || !currentUser.uid) return;
-
-      const batch = writeBatch(firestore);
-      let hasUpdates = false;
-
-      messages.forEach(msg => {
-          if (msg.senderId !== currentUser.uid) {
-              if (msg.status === 'sent') {
-                  const msgRef = doc(firestore, 'conversations', conversation.id, 'messages', msg.id);
-                  batch.update(msgRef, { status: 'delivered' });
-                  hasUpdates = true;
-              }
-              else if (msg.status === 'delivered') {
-                 const msgRef = doc(firestore, 'conversations', conversation.id, 'messages', msg.id);
-                  batch.update(msgRef, { status: 'read', readAt: serverTimestamp() });
-                  hasUpdates = true;
-              }
-          }
-      });
-
-      if (hasUpdates) {
-          batch.commit().catch(e => console.error("Error updating message statuses", e));
-      }
-  }, [messages, conversation.id, currentUser.uid, firestore]);
-
-
   useEffect(() => {
     if (scrollAreaRef.current && !isLoadingMore) {
         scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;

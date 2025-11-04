@@ -9,7 +9,6 @@ export type User = {
   publicKey?: string;
   phoneNumber?: string;
   bio?: string;
-  readReceiptsEnabled?: boolean;
   blockedUsers?: string[];
 };
 

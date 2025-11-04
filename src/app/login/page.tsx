@@ -113,14 +113,13 @@ export default function LoginPage() {
         const randomAvatar = PlaceHolderImages[Math.floor(Math.random() * 5)].imageUrl;
         const randomName = `User-${Math.random().toString(36).substring(2, 8)}`;
         
-        const newUser: UserType = {
+        const newUser: Omit<UserType, 'lastSeen' | 'bio' | 'blockedUsers'> = {
           id: newSessionUid, // The document ID is the new session UID
           name: randomName,
           avatar: randomAvatar,
           onlineStatus: 'online',
           publicKey: publicKeyB64,
           phoneNumber: trimmedPhoneNumber,
-          readReceiptsEnabled: true,
         };
         
         // Create the new user document with the new session UID.
