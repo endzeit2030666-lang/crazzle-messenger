@@ -146,19 +146,20 @@ export default function LoginPage() {
         
         // Reference the *existing* document to update it.
         const userDocRef = doc(firestore, 'users', existingUserId);
+        
+        const updateData = {
+          id: newSessionUid, // Link the existing profile to the new auth session UID
+          publicKey: publicKeyB64, // Update the public key
+        };
 
-        // Use setDoc with merge to update the existing document.
-        // This links the new auth session (newSessionUid) to the existing profile
-        // and updates the public key.
+        // Use setDoc with merge to safely update the existing document.
+        // This links the new auth session to the existing profile and updates the public key.
         // This is safer than updateDoc as it won't fail if the doc is unexpectedly missing.
-        setDoc(userDocRef, {
-            id: newSessionUid, // Link the existing profile to the new auth session UID
-            publicKey: publicKeyB64, // Update the public key
-        }, { merge: true }).catch((serverError) => {
+        setDoc(userDocRef, updateData, { merge: true }).catch((serverError) => {
              const permissionError = new FirestorePermissionError({
                 path: userDocRef.path,
                 operation: 'update',
-                requestResourceData: { id: newSessionUid, publicKey: publicKeyB64 },
+                requestResourceData: updateData,
             });
             errorEmitter.emit('permission-error', permissionError);
         });
@@ -175,9 +176,8 @@ export default function LoginPage() {
     } catch (error: any) {
         console.error("Sign-in or user creation error:", error);
         
-        // This is a fallback error emission. The .catch blocks on setDoc should handle specific cases.
         const permissionError = new FirestorePermissionError({
-          path: `users/unknown_uid`,
+          path: `users/unknown_uid_on_catch`,
           operation: 'create',
           requestResourceData: { phoneNumber: trimmedPhoneNumber },
         });
