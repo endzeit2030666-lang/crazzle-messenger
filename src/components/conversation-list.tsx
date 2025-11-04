@@ -47,10 +47,6 @@ export default function ConversationList({
 
   const conversations = useMemo(() => {
     return initialConversations
-      .map(convo => {
-        const unreadCount = convo.lastMessage?.senderId !== currentUser.uid && convo.lastMessage?.status !== 'read' ? 1 : 0;
-        return { ...convo, unreadCount };
-      })
       .filter(convo => {
         if (!searchTerm) return true;
         const lowerCaseSearch = searchTerm.toLowerCase();
@@ -140,11 +136,6 @@ export default function ConversationList({
               </p>
               <div className="flex items-center gap-2">
                   {convo.isMuted && <BellOff className={cn("w-3.5 h-3.5", selectedConversationId === convo.id ? "text-primary-foreground/70" : "text-muted-foreground")} />}
-                  {convo.unreadCount && convo.unreadCount > 0 && (
-                      <span className={cn("flex items-center justify-center text-xs font-bold rounded-full h-5 min-w-[1.25rem] px-1", selectedConversationId === convo.id ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground")}>
-                          {convo.unreadCount}
-                      </span>
-                  )}
               </div>
           </div>
         </div>
