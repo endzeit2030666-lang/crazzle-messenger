@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "build:mobile": "next build && next export",
     "cap:sync": "npx cap sync android",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "zip": "zip -r crazzle_project.zip . -x \"*.next*\" \"*node_modules*\""
   },
   "dependencies": {
     "@capacitor/android": "^6.1.0",
