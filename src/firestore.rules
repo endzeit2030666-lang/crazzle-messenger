@@ -15,7 +15,7 @@ service cloud.firestore {
     // USERS
     // Users can read any profile (for contact lists)
     // Users can only create their own profile.
-    // Existing users can update their profile if they are signed in.
+    // Existing users can update their own profile if they are signed in.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isUser(userId);

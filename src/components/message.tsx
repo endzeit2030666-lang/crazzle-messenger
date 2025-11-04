@@ -246,6 +246,7 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, r
 
   const getStatusIcon = () => {
     if (!isCurrentUser || isGroup) return null;
+    
     // Show disabled checks if the recipient has read receipts disabled
     if (recipient?.readReceiptsEnabled === false) {
         return <CheckCheck className="h-4 w-4 text-muted-foreground" />;

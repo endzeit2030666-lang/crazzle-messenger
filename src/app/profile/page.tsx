@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -133,13 +133,13 @@ export default function ProfilePage() {
       .then(() => {
         router.push(`/?chatId=${conversationId}`);
       })
-      .catch((error) => {
-        console.error("Error creating conversation:", error);
-        toast({
-            variant: "destructive",
-            title: "Fehler beim Erstellen des Chats",
-            description: "Die Konversation konnte nicht gestartet werden.",
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: conversationRef.path,
+          operation: 'create',
+          requestResourceData: newConversationData,
         });
+        errorEmitter.emit('permission-error', permissionError);
       });
   }
 
