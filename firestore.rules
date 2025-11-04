@@ -1,55 +1,85 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
+    
+    // Helper function to check if user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
-
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // USERS
-    // Users can read any profile (for contact lists)
-    // Users can only create their own profile and update it.
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isUser(userId);
-      allow update: if isUser(userId);
-      allow delete: if false; // Users should not be able to delete their accounts this way
-      
-      // CONTACTS subcollection
-      // Users can only manage their own contacts.
-      match /contacts/{contactId} {
-        allow read, create, delete: if isUser(userId);
-        allow update: if false; // Contacts are based on user profiles, should not be updated directly
-      }
+    
+    // Helper function to check if user is owner
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
     
-    // CONVERSATIONS
-    // Users can only read/write conversations they are a part of
-    match /conversations/{conversationId} {
-      allow read: if isSignedIn() && request.auth.uid in resource.data.participantIds;
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
-      // Allow updates only if user is a participant. For member changes, only admins can change participantIds
-      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds &&
-                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'typing', 'isMuted']) ||
-                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantIds']) && resource.data.admins.hasAny([request.auth.uid])));
-      allow delete: if isSignedIn() && request.auth.uid in resource.data.admins;
+    // Helper function to check if user is participant in conversation
+    function isParticipant(participantIds) {
+      return isSignedIn() && request.auth.uid in participantIds;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Anyone can read user profiles
+      allow read: if isSignedIn();
       
-      // MESSAGES subcollection
-      // Users can only read/write messages in conversations they are a part of
+      // Users can only write their own profile
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+      
+      // Contacts subcollection - private to user
+      match /contacts/{contactId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+
+    // Conversations Collection
+    match /conversations/{conversationId} {
+      // User can read conversations they are part of
+      allow read: if isSignedIn() && 
+                     request.auth.uid in resource.data.participantIds;
+      
+      // User can create conversations where they are a participant
+      allow create: if isSignedIn() && 
+                       request.auth.uid in request.resource.data.participantIds;
+      
+      // Participants can update conversations
+      allow update: if isSignedIn() && 
+                       request.auth.uid in resource.data.participantIds;
+      
+      // Participants can delete conversations
+      allow delete: if isSignedIn() && 
+                       request.auth.uid in resource.data.participantIds;
+      
+      // Messages subcollection
       match /messages/{messageId} {
-        allow read, create: if isSignedIn() && 
-                                request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
-                                
-        allow update: if isSignedIn() && (request.auth.uid == resource.data.senderId);
+        // Participants can read messages
+        allow read: if isSignedIn() && 
+                       request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+        
+        // Participants can create messages
+        allow create: if isSignedIn() && 
+                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+        
+        // Message sender can update their own messages
+        allow update: if isSignedIn() && 
+                         request.auth.uid == resource.data.senderId;
+        
+        // Message sender can delete their own messages
         allow delete: if isSignedIn() && 
-                        (request.auth.uid == resource.data.senderId || 
-                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.admins);
+                         request.auth.uid == resource.data.senderId;
+      }
+    }
+
+    // Status Collection
+    match /status/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+      
+      match /items/{statusId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
       }
     }
   }
