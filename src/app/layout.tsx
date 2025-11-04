@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
@@ -6,7 +6,14 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 export const metadata: Metadata = {
   title: 'Crazzle',
   description: 'Sicherer E2E Messenger',
-  viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1.0,
+  maximumScale: 1.0,
+  userScalable: false,
+  viewportFit: 'cover'
 };
 
 export default function RootLayout({
