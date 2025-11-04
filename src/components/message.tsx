@@ -149,7 +149,7 @@ type MessageProps = {
   onEdit: (message: MessageType) => void;
   onDelete: (messageId: string) => void;
   onReact: (messageId: string, emoji: string) => void;
-  currentUserData?: UserType | null;
+  recipient?: UserType | null; // Pass the recipient for private chats
   sender?: UserType;
   currentUser: User;
   isGroup: boolean;
@@ -203,7 +203,7 @@ const MediaMessage = ({ message }: { message: MessageType }) => {
 };
 
 
-export default function Message({ message, onQuote, onEdit, onDelete, onReact, currentUserData, sender, currentUser, isGroup }: MessageProps) {
+export default function Message({ message, onQuote, onEdit, onDelete, onReact, recipient, sender, currentUser, isGroup }: MessageProps) {
   const messageRef = useRef<HTMLDivElement>(null);
   const isCurrentUser = message.senderId === currentUser.uid;
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -245,8 +245,9 @@ export default function Message({ message, onQuote, onEdit, onDelete, onReact, c
   }
 
   const getStatusIcon = () => {
-    if (!isCurrentUser) return null;
-    if (currentUserData?.readReceiptsEnabled === false) {
+    if (!isCurrentUser || isGroup) return null;
+    // Show disabled checks if the recipient has read receipts disabled
+    if (recipient?.readReceiptsEnabled === false) {
         return <CheckCheck className="h-4 w-4 text-muted-foreground" />;
     }
     switch (message.status) {

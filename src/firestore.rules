@@ -15,11 +15,11 @@ service cloud.firestore {
     // USERS
     // Users can read any profile (for contact lists)
     // Users can only create their own profile.
-    // Existing users can update their profile (e.g. public key) if they are signed in.
+    // Existing users can update their profile if they are signed in.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isUser(userId);
-      allow update: if isSignedIn(); // Allow updates for signed-in users to update their public key.
+      allow update: if isUser(userId); // Allow users to update their own profile
       allow delete: if false; // Users should not be able to delete their accounts this way
       
       // CONTACTS subcollection

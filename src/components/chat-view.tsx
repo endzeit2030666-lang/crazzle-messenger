@@ -454,7 +454,7 @@ export default function ChatView({
                     onEdit={handleEdit}
                     onDelete={onDeleteMessage}
                     onReact={onReact}
-                    currentUserData={conversation.participants.find(p => p.id === currentUser.uid)}
+                    recipient={contact}
                     sender={conversation.participants.find(p => p.id === message.senderId)}
                     currentUser={currentUser}
                     isGroup={isGroup}
