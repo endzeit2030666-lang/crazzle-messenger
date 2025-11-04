@@ -371,7 +371,7 @@ export default function ChatLayout({ currentUser, setSendMessage }: ChatLayoutPr
   const navigateToProfile = () => router.push('/profile');
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex h-screen w-screen overflow-hidden">
       <div className={cn("w-full md:w-96 flex-col md:flex", selectedConversationId ? "hidden" : "flex")}>
         <ConversationList
           conversations={conversations}

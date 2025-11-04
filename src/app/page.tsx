@@ -16,7 +16,7 @@ export default function Home() {
   const processedMediaUrlRef = useRef<string | null>(null);
   
   // This is a bit of a hack to get the sendMessage function from the layout
-  const sendMessageRef = useRef<(content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number) => void>();
+  const sendMessageRef = useRef<(content: string, type?: Message['type'], duration?: number, selfDestructDuration?: number, fileName?: string) => void>();
 
 
   useEffect(() => {
@@ -49,14 +49,14 @@ export default function Home() {
 
   if (isUserLoading || !user) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <main>
+    <main className="h-screen w-screen overflow-hidden bg-background">
       <ChatLayout 
         currentUser={user}
         setSendMessage={(fn) => { sendMessageRef.current = fn; }} 

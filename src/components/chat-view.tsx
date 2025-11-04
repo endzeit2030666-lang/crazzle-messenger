@@ -331,7 +331,7 @@ export default function ChatView({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-screen bg-background">
+    <div className="flex-1 flex flex-col h-screen max-h-screen bg-background overflow-hidden">
       <header className="flex items-center p-4 border-b border-border shadow-sm z-10">
         <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={onBack}>
             <ArrowLeft className="w-5 h-5" />
